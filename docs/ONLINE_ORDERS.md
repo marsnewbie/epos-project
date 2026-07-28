@@ -30,7 +30,7 @@ When the public domain changes: Settings → Online → update base URL (or past
 1. Poll JSON next (204 = empty).
 2. Map DTO → `PosOrder` (full kitchen fields: requested-for, payment, bilingual lines, fees…).
 3. Kitchen print via ESC/POS to GlPrinter80 (EPOS-owned layout; information-equivalent to GcAnyOrder).
-4. Ack printed on the website.
+4. Ack with `ak=Accepted` (same as GcAnyOrder handheld) → website `status=confirmed`, `print_status=accepted`.
 
 Fallback: if Order Server URL still points at `gcanyorder/getorder`, the poller accepts Goodcom text.
 

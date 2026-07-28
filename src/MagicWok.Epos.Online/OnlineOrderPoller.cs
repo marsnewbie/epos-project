@@ -95,7 +95,7 @@ public sealed class WebsitePrintClient
         EnsureCredentials(opt);
         var ackBase = string.IsNullOrWhiteSpace(opt.PrintedUrl) ? opt.CallbackUrl : opt.PrintedUrl;
         var url = AppendAuth(ackBase, opt);
-        url += $"&o={Uri.EscapeDataString(orderNumber)}&ak=Printed";
+        url += $"&o={Uri.EscapeDataString(orderNumber)}&ak=Accepted";
         using var resp = await _http.GetAsync(url, ct);
         resp.EnsureSuccessStatusCode();
     }
