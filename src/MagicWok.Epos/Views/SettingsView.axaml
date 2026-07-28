@@ -1,0 +1,68 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MagicWok.Epos.ViewModels"
+             x:Class="MagicWok.Epos.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel"
+             Background="#1c1917">
+  <ScrollViewer Margin="4">
+    <StackPanel Spacing="0" MaxWidth="760">
+      <Border Background="#141210" CornerRadius="8" Padding="16" Margin="0,0,0,10">
+        <StackPanel Spacing="4">
+          <TextBlock Text="Shop / 店铺" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,8" />
+          <TextBox Classes="pos-field" Watermark="Shop name" Text="{Binding ShopName}" />
+          <TextBox Classes="pos-field" Watermark="Address" Text="{Binding ShopAddress}" />
+          <TextBox Classes="pos-field" Watermark="Postcode" Text="{Binding ShopPostcode}" />
+          <TextBox Classes="pos-field" Watermark="Phone" Text="{Binding ShopPhone}" />
+          <TextBox Classes="pos-field" Watermark="Default delivery fee" Text="{Binding DefaultDeliveryFeeText}" />
+        </StackPanel>
+      </Border>
+
+      <Border Background="#141210" CornerRadius="8" Padding="16" Margin="0,0,0,10">
+        <StackPanel Spacing="4">
+          <TextBlock Text="Printers / 打印机" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,8" />
+          <TextBox Classes="pos-field" Watermark="Kitchen printer queue" Text="{Binding KitchenPrinter}" />
+          <TextBox Classes="pos-field" Watermark="Front printer queue" Text="{Binding FrontPrinter}" />
+          <TextBox Classes="pos-field" Watermark="Encoding gb18030|utf8" Text="{Binding PrintEncoding}" />
+          <CheckBox IsChecked="{Binding OpenDrawerOnCash}" Content="Open drawer on cash pay" Foreground="#e7e5e4" Margin="0,4" />
+          <CheckBox IsChecked="{Binding SendKitchenOnSend}" Content="Send kitchen on Send/Pay" Foreground="#e7e5e4" Margin="0,4" />
+          <CheckBox IsChecked="{Binding PrintFrontOnPay}" Content="Print front receipt on pay" Foreground="#e7e5e4" Margin="0,4" />
+          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+            <Button Classes="pos-action pos-send" Content="Save + test print" Command="{Binding TestPrintCommand}" Width="180" />
+            <Button Classes="pos-nav" Content="Open drawer" Command="{Binding OpenDrawerCommand}" Width="140" Height="52" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Background="#141210" CornerRadius="8" Padding="16" Margin="0,0,0,10">
+        <StackPanel Spacing="4">
+          <TextBlock Text="Online orders / 线上" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,4" />
+          <TextBlock Text="Copy a / u / p from website Admin → Print. Stored locally only."
+                     FontSize="12" Foreground="#a8a29e" TextWrapping="Wrap" Margin="0,0,0,8" />
+          <TextBox Classes="pos-field" Watermark="Base URL" Text="{Binding OnlineBaseUrl}" />
+          <Button Classes="pos-nav" Content="Apply base URL → 3 endpoints" Command="{Binding ApplyBaseUrlCommand}"
+                  HorizontalAlignment="Left" Width="260" Height="40" Margin="0,0,0,8" />
+          <TextBox Classes="pos-field" Watermark="EPOS Next URL (/api/print/epos/next)" Text="{Binding OrderServerUrl}" />
+          <TextBox Classes="pos-field" Watermark="EPOS Ack URL (/api/print/epos/ack)" Text="{Binding PrintedUrl}" />
+          <TextBox Classes="pos-field" Watermark="Res ID (a)" Text="{Binding OnlineResId}" />
+          <TextBox Classes="pos-field" Watermark="Username (u)" Text="{Binding OnlineUsername}" />
+          <TextBox Classes="pos-field" Watermark="Password (p)" Text="{Binding OnlinePassword}" PasswordChar="•" />
+          <TextBox Classes="pos-field" Watermark="Poll interval seconds" Text="{Binding PollIntervalText}" />
+          <CheckBox IsChecked="{Binding OnlinePollingEnabled}" Content="Enable polling on startup" Foreground="#e7e5e4" Margin="0,4" />
+          <CheckBox IsChecked="{Binding AutoKitchenPrintOnline}" Content="Auto kitchen print online orders" Foreground="#e7e5e4" Margin="0,4" />
+        </StackPanel>
+      </Border>
+
+      <Border Background="#141210" CornerRadius="8" Padding="16" Margin="0,0,0,10">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Menu / 菜单" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" />
+          <TextBlock Text="{Binding MenuInfo}" TextWrapping="Wrap" Foreground="#a8a29e" />
+          <Button Classes="pos-nav" Content="Re-import embedded Magic Wok menu"
+                  Command="{Binding ReimportMenuCommand}" HorizontalAlignment="Left" Width="320" Height="44" />
+        </StackPanel>
+      </Border>
+
+      <Button Classes="pos-action pos-cash" Content="SAVE SETTINGS / 保存"
+              Command="{Binding SaveCommand}" HorizontalAlignment="Left" Width="240" Margin="0,8,0,24" />
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

@@ -1,0 +1,4158 @@
+[
+  {
+    "id": "S1",
+    "category_id": "cat-specials",
+    "menu_number": "S1",
+    "name": "Spicy Box",
+    "description": "Salt & pepper chicken, chips, mini spring rolls, sweet & sour sauce",
+    "base_price": 8.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": true,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "29",
+    "category_id": "cat-sweet-sour",
+    "menu_number": "29",
+    "name": "Sweet & Sour Chicken Balls",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "22",
+    "category_id": "cat-soups",
+    "menu_number": "22",
+    "name": "Chicken & Sweetcorn Soup",
+    "description": null,
+    "base_price": 4.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "103",
+    "category_id": "cat-egg-foo",
+    "menu_number": "103",
+    "name": "Special Egg Foo Yung",
+    "description": "Prawns, Beef, Chicken & Pork",
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "50",
+    "category_id": "cat-chicken",
+    "menu_number": "50",
+    "name": "Chicken with Mushrooms",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "109",
+    "category_id": "cat-noodles",
+    "menu_number": "109",
+    "name": "Chicken Chow Mein",
+    "description": null,
+    "base_price": 6.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "143",
+    "category_id": "cat-desserts",
+    "menu_number": "143",
+    "name": "Banana Fritter",
+    "description": null,
+    "base_price": 3.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "80",
+    "category_id": "cat-seafood",
+    "menu_number": "80",
+    "name": "King Prawns with Mushrooms",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "95",
+    "category_id": "cat-vegetarian",
+    "menu_number": "95",
+    "name": "Mixed Vegetables",
+    "description": null,
+    "base_price": 5.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "153",
+    "category_id": "cat-drinks",
+    "menu_number": "153",
+    "name": "Can of Drink",
+    "description": null,
+    "base_price": 1.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [
+      {
+        "id": "153-flavour",
+        "name": "Choose Drink",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "153-coke",
+            "label": "Coke",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "153-diet",
+            "label": "Diet Coke",
+            "priceDelta": 0
+          },
+          {
+            "id": "153-7up",
+            "label": "7up",
+            "priceDelta": 0
+          },
+          {
+            "id": "153-water",
+            "label": "Still Water",
+            "priceDelta": 0
+          },
+          {
+            "id": "153-fanta",
+            "label": "Fanta Orange",
+            "priceDelta": 0
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      }
+    ],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "T1",
+    "category_id": "cat-thai",
+    "menu_number": "T1",
+    "name": "Fried Rice Thai Style",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [
+      {
+        "id": "thai-protein",
+        "name": "Choose Protein",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "tp-chicken",
+            "label": "Chicken",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "tp-beef",
+            "label": "Beef",
+            "priceDelta": 0.2
+          },
+          {
+            "id": "tp-prawn",
+            "label": "King Prawn",
+            "priceDelta": 0.6
+          },
+          {
+            "id": "tp-duck",
+            "label": "Roast Duck",
+            "priceDelta": 0.3
+          },
+          {
+            "id": "tp-veg",
+            "label": "Mixed Vegetable",
+            "priceDelta": -0.5
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      }
+    ],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "1",
+    "category_id": "cat-starters",
+    "menu_number": "1",
+    "name": "Mixed Hors D'oeuvres (For 2)",
+    "description": null,
+    "base_price": 9.5,
+    "image": "https://nzjskeifjjscmkvvdxnx.supabase.co/storage/v1/object/public/menu-images/items/f2ce8e5f-6a8e-4d95-8deb-06792bdbdaf7.webp",
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "35",
+    "category_id": "cat-curry",
+    "menu_number": "35",
+    "name": "Special Curry",
+    "description": "Prawns, Beef, Chicken & Pork",
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "74",
+    "category_id": "cat-pork",
+    "menu_number": "74",
+    "name": "Roast Pork with Mushrooms",
+    "description": null,
+    "base_price": 7,
+    "image": "/images/Roast Pork.jpg",
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "63",
+    "category_id": "cat-beef",
+    "menu_number": "63",
+    "name": "Beef with Mushrooms",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "43",
+    "category_id": "cat-duck",
+    "menu_number": "43",
+    "name": "Duck with Plum Sauce",
+    "description": null,
+    "base_price": 7.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "set-a",
+    "category_id": "cat-set-menus",
+    "menu_number": "A",
+    "name": "Set Menu A (For 1)",
+    "description": "Sweet & sour chicken, beef curry, egg fried rice, prawn crackers",
+    "base_price": 13,
+    "image": null,
+    "is_available": true,
+    "is_bundle": true,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "130",
+    "category_id": "cat-rice",
+    "menu_number": "130",
+    "name": "Boiled Rice",
+    "description": null,
+    "base_price": 3.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "sample-simple",
+    "category_id": "cat-sample",
+    "menu_number": "SMP-1",
+    "name": "Sample: Simple Item (No Options)",
+    "description": "Basic dish with fixed price — no customisation needed.",
+    "base_price": 5.99,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "145",
+    "category_id": "cat-sauces",
+    "menu_number": "145",
+    "name": "Curry Sauce",
+    "description": null,
+    "base_price": 2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 1,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "23",
+    "category_id": "cat-soups",
+    "menu_number": "23",
+    "name": "Chicken & Noodle Soup",
+    "description": null,
+    "base_price": 4.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "75",
+    "category_id": "cat-pork",
+    "menu_number": "75",
+    "name": "Roast Pork with Mixed Vegetables",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "sample-radio",
+    "category_id": "cat-sample",
+    "menu_number": "SMP-2",
+    "name": "Sample: Required Radio (Sauce Choice)",
+    "description": "Customer must pick exactly one sauce.",
+    "base_price": 6.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [
+      {
+        "id": "smp-radio",
+        "name": "Choose Sauce",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "smp-r-bbq",
+            "label": "BBQ",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "smp-r-curry",
+            "label": "Curry",
+            "priceDelta": 0
+          },
+          {
+            "id": "smp-r-sp",
+            "label": "Salt & Pepper",
+            "priceDelta": 0.5
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      }
+    ],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "44",
+    "category_id": "cat-duck",
+    "menu_number": "44",
+    "name": "Duck with Orange Sauce",
+    "description": null,
+    "base_price": 7.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "131",
+    "category_id": "cat-rice",
+    "menu_number": "131",
+    "name": "Egg Fried Rice",
+    "description": null,
+    "base_price": 4,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "96",
+    "category_id": "cat-vegetarian",
+    "menu_number": "96",
+    "name": "Mushrooms with Bamboo Shoots & Water Chestnuts",
+    "description": null,
+    "base_price": 5.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "64",
+    "category_id": "cat-beef",
+    "menu_number": "64",
+    "name": "Beef with Cashew Nuts",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-nuts"
+    ],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "154",
+    "category_id": "cat-drinks",
+    "menu_number": "154",
+    "name": "Bottle of Drink (1.25L)",
+    "description": null,
+    "base_price": 3.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [
+      {
+        "id": "154-flavour",
+        "name": "Choose Drink",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "154-coke",
+            "label": "Coke",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "154-diet",
+            "label": "Diet Coke",
+            "priceDelta": 0
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      }
+    ],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "51",
+    "category_id": "cat-chicken",
+    "menu_number": "51",
+    "name": "Chicken with Cashew Nuts",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-nuts"
+    ],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "36",
+    "category_id": "cat-curry",
+    "menu_number": "36",
+    "name": "Chicken Curry",
+    "description": null,
+    "base_price": 7,
+    "image": "/images/Chicken Curry.jpg",
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "30",
+    "category_id": "cat-sweet-sour",
+    "menu_number": "30",
+    "name": "Sweet & Sour Pork Balls",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "110",
+    "category_id": "cat-noodles",
+    "menu_number": "110",
+    "name": "Beef Chow Mein",
+    "description": null,
+    "base_price": 6.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "81",
+    "category_id": "cat-seafood",
+    "menu_number": "81",
+    "name": "King Prawns with Cashew Nuts",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-nuts"
+    ],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "2",
+    "category_id": "cat-starters",
+    "menu_number": "2",
+    "name": "Aromatic Duck",
+    "description": null,
+    "base_price": 13.5,
+    "image": "/images/Aromatic Duck.jpg",
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [
+      {
+        "id": "2-size",
+        "name": "Size",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "2-half",
+            "label": "Half (12 Pancakes)",
+            "isDefault": true,
+            "priceDelta": 0,
+            "optionTranslation": "半"
+          },
+          {
+            "id": "2-whole",
+            "label": "Whole (18 Pancakes)",
+            "priceDelta": 12.5,
+            "optionTranslation": "全"
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      }
+    ],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": "香酥鸭"
+  },
+  {
+    "id": "T2",
+    "category_id": "cat-thai",
+    "menu_number": "T2",
+    "name": "Pad Thai",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [
+      {
+        "id": "thai-protein",
+        "name": "Choose Protein",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "tp-chicken",
+            "label": "Chicken",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "tp-beef",
+            "label": "Beef",
+            "priceDelta": 0.2
+          },
+          {
+            "id": "tp-prawn",
+            "label": "King Prawn",
+            "priceDelta": 0.6
+          },
+          {
+            "id": "tp-duck",
+            "label": "Roast Duck",
+            "priceDelta": 0.3
+          },
+          {
+            "id": "tp-veg",
+            "label": "Mixed Vegetable",
+            "priceDelta": -0.5
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      }
+    ],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "set-b",
+    "category_id": "cat-set-menus",
+    "menu_number": "B",
+    "name": "Set Menu B (For 2)",
+    "description": "Sesame prawn toast, sweet & sour chicken balls, beef black bean, chicken chow mein, egg fried rice, prawn crackers",
+    "base_price": 24.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": true,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "S2",
+    "category_id": "cat-specials",
+    "menu_number": "S2",
+    "name": "Munchy Box",
+    "description": "Spare ribs, chicken wings, salt & pepper chicken, chips, chicken balls, mini spring rolls, curry sauce",
+    "base_price": 16,
+    "image": null,
+    "is_available": true,
+    "is_bundle": true,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "104",
+    "category_id": "cat-egg-foo",
+    "menu_number": "104",
+    "name": "Chicken Egg Foo Yung",
+    "description": null,
+    "base_price": 6.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "144",
+    "category_id": "cat-desserts",
+    "menu_number": "144",
+    "name": "Pineapple Fritter",
+    "description": null,
+    "base_price": 3.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "146",
+    "category_id": "cat-sauces",
+    "menu_number": "146",
+    "name": "Sweet & Sour Sauce",
+    "description": null,
+    "base_price": 1.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 2,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "132",
+    "category_id": "cat-rice",
+    "menu_number": "132",
+    "name": "Chicken Fried Rice",
+    "description": null,
+    "base_price": 6.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "S3",
+    "category_id": "cat-specials",
+    "menu_number": "S3",
+    "name": "Combination Tray (5 in 1)",
+    "description": null,
+    "base_price": 9.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": true,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "97",
+    "category_id": "cat-vegetarian",
+    "menu_number": "97",
+    "name": "Beansprouts",
+    "description": null,
+    "base_price": 5.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "37",
+    "category_id": "cat-curry",
+    "menu_number": "37",
+    "name": "Beef Curry",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "sample-select-price",
+    "category_id": "cat-sample",
+    "menu_number": "SMP-3",
+    "name": "Sample: Select with Price Variants",
+    "description": "Protein choice changes the price.",
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [
+      {
+        "id": "smp-protein",
+        "name": "Choose Protein",
+        "type": "select",
+        "choices": [
+          {
+            "id": "smp-p-chicken",
+            "label": "Chicken",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "smp-p-beef",
+            "label": "Beef",
+            "priceDelta": 0.5
+          },
+          {
+            "id": "smp-p-prawn",
+            "label": "King Prawn",
+            "priceDelta": 1.2
+          },
+          {
+            "id": "smp-p-tofu",
+            "label": "Tofu (V)",
+            "priceDelta": -0.5
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      }
+    ],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "105",
+    "category_id": "cat-egg-foo",
+    "menu_number": "105",
+    "name": "Beef Egg Foo Yung",
+    "description": null,
+    "base_price": 6.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "45",
+    "category_id": "cat-duck",
+    "menu_number": "45",
+    "name": "Duck with Oyster Sauce",
+    "description": null,
+    "base_price": 7.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "set-c",
+    "category_id": "cat-set-menus",
+    "menu_number": "C",
+    "name": "Set Menu C (For 3)",
+    "description": "Aromatic duck half, spare ribs, sweet & sour king prawns, chicken curry, beef green pepper black bean, special fried rice, prawn crackers",
+    "base_price": 34.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": true,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "24",
+    "category_id": "cat-soups",
+    "menu_number": "24",
+    "name": "Chicken & Mushroom Soup",
+    "description": null,
+    "base_price": 4.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "147",
+    "category_id": "cat-sauces",
+    "menu_number": "147",
+    "name": "Satay Sauce",
+    "description": null,
+    "base_price": 2.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-nuts"
+    ],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "3",
+    "category_id": "cat-starters",
+    "menu_number": "3",
+    "name": "Yuk Sung",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [
+      {
+        "id": "3-protein",
+        "name": "Choose Protein",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "3-pork",
+            "label": "Pork",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "3-chicken",
+            "label": "Chicken",
+            "priceDelta": 0
+          },
+          {
+            "id": "3-prawn",
+            "label": "King Prawn",
+            "priceDelta": 0.8
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      }
+    ],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "65",
+    "category_id": "cat-beef",
+    "menu_number": "65",
+    "name": "Beef with Black Bean Sauce",
+    "description": null,
+    "base_price": 7,
+    "image": "/images/Beef with Black Bean Sauce.jpg",
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "76",
+    "category_id": "cat-pork",
+    "menu_number": "76",
+    "name": "Roast Pork with Black Bean Sauce",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "82",
+    "category_id": "cat-seafood",
+    "menu_number": "82",
+    "name": "King Prawns with Black Bean Sauce",
+    "description": null,
+    "base_price": 7.2,
+    "image": "/images/King Prawns with Black Bean Sauce.jpg",
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "111",
+    "category_id": "cat-noodles",
+    "menu_number": "111",
+    "name": "King Prawn Chow Mein",
+    "description": null,
+    "base_price": 7,
+    "image": "/images/King Prawn Chow Mein.jpg",
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "52",
+    "category_id": "cat-chicken",
+    "menu_number": "52",
+    "name": "Chicken with Black Bean Sauce",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "31",
+    "category_id": "cat-sweet-sour",
+    "menu_number": "31",
+    "name": "Sweet & Sour King Prawn Balls",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "T3",
+    "category_id": "cat-thai",
+    "menu_number": "T3",
+    "name": "Pa Kin Mao",
+    "description": null,
+    "base_price": 7.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [
+      {
+        "id": "thai-protein",
+        "name": "Choose Protein",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "tp-chicken",
+            "label": "Chicken",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "tp-beef",
+            "label": "Beef",
+            "priceDelta": 0.3
+          },
+          {
+            "id": "tp-prawn",
+            "label": "King Prawn",
+            "priceDelta": 1.1
+          },
+          {
+            "id": "tp-duck",
+            "label": "Roast Duck",
+            "priceDelta": 0.8
+          },
+          {
+            "id": "tp-veg",
+            "label": "Mixed Vegetable",
+            "priceDelta": 1.5
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      }
+    ],
+    "sort_order": 3,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.051+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "32",
+    "category_id": "cat-sweet-sour",
+    "menu_number": "32",
+    "name": "Sweet & Sour Chicken Hong Kong Style",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "25",
+    "category_id": "cat-soups",
+    "menu_number": "25",
+    "name": "Hot & Sour Soup",
+    "description": null,
+    "base_price": 4.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-extra-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "S4",
+    "category_id": "cat-specials",
+    "menu_number": "S4",
+    "name": "Combination Tray (4 in 1)",
+    "description": null,
+    "base_price": 6.6,
+    "image": null,
+    "is_available": true,
+    "is_bundle": true,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "133",
+    "category_id": "cat-rice",
+    "menu_number": "133",
+    "name": "Beef Fried Rice",
+    "description": null,
+    "base_price": 6.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "38",
+    "category_id": "cat-curry",
+    "menu_number": "38",
+    "name": "Roast Pork Curry",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "98",
+    "category_id": "cat-vegetarian",
+    "menu_number": "98",
+    "name": "Tofu with Black Bean Sauce",
+    "description": null,
+    "base_price": 5.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy",
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "77",
+    "category_id": "cat-pork",
+    "menu_number": "77",
+    "name": "Roast Pork with Ginger & Spring Onion",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "106",
+    "category_id": "cat-egg-foo",
+    "menu_number": "106",
+    "name": "King Prawn Egg Foo Yung",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "46",
+    "category_id": "cat-duck",
+    "menu_number": "46",
+    "name": "Duck with Black Bean Sauce",
+    "description": null,
+    "base_price": 7.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "83",
+    "category_id": "cat-seafood",
+    "menu_number": "83",
+    "name": "King Prawns with Ginger & Spring Onion",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "148",
+    "category_id": "cat-sauces",
+    "menu_number": "148",
+    "name": "BBQ Sauce",
+    "description": null,
+    "base_price": 1.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "T4",
+    "category_id": "cat-thai",
+    "menu_number": "T4",
+    "name": "Thai Curry (Green or Red)",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [
+      {
+        "id": "t4-curry",
+        "name": "Curry Type",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "t4-green",
+            "label": "Green Curry",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "t4-red",
+            "label": "Red Curry",
+            "priceDelta": 0
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      },
+      {
+        "id": "thai-protein",
+        "name": "Choose Protein",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "tp-chicken",
+            "label": "Chicken",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "tp-beef",
+            "label": "Beef",
+            "priceDelta": 0.2
+          },
+          {
+            "id": "tp-prawn",
+            "label": "King Prawn",
+            "priceDelta": 0.6
+          },
+          {
+            "id": "tp-duck",
+            "label": "Roast Duck",
+            "priceDelta": 0.3
+          },
+          {
+            "id": "tp-veg",
+            "label": "Mixed Vegetable",
+            "priceDelta": -0.5
+          }
+        ],
+        "required": true,
+        "sortOrder": 2
+      }
+    ],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "66",
+    "category_id": "cat-beef",
+    "menu_number": "66",
+    "name": "Beef with Ginger & Spring Onion",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "112",
+    "category_id": "cat-noodles",
+    "menu_number": "112",
+    "name": "Roast Pork Chow Mein",
+    "description": null,
+    "base_price": 6.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "4",
+    "category_id": "cat-starters",
+    "menu_number": "4",
+    "name": "Deep Fried Chicken Wings",
+    "description": null,
+    "base_price": 6.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [
+      {
+        "id": "4-sauce",
+        "name": "Choose Sauce",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "4-bbq",
+            "label": "BBQ",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "4-peking",
+            "label": "Peking",
+            "priceDelta": 0
+          },
+          {
+            "id": "4-honey",
+            "label": "Honey",
+            "priceDelta": 0
+          },
+          {
+            "id": "4-ss",
+            "label": "Sweet & Sour",
+            "priceDelta": 0
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      }
+    ],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "53",
+    "category_id": "cat-chicken",
+    "menu_number": "53",
+    "name": "Chicken with Ginger & Spring Onion",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "sample-checkbox",
+    "category_id": "cat-sample",
+    "menu_number": "SMP-4",
+    "name": "Sample: Optional Checkbox Extras",
+    "description": "Pick 0–3 optional add-ons.",
+    "base_price": 8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [
+      {
+        "id": "smp-extras",
+        "name": "Add Extras",
+        "type": "checkbox",
+        "choices": [
+          {
+            "id": "smp-e-chips",
+            "label": "Extra Chips",
+            "priceDelta": 2,
+            "optionTranslation": "薯条"
+          },
+          {
+            "id": "smp-e-rice",
+            "label": "Extra Rice",
+            "priceDelta": 1.5,
+            "optionTranslation": "白饭"
+          },
+          {
+            "id": "smp-e-sauce",
+            "label": "Extra Sauce",
+            "priceDelta": 1,
+            "optionTranslation": "汁"
+          },
+          {
+            "id": "smp-e-prawn",
+            "label": "Add Prawns",
+            "priceDelta": 2.5,
+            "optionTranslation": "大虾"
+          }
+        ],
+        "required": false,
+        "sortOrder": 1,
+        "maxSelections": 3,
+        "minSelections": 0
+      }
+    ],
+    "sort_order": 4,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": "咖喱鸡"
+  },
+  {
+    "id": "T5",
+    "category_id": "cat-thai",
+    "menu_number": "T5",
+    "name": "Tom Yum Soup",
+    "description": null,
+    "base_price": 6.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [
+      {
+        "id": "thai-protein",
+        "name": "Choose Protein",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "tp-chicken",
+            "label": "Chicken",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "tp-beef",
+            "label": "Beef",
+            "priceDelta": 0.2
+          },
+          {
+            "id": "tp-prawn",
+            "label": "King Prawn",
+            "priceDelta": 0.6
+          },
+          {
+            "id": "tp-duck",
+            "label": "Roast Duck",
+            "priceDelta": 0.3
+          },
+          {
+            "id": "tp-veg",
+            "label": "Mixed Vegetable",
+            "priceDelta": -0.5
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      }
+    ],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "54",
+    "category_id": "cat-chicken",
+    "menu_number": "54",
+    "name": "Chicken with Mixed Vegetables",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "26",
+    "category_id": "cat-soups",
+    "menu_number": "26",
+    "name": "Wonton Soup",
+    "description": null,
+    "base_price": 5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "67",
+    "category_id": "cat-beef",
+    "menu_number": "67",
+    "name": "Beef with Mixed Vegetables",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "47",
+    "category_id": "cat-duck",
+    "menu_number": "47",
+    "name": "Duck with Ginger & Spring Onion",
+    "description": null,
+    "base_price": 7.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "5",
+    "category_id": "cat-starters",
+    "menu_number": "5",
+    "name": "Sesame Prawn on Toast",
+    "description": null,
+    "base_price": 6,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "sample-required-checkbox",
+    "category_id": "cat-sample",
+    "menu_number": "SMP-5",
+    "name": "Sample: Required Checkbox (Pick 2 Sides)",
+    "description": "Must select exactly 2 side dishes.",
+    "base_price": 10,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [
+      {
+        "id": "smp-sides",
+        "name": "Choose 2 Sides",
+        "type": "checkbox",
+        "choices": [
+          {
+            "id": "smp-s-chips",
+            "label": "Chips",
+            "priceDelta": 0
+          },
+          {
+            "id": "smp-s-rice",
+            "label": "Fried Rice",
+            "priceDelta": 0
+          },
+          {
+            "id": "smp-s-noodles",
+            "label": "Chow Mein",
+            "priceDelta": 0
+          },
+          {
+            "id": "smp-s-salad",
+            "label": "Side Salad",
+            "priceDelta": 0.5
+          }
+        ],
+        "required": true,
+        "sortOrder": 1,
+        "maxSelections": 2,
+        "minSelections": 2
+      }
+    ],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "149",
+    "category_id": "cat-sauces",
+    "menu_number": "149",
+    "name": "Gravy Sauce",
+    "description": null,
+    "base_price": 1.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "134",
+    "category_id": "cat-rice",
+    "menu_number": "134",
+    "name": "King Prawn Fried Rice",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "S5",
+    "category_id": "cat-specials",
+    "menu_number": "S5",
+    "name": "Combination Tray (3 in 1)",
+    "description": null,
+    "base_price": 5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": true,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "39",
+    "category_id": "cat-curry",
+    "menu_number": "39",
+    "name": "King Prawn Curry",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "107",
+    "category_id": "cat-egg-foo",
+    "menu_number": "107",
+    "name": "Mixed Vegetable Egg Foo Yung",
+    "description": null,
+    "base_price": 5.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "113",
+    "category_id": "cat-noodles",
+    "menu_number": "113",
+    "name": "Special Chow Mein",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "99",
+    "category_id": "cat-vegetarian",
+    "menu_number": "99",
+    "name": "Tofu Szechuan Style",
+    "description": null,
+    "base_price": 5.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-extra-spicy",
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "33",
+    "category_id": "cat-sweet-sour",
+    "menu_number": "33",
+    "name": "Sweet & Sour Pork Hong Kong Style",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "78",
+    "category_id": "cat-pork",
+    "menu_number": "78",
+    "name": "Szechuan Roast Pork",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-extra-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "84",
+    "category_id": "cat-seafood",
+    "menu_number": "84",
+    "name": "King Prawns with Mixed Vegetables",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 5,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "40",
+    "category_id": "cat-curry",
+    "menu_number": "40",
+    "name": "Mushroom Curry",
+    "description": null,
+    "base_price": 5.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy",
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "S6",
+    "category_id": "cat-specials",
+    "menu_number": "S6",
+    "name": "Combination Tray (2 in 1)",
+    "description": null,
+    "base_price": 4.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": true,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "135",
+    "category_id": "cat-rice",
+    "menu_number": "135",
+    "name": "Roast Pork Fried Rice",
+    "description": null,
+    "base_price": 6.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "114",
+    "category_id": "cat-noodles",
+    "menu_number": "114",
+    "name": "Mixed Vegetable Chow Mein",
+    "description": null,
+    "base_price": 5.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "108",
+    "category_id": "cat-egg-foo",
+    "menu_number": "108",
+    "name": "Plain Egg Foo Yung",
+    "description": null,
+    "base_price": 5.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "68",
+    "category_id": "cat-beef",
+    "menu_number": "68",
+    "name": "Shredded Chilli Beef",
+    "description": null,
+    "base_price": 7,
+    "image": "/images/Shredded Chilli Beef.jpg",
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "79",
+    "category_id": "cat-pork",
+    "menu_number": "79",
+    "name": "Kung Po Roast Pork",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy",
+      "icon-nuts"
+    ],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "48",
+    "category_id": "cat-duck",
+    "menu_number": "48",
+    "name": "Duck with Mushrooms",
+    "description": null,
+    "base_price": 7.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "150",
+    "category_id": "cat-sauces",
+    "menu_number": "150",
+    "name": "Black Bean Sauce",
+    "description": null,
+    "base_price": 2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "100",
+    "category_id": "cat-vegetarian",
+    "menu_number": "100",
+    "name": "Tofu with Mixed Vegetables",
+    "description": null,
+    "base_price": 5.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "85",
+    "category_id": "cat-seafood",
+    "menu_number": "85",
+    "name": "Squid with Black Bean Sauce",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "sample-conditional",
+    "category_id": "cat-sample",
+    "menu_number": "SMP-6",
+    "name": "Sample: Conditional Options",
+    "description": "Spice level only appears when Curry is selected as main.",
+    "base_price": 7.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [
+      {
+        "id": "smp-main",
+        "name": "Choose Main Style",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "smp-m-curry",
+            "label": "Curry",
+            "priceDelta": 0,
+            "optionTranslation": "咖喱"
+          },
+          {
+            "id": "smp-m-stir",
+            "label": "Stir Fry",
+            "isDefault": true,
+            "priceDelta": 0,
+            "optionTranslation": "炒"
+          },
+          {
+            "id": "smp-m-sweet",
+            "label": "Sweet & Sour",
+            "priceDelta": 0,
+            "optionTranslation": "甜辣"
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      },
+      {
+        "id": "smp-spice",
+        "name": "Spice Level",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "smp-sp-mild",
+            "label": "Mild",
+            "isDefault": true,
+            "priceDelta": 0,
+            "optionTranslation": "轻度辣"
+          },
+          {
+            "id": "smp-sp-med",
+            "label": "Medium",
+            "priceDelta": 0,
+            "optionTranslation": "中等辣"
+          },
+          {
+            "id": "smp-sp-hot",
+            "label": "Hot",
+            "priceDelta": 0,
+            "optionTranslation": "重辣"
+          }
+        ],
+        "required": true,
+        "showWhen": {
+          "groupId": "smp-main",
+          "choiceIds": [
+            "smp-m-curry"
+          ]
+        },
+        "sortOrder": 2
+      }
+    ],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": "案例菜三"
+  },
+  {
+    "id": "34",
+    "category_id": "cat-sweet-sour",
+    "menu_number": "34",
+    "name": "Sweet & Sour King Prawns Hong Kong Style",
+    "description": null,
+    "base_price": 7.2,
+    "image": "/images/Sweet-and-Sour-King-Prawns-Hong-Kong-Style.jpg",
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "27",
+    "category_id": "cat-soups",
+    "menu_number": "27",
+    "name": "Mixed Vegetable Soup",
+    "description": null,
+    "base_price": 4.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.245+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "6",
+    "category_id": "cat-starters",
+    "menu_number": "6",
+    "name": "Chicken Satay on Skewers",
+    "description": null,
+    "base_price": 6.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-nuts"
+    ],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "55",
+    "category_id": "cat-chicken",
+    "menu_number": "55",
+    "name": "Shredded Chilli Chicken",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 6,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "115",
+    "category_id": "cat-noodles",
+    "menu_number": "115",
+    "name": "Singapore Chow Mein",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 7,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "56",
+    "category_id": "cat-chicken",
+    "menu_number": "56",
+    "name": "Kung Po Chicken",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy",
+      "icon-nuts"
+    ],
+    "option_groups": [],
+    "sort_order": 7,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "136",
+    "category_id": "cat-rice",
+    "menu_number": "136",
+    "name": "Mixed Vegetable Fried Rice",
+    "description": null,
+    "base_price": 5.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 7,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "7",
+    "category_id": "cat-starters",
+    "menu_number": "7",
+    "name": "Crispy Seaweed",
+    "description": null,
+    "base_price": 4.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 7,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "41",
+    "category_id": "cat-curry",
+    "menu_number": "41",
+    "name": "Mixed Vegetable Curry",
+    "description": null,
+    "base_price": 5.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy",
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 7,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "S7",
+    "category_id": "cat-specials",
+    "menu_number": "S7",
+    "name": "Salt & Pepper Chicken Tray",
+    "description": null,
+    "base_price": 6.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 7,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "69",
+    "category_id": "cat-beef",
+    "menu_number": "69",
+    "name": "Kung Po Beef",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy",
+      "icon-nuts"
+    ],
+    "option_groups": [],
+    "sort_order": 7,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "151",
+    "category_id": "cat-sauces",
+    "menu_number": "151",
+    "name": "Oyster Sauce",
+    "description": null,
+    "base_price": 2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 7,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "49",
+    "category_id": "cat-duck",
+    "menu_number": "49",
+    "name": "Duck with Mixed Vegetables",
+    "description": null,
+    "base_price": 7.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 7,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "28",
+    "category_id": "cat-soups",
+    "menu_number": "28",
+    "name": "Crab Meat & Sweetcorn Soup",
+    "description": null,
+    "base_price": 5.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 7,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "86",
+    "category_id": "cat-seafood",
+    "menu_number": "86",
+    "name": "Squid with Ginger & Spring Onion",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 7,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "101",
+    "category_id": "cat-vegetarian",
+    "menu_number": "101",
+    "name": "Stir Fried Broccoli",
+    "description": null,
+    "base_price": 5.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 7,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "sample-combo",
+    "category_id": "cat-sample",
+    "menu_number": "SMP-7",
+    "name": "Sample: Meal Deal (Starter + Main)",
+    "description": "Pick one starter and one main — bundled meal deal.",
+    "base_price": 12,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [
+      {
+        "id": "smp-starter",
+        "name": "Choose Starter",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "smp-st-spring",
+            "label": "Spring Rolls",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "smp-st-ribs",
+            "label": "Spare Ribs",
+            "priceDelta": 1
+          },
+          {
+            "id": "smp-st-soup",
+            "label": "Soup",
+            "priceDelta": 0
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      },
+      {
+        "id": "smp-maincourse",
+        "name": "Choose Main Course",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "smp-mc-chicken",
+            "label": "Chicken Curry",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "smp-mc-beef",
+            "label": "Beef Black Bean",
+            "priceDelta": 0
+          },
+          {
+            "id": "smp-mc-prawn",
+            "label": "King Prawn Chow Mein",
+            "priceDelta": 1.5
+          }
+        ],
+        "required": true,
+        "sortOrder": 2
+      },
+      {
+        "id": "smp-combo-rice",
+        "name": "Rice Upgrade",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "smp-cr-boiled",
+            "label": "Boiled Rice (included)",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "smp-cr-fried",
+            "label": "Egg Fried Rice",
+            "priceDelta": 1
+          },
+          {
+            "id": "smp-cr-special",
+            "label": "Special Fried Rice",
+            "priceDelta": 2
+          }
+        ],
+        "required": false,
+        "sortOrder": 3
+      }
+    ],
+    "sort_order": 7,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "57",
+    "category_id": "cat-chicken",
+    "menu_number": "57",
+    "name": "Satay Chicken",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-nuts"
+    ],
+    "option_groups": [],
+    "sort_order": 8,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "137",
+    "category_id": "cat-rice",
+    "menu_number": "137",
+    "name": "Singapore Fried Rice",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 8,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "8",
+    "category_id": "cat-starters",
+    "menu_number": "8",
+    "name": "Mini Vegetable Spring Rolls (10)",
+    "description": null,
+    "base_price": 4.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 8,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "87",
+    "category_id": "cat-seafood",
+    "menu_number": "87",
+    "name": "Squid with Salt & Pepper",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 8,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "116",
+    "category_id": "cat-noodles",
+    "menu_number": "116",
+    "name": "Chicken Vermicelli",
+    "description": null,
+    "base_price": 6.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 8,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "102",
+    "category_id": "cat-vegetarian",
+    "menu_number": "102",
+    "name": "Stir Fried Chinese Leaf",
+    "description": null,
+    "base_price": 5.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 8,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "152",
+    "category_id": "cat-sauces",
+    "menu_number": "152",
+    "name": "Chilli Sauce",
+    "description": null,
+    "base_price": 2.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 8,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "S8",
+    "category_id": "cat-specials",
+    "menu_number": "S8",
+    "name": "Salt & Pepper Chips Tray",
+    "description": null,
+    "base_price": 5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy",
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 8,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "70",
+    "category_id": "cat-beef",
+    "menu_number": "70",
+    "name": "Satay Beef",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-nuts"
+    ],
+    "option_groups": [],
+    "sort_order": 8,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "42",
+    "category_id": "cat-curry",
+    "menu_number": "42",
+    "name": "Tofu Curry",
+    "description": null,
+    "base_price": 5.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy",
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 8,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "sample-bundle",
+    "category_id": "cat-sample",
+    "menu_number": "SMP-8",
+    "name": "Sample: Fixed Bundle (No Options)",
+    "description": "Pre-set combination box — fixed contents, fixed price.",
+    "base_price": 15.99,
+    "image": null,
+    "is_available": true,
+    "is_bundle": true,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 8,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:20.149326+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "138",
+    "category_id": "cat-rice",
+    "menu_number": "138",
+    "name": "Special Fried Rice",
+    "description": null,
+    "base_price": 7.5,
+    "image": "/images/Special Fried Rice.jpg",
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 9,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "117",
+    "category_id": "cat-noodles",
+    "menu_number": "117",
+    "name": "Beef Vermicelli",
+    "description": null,
+    "base_price": 6.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 9,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "88",
+    "category_id": "cat-seafood",
+    "menu_number": "88",
+    "name": "King Prawns with Oyster Sauce",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 9,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "9",
+    "category_id": "cat-starters",
+    "menu_number": "9",
+    "name": "Mini Chicken Spring Rolls (10)",
+    "description": null,
+    "base_price": 5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 9,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "58",
+    "category_id": "cat-chicken",
+    "menu_number": "58",
+    "name": "Szechuan Chicken",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-extra-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 9,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "71",
+    "category_id": "cat-beef",
+    "menu_number": "71",
+    "name": "Szechuan Beef",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-extra-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 9,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "89",
+    "category_id": "cat-seafood",
+    "menu_number": "89",
+    "name": "King Prawns Szechuan Style",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-extra-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 10,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "139",
+    "category_id": "cat-rice",
+    "menu_number": "139",
+    "name": "Chicken & Sweetcorn Fried Rice",
+    "description": null,
+    "base_price": 6.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 10,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "72",
+    "category_id": "cat-beef",
+    "menu_number": "72",
+    "name": "Beef with Green Pepper in Black Bean Sauce",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 10,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "59",
+    "category_id": "cat-chicken",
+    "menu_number": "59",
+    "name": "Lemon Chicken",
+    "description": null,
+    "base_price": 7,
+    "image": "/images/Lemon Chicken.jpg",
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 10,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "10",
+    "category_id": "cat-starters",
+    "menu_number": "10",
+    "name": "Chicken Balls (10)",
+    "description": null,
+    "base_price": 6,
+    "image": "/images/Chicken Balls.jpg",
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 10,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "118",
+    "category_id": "cat-noodles",
+    "menu_number": "118",
+    "name": "King Prawn Vermicelli",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 10,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "90",
+    "category_id": "cat-seafood",
+    "menu_number": "90",
+    "name": "King Prawns Kung Po Style",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy",
+      "icon-nuts"
+    ],
+    "option_groups": [],
+    "sort_order": 11,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "119",
+    "category_id": "cat-noodles",
+    "menu_number": "119",
+    "name": "Chicken Ho Fun",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 11,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "11",
+    "category_id": "cat-starters",
+    "menu_number": "11",
+    "name": "Prawn Toast",
+    "description": null,
+    "base_price": 5.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 11,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "73",
+    "category_id": "cat-beef",
+    "menu_number": "73",
+    "name": "Beef with Oyster Sauce",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 11,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "60",
+    "category_id": "cat-chicken",
+    "menu_number": "60",
+    "name": "Chicken with Green Pepper in Black Bean Sauce",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 11,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "140",
+    "category_id": "cat-rice",
+    "menu_number": "140",
+    "name": "Chicken & Mushroom Fried Rice",
+    "description": null,
+    "base_price": 6.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 11,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.44+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "12",
+    "category_id": "cat-starters",
+    "menu_number": "12",
+    "name": "Prawn Crackers",
+    "description": null,
+    "base_price": 2.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 12,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "91",
+    "category_id": "cat-seafood",
+    "menu_number": "91",
+    "name": "King Prawns Satay",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-nuts"
+    ],
+    "option_groups": [],
+    "sort_order": 12,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "120",
+    "category_id": "cat-noodles",
+    "menu_number": "120",
+    "name": "Beef Ho Fun",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 12,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "141",
+    "category_id": "cat-rice",
+    "menu_number": "141",
+    "name": "House Special Fried Rice",
+    "description": null,
+    "base_price": 8.3,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 12,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "61",
+    "category_id": "cat-chicken",
+    "menu_number": "61",
+    "name": "Chicken with Pineapple",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 12,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "13",
+    "category_id": "cat-starters",
+    "menu_number": "13",
+    "name": "Satay Chicken on Skewers",
+    "description": null,
+    "base_price": 6.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-nuts"
+    ],
+    "option_groups": [],
+    "sort_order": 13,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "92",
+    "category_id": "cat-seafood",
+    "menu_number": "92",
+    "name": "Squid with Mixed Vegetables",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 13,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "142",
+    "category_id": "cat-rice",
+    "menu_number": "142",
+    "name": "Yang Chow Fried Rice",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 13,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "121",
+    "category_id": "cat-noodles",
+    "menu_number": "121",
+    "name": "King Prawn Ho Fun",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 13,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "62",
+    "category_id": "cat-chicken",
+    "menu_number": "62",
+    "name": "Chicken with Oyster Sauce",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 13,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.313301+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "93",
+    "category_id": "cat-seafood",
+    "menu_number": "93",
+    "name": "Squid Szechuan Style",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-extra-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 14,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "14",
+    "category_id": "cat-starters",
+    "menu_number": "14",
+    "name": "Salt & Pepper Chips",
+    "description": null,
+    "base_price": 4.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy",
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 14,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "122",
+    "category_id": "cat-noodles",
+    "menu_number": "122",
+    "name": "Roast Pork Ho Fun",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 14,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "94",
+    "category_id": "cat-seafood",
+    "menu_number": "94",
+    "name": "Squid with Green Pepper in Black Bean Sauce",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 15,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.571719+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "123",
+    "category_id": "cat-noodles",
+    "menu_number": "123",
+    "name": "Special Ho Fun",
+    "description": null,
+    "base_price": 7.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 15,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "15",
+    "category_id": "cat-starters",
+    "menu_number": "15",
+    "name": "Salt & Pepper Chicken",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 15,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "124",
+    "category_id": "cat-noodles",
+    "menu_number": "124",
+    "name": "Plain Chow Mein",
+    "description": null,
+    "base_price": 5.3,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 16,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "16",
+    "category_id": "cat-starters",
+    "menu_number": "16",
+    "name": "Salt & Pepper King Prawns",
+    "description": null,
+    "base_price": 7.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 16,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "17",
+    "category_id": "cat-starters",
+    "menu_number": "17",
+    "name": "Salt & Pepper Squid",
+    "description": null,
+    "base_price": 7.2,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 17,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "125",
+    "category_id": "cat-noodles",
+    "menu_number": "125",
+    "name": "Plain Ho Fun",
+    "description": null,
+    "base_price": 5.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 17,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "126",
+    "category_id": "cat-noodles",
+    "menu_number": "126",
+    "name": "Plain Vermicelli",
+    "description": null,
+    "base_price": 5.3,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-vegetarian"
+    ],
+    "option_groups": [],
+    "sort_order": 18,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "18",
+    "category_id": "cat-starters",
+    "menu_number": "18",
+    "name": "Salt & Pepper Chicken Wings",
+    "description": null,
+    "base_price": 6.8,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 18,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "19",
+    "category_id": "cat-starters",
+    "menu_number": "19",
+    "name": "Spare Ribs",
+    "description": null,
+    "base_price": 7,
+    "image": "/images/Spare Ribs.jpg",
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [
+      {
+        "id": "19-sauce",
+        "name": "Choose Sauce (one per box)",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "19-bbq",
+            "label": "BBQ",
+            "isDefault": true,
+            "priceDelta": 0
+          },
+          {
+            "id": "19-capital",
+            "label": "Capital",
+            "priceDelta": 0
+          },
+          {
+            "id": "19-honey",
+            "label": "Honey",
+            "priceDelta": 0
+          },
+          {
+            "id": "19-ss",
+            "label": "Sweet & Sour",
+            "priceDelta": 0
+          },
+          {
+            "id": "19-sp",
+            "label": "Salt & Pepper",
+            "priceDelta": 0
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      }
+    ],
+    "sort_order": 19,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "127",
+    "category_id": "cat-noodles",
+    "menu_number": "127",
+    "name": "Chicken Singapore Vermicelli",
+    "description": null,
+    "base_price": 7,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [],
+    "sort_order": 19,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.624+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "128",
+    "category_id": "cat-noodles",
+    "menu_number": "128",
+    "name": "House Special Chow Mein",
+    "description": null,
+    "base_price": 9,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 20,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.625+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "20",
+    "category_id": "cat-starters",
+    "menu_number": "20",
+    "name": "Chicken Wings (8)",
+    "description": null,
+    "base_price": 6.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 20,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.625+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "129",
+    "category_id": "cat-noodles",
+    "menu_number": "129",
+    "name": "House Special Ho Fun",
+    "description": null,
+    "base_price": 9,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 21,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.892638+00:00",
+    "updated_at": "2026-07-25T08:11:00.625+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "21",
+    "category_id": "cat-starters",
+    "menu_number": "21",
+    "name": "Crispy Chicken Skin",
+    "description": null,
+    "base_price": 5.5,
+    "image": null,
+    "is_available": true,
+    "is_bundle": false,
+    "dietary_icon_ids": [],
+    "option_groups": [],
+    "sort_order": 21,
+    "tags": [],
+    "created_at": "2026-07-18T02:15:19.051375+00:00",
+    "updated_at": "2026-07-25T08:11:00.625+00:00",
+    "item_translation": null
+  },
+  {
+    "id": "mrx6l3sr-yxkil1f",
+    "category_id": "cat-sample",
+    "menu_number": "SMP-9",
+    "name": "Sample: Munchy Box ",
+    "description": "Choose Starter, Main Course, Fried Rice/Chips",
+    "base_price": 19.7,
+    "image": null,
+    "is_available": false,
+    "is_bundle": false,
+    "dietary_icon_ids": [
+      "icon-spicy"
+    ],
+    "option_groups": [
+      {
+        "id": "og-mrx6mat5-sh9lvyb",
+        "name": "Starter",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "oc-mrx6mat5-oaqq9nr",
+            "label": "Spring Rolls",
+            "isDefault": false,
+            "priceDelta": 2,
+            "optionTranslation": "春卷"
+          },
+          {
+            "id": "oc-mrx6mat5-0fsjo07",
+            "label": "Pancakes",
+            "isDefault": false,
+            "priceDelta": 1,
+            "optionTranslation": "煎饼"
+          }
+        ],
+        "required": true,
+        "sortOrder": 1
+      },
+      {
+        "id": "og-mrx6q2vp-5lthl7l",
+        "name": "Main Course",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "oc-mrx6q2vp-soogm8u",
+            "label": "Chicken Chow Mein",
+            "isDefault": false,
+            "priceDelta": 0,
+            "optionTranslation": "鸡炒面"
+          },
+          {
+            "id": "oc-mrx6q2vp-001yl1u",
+            "label": "Beef Fried Rice",
+            "isDefault": false,
+            "priceDelta": 0,
+            "optionTranslation": "牛炒面"
+          },
+          {
+            "id": "oc-mrx6qnl6-ljdct2i",
+            "label": "Pork Curry",
+            "priceDelta": 0,
+            "optionTranslation": "猪咖喱"
+          }
+        ],
+        "required": true,
+        "sortOrder": 2
+      },
+      {
+        "id": "og-mrx6s0ia-4le8dtv",
+        "name": "Choose Chow Mein Option",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "oc-mrx6s0ia-ne3grtp",
+            "label": "Thin",
+            "isDefault": false,
+            "priceDelta": 0.5,
+            "optionTranslation": "细"
+          },
+          {
+            "id": "oc-mrx6s0ia-mbpftqh",
+            "label": "Thick",
+            "isDefault": false,
+            "priceDelta": 0.5,
+            "optionTranslation": "粗"
+          }
+        ],
+        "required": true,
+        "showWhen": {
+          "groupId": "og-mrx6q2vp-5lthl7l",
+          "choiceIds": [
+            "oc-mrx6q2vp-soogm8u"
+          ]
+        },
+        "sortOrder": 3
+      },
+      {
+        "id": "og-mrx6t7m9-y1pb67u",
+        "name": "Choose Spicy Options",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "oc-mrx6t7ma-g6guoj8",
+            "label": "Mild",
+            "isDefault": false,
+            "priceDelta": 1,
+            "optionTranslation": "轻度辣"
+          },
+          {
+            "id": "oc-mrx6t7ma-4zfxger",
+            "label": "Hot",
+            "isDefault": false,
+            "priceDelta": 1,
+            "optionTranslation": "重辣"
+          }
+        ],
+        "required": true,
+        "showWhen": {
+          "groupId": "og-mrx6q2vp-5lthl7l",
+          "choiceIds": [
+            "oc-mrx6qnl6-ljdct2i"
+          ]
+        },
+        "sortOrder": 4
+      },
+      {
+        "id": "og-mrx6un82-m90xxeg",
+        "name": "New Option Group",
+        "type": "radio",
+        "choices": [
+          {
+            "id": "oc-mrx6un82-rwhkysd",
+            "label": "Chips",
+            "isDefault": false,
+            "priceDelta": 1,
+            "optionTranslation": "条"
+          },
+          {
+            "id": "oc-mrx6un82-flnjwn8",
+            "label": "Boiled Rice",
+            "isDefault": false,
+            "priceDelta": 1,
+            "optionTranslation": "白饭"
+          }
+        ],
+        "required": true,
+        "sortOrder": 5
+      }
+    ],
+    "sort_order": 178,
+    "tags": [],
+    "created_at": "2026-07-23T07:27:38.474319+00:00",
+    "updated_at": "2026-07-25T08:11:00.625+00:00",
+    "item_translation": "盒餐"
+  }
+]

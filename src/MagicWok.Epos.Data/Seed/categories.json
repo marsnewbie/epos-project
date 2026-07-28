@@ -1,0 +1,149 @@
+[
+  {
+    "id": "cat-starters",
+    "name": "Starters",
+    "description": null,
+    "sort_order": 1,
+    "is_visible": true
+  },
+  {
+    "id": "cat-soups",
+    "name": "Soups",
+    "description": null,
+    "sort_order": 2,
+    "is_visible": true
+  },
+  {
+    "id": "cat-sweet-sour",
+    "name": "Sweet & Sour",
+    "description": null,
+    "sort_order": 3,
+    "is_visible": true
+  },
+  {
+    "id": "cat-curry",
+    "name": "Curry Dishes",
+    "description": null,
+    "sort_order": 4,
+    "is_visible": true
+  },
+  {
+    "id": "cat-duck",
+    "name": "Duck Dishes",
+    "description": null,
+    "sort_order": 5,
+    "is_visible": true
+  },
+  {
+    "id": "cat-chicken",
+    "name": "Chicken Dishes",
+    "description": null,
+    "sort_order": 6,
+    "is_visible": true
+  },
+  {
+    "id": "cat-beef",
+    "name": "Beef Dishes",
+    "description": null,
+    "sort_order": 7,
+    "is_visible": true
+  },
+  {
+    "id": "cat-pork",
+    "name": "Roast Pork (Char Siu)",
+    "description": null,
+    "sort_order": 8,
+    "is_visible": true
+  },
+  {
+    "id": "cat-seafood",
+    "name": "Seafood Dishes",
+    "description": null,
+    "sort_order": 9,
+    "is_visible": true
+  },
+  {
+    "id": "cat-vegetarian",
+    "name": "Vegetarian Dishes",
+    "description": null,
+    "sort_order": 10,
+    "is_visible": true
+  },
+  {
+    "id": "cat-egg-foo",
+    "name": "Egg Foo Yung",
+    "description": null,
+    "sort_order": 11,
+    "is_visible": true
+  },
+  {
+    "id": "cat-noodles",
+    "name": "Noodle Dishes",
+    "description": null,
+    "sort_order": 12,
+    "is_visible": true
+  },
+  {
+    "id": "cat-rice",
+    "name": "Rice Dishes",
+    "description": null,
+    "sort_order": 13,
+    "is_visible": true
+  },
+  {
+    "id": "cat-thai",
+    "name": "Thai Menu",
+    "description": null,
+    "sort_order": 14,
+    "is_visible": true
+  },
+  {
+    "id": "cat-specials",
+    "name": "Chef Specials",
+    "description": null,
+    "sort_order": 15,
+    "is_visible": true
+  },
+  {
+    "id": "cat-set-menus",
+    "name": "Set Menus",
+    "description": null,
+    "sort_order": 16,
+    "is_visible": true
+  },
+  {
+    "id": "cat-desserts",
+    "name": "Desserts",
+    "description": null,
+    "sort_order": 17,
+    "is_visible": true
+  },
+  {
+    "id": "cat-sauces",
+    "name": "Sauces",
+    "description": null,
+    "sort_order": 18,
+    "is_visible": true
+  },
+  {
+    "id": "cat-drinks",
+    "name": "Drinks",
+    "description": null,
+    "sort_order": 19,
+    "is_visible": true
+  },
+  {
+    "id": "cat-sample",
+    "name": "⚙️ Sample Options (Demo)",
+    "description": "Demonstrates all option types for merchant reference",
+    "sort_order": 20,
+    "is_visible": true
+  },
+  {
+    "id": "cat-ms04vuzz-yrr4vcu",
+    "name": "New Category",
+    "description": "",
+    "sort_order": 21,
+    "is_visible": true
+  }
+]

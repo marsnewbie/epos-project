@@ -1,0 +1,81 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:MagicWok.Epos.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1440" d:DesignHeight="900"
+        x:Class="MagicWok.Epos.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Width="1440" Height="900"
+        MinWidth="1200" MinHeight="720"
+        WindowStartupLocation="CenterScreen"
+        Title="Magic Wok EPOS"
+        Background="#1c1917">
+
+  <DockPanel>
+    <!-- Top chrome -->
+    <Border DockPanel.Dock="Top" Background="#0c0a09" Padding="14,10" BorderBrush="#292524" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <TextBlock Text="{Binding ShopName}" FontSize="20" FontWeight="Bold" Foreground="#fb923c" VerticalAlignment="Center" />
+          <TextBlock Text="EPOS" FontSize="12" Foreground="#a8a29e" VerticalAlignment="Center" Margin="0,4,0,0" />
+          <TextBlock Text="{Binding OnlineBadge}" FontSize="18" Foreground="#22c55e" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Grid.Column="1" Text="{Binding ClockText}" FontSize="18" FontWeight="SemiBold"
+                   Foreground="#e7e5e4" VerticalAlignment="Center" Margin="0,0,16,0"
+                   FontFamily="Consolas, Cascadia Mono, monospace" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+          <Button Classes="pos-nav" Content="EN / 中文" Command="{Binding ToggleLanguageCommand}" Width="96" Height="40" />
+          <Button Classes="pos-nav" Content="Test print" Command="{Binding TestPrintCommand}" Width="100" Height="40" />
+          <Button Classes="pos-nav" Content="Drawer" Command="{Binding OpenDrawerCommand}" Width="88" Height="40" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- Status -->
+    <Border DockPanel.Dock="Bottom" Background="#0c0a09" Padding="14,8" BorderBrush="#292524" BorderThickness="0,1,0,0">
+      <TextBlock Text="{Binding StatusText}" Foreground="#a8a29e" FontSize="12" TextTrimming="CharacterEllipsis" />
+    </Border>
+
+    <!-- Module rail -->
+    <Border DockPanel.Dock="Left" Width="112" Background="#141210" Padding="8,10">
+      <StackPanel>
+        <Button Classes="pos-nav" Classes.active="{Binding IsSellNav}" Command="{Binding GoSellCommand}" Height="68">
+          <StackPanel>
+            <TextBlock Text="SELL" FontWeight="Bold" HorizontalAlignment="Center" />
+            <TextBlock Text="点单" FontSize="11" Opacity="0.8" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button Classes="pos-nav" Classes.active="{Binding IsOrdersNav}" Command="{Binding GoOrdersCommand}" Height="68">
+          <StackPanel>
+            <TextBlock Text="ORDERS" FontWeight="Bold" HorizontalAlignment="Center" />
+            <TextBlock Text="订单" FontSize="11" Opacity="0.8" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button Classes="pos-nav" Classes.active="{Binding IsOnlineNav}" Command="{Binding GoOnlineCommand}" Height="68">
+          <StackPanel>
+            <TextBlock Text="ONLINE" FontWeight="Bold" HorizontalAlignment="Center" />
+            <TextBlock Text="线上" FontSize="11" Opacity="0.8" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button Classes="pos-nav" Classes.active="{Binding IsCustomersNav}" Command="{Binding GoCustomersCommand}" Height="68">
+          <StackPanel>
+            <TextBlock Text="CUSTOMERS" FontWeight="Bold" HorizontalAlignment="Center" FontSize="11" />
+            <TextBlock Text="顾客" FontSize="11" Opacity="0.8" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <Button Classes="pos-nav" Classes.active="{Binding IsSettingsNav}" Command="{Binding GoSettingsCommand}" Height="68" Margin="0,12,0,0">
+          <StackPanel>
+            <TextBlock Text="SETTINGS" FontWeight="Bold" HorizontalAlignment="Center" />
+            <TextBlock Text="设置" FontSize="11" Opacity="0.8" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+    </Border>
+
+    <!-- Workspace -->
+    <Border Background="#1c1917" Padding="8">
+      <ContentControl Content="{Binding CurrentPage}" />
+    </Border>
+  </DockPanel>
+</Window>

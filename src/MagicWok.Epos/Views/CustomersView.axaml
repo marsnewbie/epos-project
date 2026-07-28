@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MagicWok.Epos.ViewModels"
+             xmlns:domain="using:MagicWok.Epos.Domain"
+             x:Class="MagicWok.Epos.Views.CustomersView"
+             x:DataType="vm:CustomersViewModel"
+             Background="#1c1917">
+  <Grid ColumnDefinitions="*,*" Margin="4">
+    <Border Grid.Column="0" Background="#141210" CornerRadius="8" Padding="10" Margin="0,0,8,0">
+      <DockPanel>
+        <TextBox DockPanel.Dock="Top" Classes="pos-field" Watermark="Search name / phone"
+                 Text="{Binding SearchText}" Margin="0,0,0,8" />
+        <TextBlock DockPanel.Dock="Top" Text="Phone book / 电话簿" FontSize="18" FontWeight="Bold"
+                   Foreground="#fafaf9" Margin="0,0,0,8" />
+        <ListBox Classes="pos-ticket" ItemsSource="{Binding Customers}" SelectedItem="{Binding SelectedCustomer}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="domain:Customer">
+              <StackPanel Margin="10,8">
+                <TextBlock FontWeight="Bold" FontSize="15" Foreground="#fafaf9" Text="{Binding Name}" />
+                <TextBlock FontSize="14" Foreground="#fdba74" Text="{Binding Phone}" Margin="0,2,0,0" />
+              </StackPanel>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+
+    <Border Grid.Column="1" Background="#141210" CornerRadius="8" Padding="14">
+      <StackPanel Spacing="4" MaxWidth="480">
+        <TextBlock Text="Customer / 顾客" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,8" />
+        <TextBox Classes="pos-field" Watermark="Name" Text="{Binding EditName}" />
+        <TextBox Classes="pos-field" Watermark="Phone" Text="{Binding EditPhone}" />
+        <TextBox Classes="pos-field" Watermark="Address" Text="{Binding EditAddress}" />
+        <TextBox Classes="pos-field" Watermark="Postcode" Text="{Binding EditPostcode}" />
+        <Button Classes="pos-action pos-send" Content="Save customer" Command="{Binding SaveCustomerCommand}"
+                HorizontalAlignment="Left" Width="180" Margin="0,8,0,0" />
+
+        <Border Background="#0c0a09" CornerRadius="8" Padding="12" Margin="0,24,0,0">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Caller ID simulate / 来电模拟" FontWeight="Bold" Foreground="#fafaf9" />
+            <TextBlock Text="Fills Sell ticket with matched customer" Foreground="#a8a29e" FontSize="12" />
+            <TextBox Classes="pos-field" Text="{Binding SimulatePhone}" />
+            <Button Classes="pos-action pos-card" Content="Simulate incoming call"
+                    Command="{Binding SimulateCallerIdCommand}" HorizontalAlignment="Left" Width="220" />
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </Border>
+  </Grid>
+</UserControl>

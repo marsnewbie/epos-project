@@ -1,0 +1,180 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Magic Wok counter POS: charcoal + chilli orange, large touch targets -->
+  <Style Selector="Window">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="Background" Value="#1c1917" />
+  </Style>
+
+  <Style Selector="Button.pos-nav">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="Height" Value="56" />
+    <Setter Property="Margin" Value="0,0,0,6" />
+    <Setter Property="Background" Value="#292524" />
+    <Setter Property="Foreground" Value="#fafaf9" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Padding" Value="8,4" />
+  </Style>
+  <Style Selector="Button.pos-nav:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#44403c" />
+  </Style>
+  <Style Selector="Button.pos-nav.active">
+    <Setter Property="Background" Value="#c2410c" />
+  </Style>
+  <Style Selector="Button.pos-nav.active:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#ea580c" />
+  </Style>
+
+  <Style Selector="Button.pos-cat">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="Height" Value="48" />
+    <Setter Property="Margin" Value="0,0,0,4" />
+    <Setter Property="Background" Value="#44403c" />
+    <Setter Property="Foreground" Value="#fafaf9" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Button.pos-cat:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#57534e" />
+  </Style>
+  <Style Selector="Button.pos-cat.active">
+    <Setter Property="Background" Value="#c2410c" />
+  </Style>
+
+  <!-- Dish tiles: large number, single tap -->
+  <Style Selector="Button.pos-dish">
+    <Setter Property="Width" Value="128" />
+    <Setter Property="Height" Value="92" />
+    <Setter Property="Margin" Value="3" />
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="Background" Value="#fafaf9" />
+    <Setter Property="Foreground" Value="#1c1917" />
+    <Setter Property="BorderBrush" Value="#d6d3d1" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="VerticalContentAlignment" Value="Top" />
+  </Style>
+  <Style Selector="Button.pos-dish:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#ffedd5" />
+  </Style>
+  <Style Selector="Button.pos-dish:pressed /template/ ContentPresenter">
+    <Setter Property="Background" Value="#fdba74" />
+  </Style>
+
+  <Style Selector="Button.pos-type">
+    <Setter Property="Height" Value="44" />
+    <Setter Property="Margin" Value="0,0,4,0" />
+    <Setter Property="Background" Value="#44403c" />
+    <Setter Property="Foreground" Value="#fafaf9" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+  <Style Selector="Button.pos-type.active">
+    <Setter Property="Background" Value="#ea580c" />
+  </Style>
+
+  <Style Selector="Button.pos-key">
+    <Setter Property="Height" Value="44" />
+    <Setter Property="Margin" Value="2" />
+    <Setter Property="Background" Value="#57534e" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="FontSize" Value="18" />
+    <Setter Property="FontWeight" Value="Bold" />
+  </Style>
+  <Style Selector="Button.pos-key:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#78716c" />
+  </Style>
+
+  <Style Selector="Button.pos-action">
+    <Setter Property="Height" Value="52" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+  <Style Selector="Button.pos-send">
+    <Setter Property="Background" Value="#b45309" />
+  </Style>
+  <Style Selector="Button.pos-cash">
+    <Setter Property="Background" Value="#15803d" />
+  </Style>
+  <Style Selector="Button.pos-card">
+    <Setter Property="Background" Value="#1d4ed8" />
+  </Style>
+  <Style Selector="Button.pos-danger">
+    <Setter Property="Background" Value="#991b1b" />
+  </Style>
+
+  <Style Selector="Button.pos-chip">
+    <Setter Property="Height" Value="36" />
+    <Setter Property="Margin" Value="0,0,6,6" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="Background" Value="#e7e5e4" />
+    <Setter Property="Foreground" Value="#1c1917" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="18" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="Button.pos-chip.active">
+    <Setter Property="Background" Value="#c2410c" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+  <Style Selector="Button.pos-chip-opt">
+    <Setter Property="Height" Value="40" />
+    <Setter Property="Margin" Value="0,0,6,6" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="Background" Value="#44403c" />
+    <Setter Property="Foreground" Value="#fafaf9" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+  <Style Selector="Button.pos-chip-opt.active">
+    <Setter Property="Background" Value="#ea580c" />
+  </Style>
+
+  <Style Selector="TextBox.pos-field">
+    <Setter Property="Height" Value="40" />
+    <Setter Property="Margin" Value="0,0,0,6" />
+    <Setter Property="Background" Value="#292524" />
+    <Setter Property="Foreground" Value="#fafaf9" />
+    <Setter Property="BorderBrush" Value="#57534e" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="ListBox.pos-ticket">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="ListBox.pos-ticket ListBoxItem">
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0,0,0,4" />
+    <Setter Property="Background" Value="#292524" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+  <Style Selector="ListBox.pos-ticket ListBoxItem:selected /template/ ContentPresenter">
+    <Setter Property="Background" Value="#44403c" />
+  </Style>
+  <Style Selector="ListBox.pos-ticket ListBoxItem:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#3f3a36" />
+  </Style>
+
+</Styles>
