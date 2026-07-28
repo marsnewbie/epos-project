@@ -380,7 +380,8 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private string _shopPhone = "";
     [ObservableProperty] private string _kitchenPrinter = "GlPrinter80";
     [ObservableProperty] private string _frontPrinter = "GlPrinter80";
-    [ObservableProperty] private string _printEncoding = "gb18030";
+    [ObservableProperty] private string _printEncoding = "gbk";
+    [ObservableProperty] private bool _printChineseAsRaster = true;
     [ObservableProperty] private bool _openDrawerOnCash = true;
     [ObservableProperty] private bool _sendKitchenOnSend = true;
     [ObservableProperty] private bool _printFrontOnPay = true;
@@ -407,6 +408,7 @@ public partial class SettingsViewModel : ViewModelBase
         KitchenPrinter = s.KitchenPrinterName;
         FrontPrinter = s.FrontPrinterName;
         PrintEncoding = s.PrintEncoding;
+        PrintChineseAsRaster = s.PrintChineseAsRaster;
         OpenDrawerOnCash = s.OpenDrawerOnCash;
         SendKitchenOnSend = s.SendKitchenOnSend;
         PrintFrontOnPay = s.PrintFrontOnPay;
@@ -435,6 +437,7 @@ public partial class SettingsViewModel : ViewModelBase
         s.KitchenPrinterName = KitchenPrinter.Trim();
         s.FrontPrinterName = FrontPrinter.Trim();
         s.PrintEncoding = PrintEncoding.Trim();
+        s.PrintChineseAsRaster = PrintChineseAsRaster;
         s.OpenDrawerOnCash = OpenDrawerOnCash;
         s.SendKitchenOnSend = SendKitchenOnSend;
         s.PrintFrontOnPay = PrintFrontOnPay;

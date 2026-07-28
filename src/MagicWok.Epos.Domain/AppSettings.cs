@@ -10,7 +10,9 @@ public sealed class AppSettings
 
     public string KitchenPrinterName { get; set; } = "GlPrinter80";
     public string FrontPrinterName { get; set; } = "GlPrinter80";
-    public string PrintEncoding { get; set; } = "gb18030"; // gb18030 | utf8
+    public string PrintEncoding { get; set; } = "gbk"; // gbk | gb18030 | utf8
+    /// <summary>Render CJK kitchen lines as ESC/POS raster (reliable on Windows → GlPrinter80).</summary>
+    public bool PrintChineseAsRaster { get; set; } = true;
     public bool OpenDrawerOnCash { get; set; } = true;
     public bool SendKitchenOnSend { get; set; } = true;
     public bool PrintFrontOnPay { get; set; } = true;

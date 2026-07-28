@@ -22,7 +22,8 @@
           <TextBlock Text="Printers / 打印机" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,8" />
           <TextBox Classes="pos-field" Watermark="Kitchen printer queue" Text="{Binding KitchenPrinter}" />
           <TextBox Classes="pos-field" Watermark="Front printer queue" Text="{Binding FrontPrinter}" />
-          <TextBox Classes="pos-field" Watermark="Encoding gb18030|utf8" Text="{Binding PrintEncoding}" />
+          <TextBox Classes="pos-field" Watermark="Encoding gbk|gb18030|utf8 (use gbk for GlPrinter80)" Text="{Binding PrintEncoding}" />
+          <CheckBox IsChecked="{Binding PrintChineseAsRaster}" Content="Print Chinese as image (fix garb on GlPrinter80)" Foreground="#e7e5e4" Margin="0,4" />
           <CheckBox IsChecked="{Binding OpenDrawerOnCash}" Content="Open drawer on cash pay" Foreground="#e7e5e4" Margin="0,4" />
           <CheckBox IsChecked="{Binding SendKitchenOnSend}" Content="Send kitchen on Send/Pay" Foreground="#e7e5e4" Margin="0,4" />
           <CheckBox IsChecked="{Binding PrintFrontOnPay}" Content="Print front receipt on pay" Foreground="#e7e5e4" Margin="0,4" />

@@ -9,4 +9,4 @@ var menu = new MenuRepository(db);
 var seeder = new MenuSeeder(menu, settings);
 var (cats, items) = seeder.ImportEmbedded();
 var s = settings.Load();
-Console.WriteLine($"OK cats={cats} items={items} shop={s.ShopName}");
+Console.WriteLine($"OK cats={cats} items={items} shop={s.ShopName} encoding={s.PrintEncoding}");
