@@ -8,22 +8,23 @@
              x:DataType="vm:SellViewModel"
              Background="#1c1917">
 
-  <Grid ColumnDefinitions="148,*,400">
+  <Grid ColumnDefinitions="140,*,420">
 
+    <!-- Categories -->
     <Border Grid.Column="0" Background="#141210" CornerRadius="8" Padding="8" Margin="0,0,8,0">
       <DockPanel>
         <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,8">
-          <TextBox Classes="pos-field" Watermark="Search name"
+          <TextBox Classes="pos-field-sm" Watermark="Search"
                    Text="{Binding SearchText}" />
-          <Grid ColumnDefinitions="*,56">
-            <TextBox Classes="pos-field" Watermark="# dish no." Text="{Binding DishNumberText}" Margin="0,0,4,0" />
-            <Button Grid.Column="1" Classes="pos-key" Content="+" Command="{Binding AddByDishNumberCommand}" Height="40" />
+          <Grid ColumnDefinitions="*,48">
+            <TextBox Classes="pos-field-sm" Watermark="# no." Text="{Binding DishNumberText}" Margin="0,0,4,0" />
+            <Button Grid.Column="1" Classes="pos-key-sm" Content="+" Command="{Binding AddByDishNumberCommand}" Margin="0" />
           </Grid>
           <Button Classes="pos-nav" Content="{Binding LblPhoneOrder}"
                   Command="{Binding StartPhoneOrderCommand}" Height="40" />
         </StackPanel>
-        <Button DockPanel.Dock="Bottom" Classes="pos-nav" Content="Ad-hoc / 临点"
-                Command="{Binding ToggleAdHocCommand}" Height="48" Margin="0,8,0,0" />
+        <Button DockPanel.Dock="Bottom" Classes="pos-nav" Content="Ad-hoc"
+                Command="{Binding ToggleAdHocCommand}" Height="44" Margin="0,8,0,0" />
         <ScrollViewer>
           <ItemsControl ItemsSource="{Binding CategoryTiles}">
             <ItemsControl.ItemTemplate>
@@ -39,13 +40,14 @@
       </DockPanel>
     </Border>
 
+    <!-- Menu grid -->
     <Grid Grid.Column="1" Margin="0,0,8,0">
       <DockPanel>
         <Border DockPanel.Dock="Top" Padding="4,0,4,8">
           <Grid ColumnDefinitions="*,Auto">
             <TextBlock Text="{Binding CategoryHeading}" FontSize="18" FontWeight="Bold" Foreground="#fafaf9" />
             <TextBlock Grid.Column="1" Text="{Binding PanelStatus}" Foreground="#fdba74" FontSize="12"
-                       VerticalAlignment="Center" MaxWidth="300" TextTrimming="CharacterEllipsis" />
+                       VerticalAlignment="Center" MaxWidth="280" TextTrimming="CharacterEllipsis" />
           </Grid>
         </Border>
 
@@ -60,25 +62,22 @@
         </Border>
 
         <Border DockPanel.Dock="Bottom" Background="#141210" CornerRadius="8" Padding="8" Margin="0,8,0,0">
-          <DockPanel>
-            <TextBlock DockPanel.Dock="Top" Text="Quick notes → last line / 快捷备注" Foreground="#a8a29e" Margin="0,0,0,6" FontSize="12" />
-            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Height="88">
-              <ItemsControl ItemsSource="{Binding QuickNotes}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <WrapPanel />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:QuickNoteItem">
-                    <Button Classes="pos-chip" Content="{Binding Display}"
-                            Command="{Binding DataContext.ApplyQuickNoteCommand, ElementName=Root}"
-                            CommandParameter="{Binding}" />
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </ScrollViewer>
-          </DockPanel>
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" MaxHeight="64">
+            <ItemsControl ItemsSource="{Binding QuickNotes}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:QuickNoteItem">
+                  <Button Classes="pos-chip" Content="{Binding En}"
+                          Command="{Binding DataContext.ApplyQuickNoteCommand, ElementName=Root}"
+                          CommandParameter="{Binding}" ToolTip.Tip="{Binding Display}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
         </Border>
 
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
@@ -114,10 +113,10 @@
             <TextBlock DockPanel.Dock="Top" Text="{Binding ModifierSummary}" Foreground="#fdba74"
                        TextWrapping="Wrap" Margin="0,0,0,12" />
             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,16,0,0">
-              <Button Classes="pos-action pos-send" Content="ADD TO TICKET / 加入" Command="{Binding AddSelectedItemCommand}" Width="220" />
+              <Button Classes="pos-action pos-send" Content="ADD TO TICKET" Command="{Binding AddSelectedItemCommand}" Width="200" />
               <Button Classes="pos-action pos-danger" Content="Cancel" Command="{Binding CancelModifierCommand}" Width="120" />
             </StackPanel>
-            <TextBox DockPanel.Dock="Bottom" Classes="pos-field" Watermark="Line note / 备注"
+            <TextBox DockPanel.Dock="Bottom" Classes="pos-field" Watermark="Line note"
                      Text="{Binding LineNotesDraft}" Margin="0,8,0,0" />
             <ScrollViewer MaxHeight="280">
               <ItemsControl ItemsSource="{Binding OptionChips}">
@@ -140,67 +139,133 @@
       </Border>
     </Grid>
 
-    <Border Grid.Column="2" Background="#141210" CornerRadius="8" Padding="10">
-      <DockPanel>
-        <Border DockPanel.Dock="Top" Background="#0c0a09" CornerRadius="6" Padding="8,6" Margin="0,0,0,8">
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Text="{Binding TicketHeader}" FontSize="15" FontWeight="Bold" Foreground="#fafaf9"
-                       VerticalAlignment="Center" />
-            <Border Grid.Column="1" Background="#c2410c" CornerRadius="4" Padding="8,2"
-                    IsVisible="{Binding TicketIsSent}">
-              <TextBlock Text="{Binding TicketStatusBadge}" FontWeight="Bold" FontSize="11" Foreground="#fff7ed" />
-            </Border>
-          </Grid>
-        </Border>
+    <!-- Ticket column: header → type → customer → LINES (flex) → footer actions -->
+    <Border Grid.Column="2" Background="#141210" CornerRadius="8" Padding="0" ClipToBounds="True">
+      <Grid>
+        <DockPanel Margin="10">
 
-        <UniformGrid DockPanel.Dock="Top" Columns="4" Margin="0,0,0,8">
-          <Button Classes="pos-type" Classes.active="{Binding IsCollection}" Content="COL&#x0a;自取"
-                  Command="{Binding SetOrderTypeCommand}" CommandParameter="Collection" Margin="0,0,4,0" />
-          <Button Classes="pos-type" Classes.active="{Binding IsDelivery}" Content="DEL&#x0a;外卖"
-                  Command="{Binding SetOrderTypeCommand}" CommandParameter="Delivery" Margin="0,0,4,0" />
-          <Button Classes="pos-type" Classes.active="{Binding IsWalkIn}" Content="WAIT&#x0a;堂等"
-                  Command="{Binding SetOrderTypeCommand}" CommandParameter="WalkIn" Margin="0,0,4,0" />
-          <Button Classes="pos-type" Classes.active="{Binding IsEatIn}" Content="TABLE&#x0a;堂食"
-                  Command="{Binding SetOrderTypeCommand}" CommandParameter="EatIn" />
-        </UniformGrid>
+          <!-- 1. Header -->
+          <Border DockPanel.Dock="Top" Background="#0c0a09" CornerRadius="6" Padding="10,8" Margin="0,0,0,8">
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+              <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <TextBlock Text="{Binding TicketNumberText}" FontSize="18" FontWeight="Bold" Foreground="#fafaf9" />
+                <Border Background="#c2410c" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding TicketStatusBadge}" FontWeight="Bold" FontSize="11" Foreground="#fff7ed" />
+                </Border>
+              </StackPanel>
+              <Button Grid.Column="1" Classes="pos-nav" Content="{Binding HeldButtonText}"
+                      Command="{Binding ToggleHeldPanelCommand}" Width="78" Height="36" Margin="0,0,4,0" FontSize="12" />
+              <Button Grid.Column="2" Classes="pos-nav" Content="{Binding LblNew}"
+                      Command="{Binding NewTicketCommand}" Width="52" Height="36" Margin="0,0,4,0" FontSize="12" />
+              <Button Grid.Column="3" Classes="pos-nav" Content="{Binding LblClear}"
+                      Command="{Binding ClearTicketCommand}" Width="56" Height="36" FontSize="12" />
+            </Grid>
+          </Border>
 
-        <StackPanel DockPanel.Dock="Top">
-          <TextBox Classes="pos-field" Watermark="Name / 姓名" Text="{Binding CustomerName}" />
-          <TextBox Classes="pos-field" Watermark="Phone / 电话" Text="{Binding CustomerPhone}" />
-          <TextBox Classes="pos-field" Watermark="Address / 地址" Text="{Binding DeliveryAddress}"
-                   IsVisible="{Binding IsDelivery}" />
-          <TextBox Classes="pos-field" Watermark="Postcode" Text="{Binding DeliveryPostcode}"
-                   IsVisible="{Binding IsDelivery}" />
-          <TextBox Classes="pos-field" Watermark="Table / pager #" Text="{Binding TableNumber}"
-                   IsVisible="{Binding IsEatIn}" />
-          <TextBox Classes="pos-field" Watermark="Order notes / 整单备注" Text="{Binding OrderNotes}" />
-        </StackPanel>
+          <!-- Held strip (toggle) -->
+          <Border DockPanel.Dock="Top" Background="#292524" CornerRadius="6" Padding="8" Margin="0,0,0,8"
+                  IsVisible="{Binding ShowHeldPanel}">
+            <ItemsControl ItemsSource="{Binding HeldOrders}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="domain:PosOrder">
+                  <Button Classes="pos-chip" Margin="0,0,6,4" HorizontalAlignment="Left"
+                          Command="{Binding DataContext.ResumeHeldCommand, ElementName=Root}"
+                          CommandParameter="{Binding}">
+                    <TextBlock FontSize="12">
+                      <Run Text="{Binding HoldLabel}" />
+                      <Run Text=" " />
+                      <Run Text="{Binding Total, StringFormat={}£{0:0.00}}" />
+                    </TextBlock>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
 
-        <StackPanel DockPanel.Dock="Bottom" Spacing="6" Margin="0,8,0,0">
-          <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Text="{Binding LineCount, StringFormat={}{0} items}" Foreground="#a8a29e" VerticalAlignment="Center" />
-            <TextBlock Grid.Column="1" Text="{Binding Total, StringFormat={}£{0:0.00}}"
-                       FontSize="28" FontWeight="Bold" Foreground="#fafaf9" />
-          </Grid>
-          <Grid ColumnDefinitions="*,*">
-            <TextBlock Text="{Binding Subtotal, StringFormat=Sub £{0:0.00}}" Foreground="#a8a29e" FontSize="12" />
-            <TextBlock Grid.Column="1" Text="{Binding DeliveryFee, StringFormat=Del £{0:0.00}}"
-                       Foreground="#a8a29e" FontSize="12" HorizontalAlignment="Right"
-                       IsVisible="{Binding IsDelivery}" />
-          </Grid>
+          <!-- 2. Order type -->
+          <UniformGrid DockPanel.Dock="Top" Columns="4" Margin="0,0,0,6">
+            <Button Classes="pos-type" Classes.active="{Binding IsCollection}" Content="COL"
+                    Command="{Binding SetOrderTypeCommand}" CommandParameter="Collection" Margin="0,0,4,0" />
+            <Button Classes="pos-type" Classes.active="{Binding IsDelivery}" Content="DEL"
+                    Command="{Binding SetOrderTypeCommand}" CommandParameter="Delivery" Margin="0,0,4,0" />
+            <Button Classes="pos-type" Classes.active="{Binding IsWalkIn}" Content="WAIT"
+                    Command="{Binding SetOrderTypeCommand}" CommandParameter="WalkIn" Margin="0,0,4,0" />
+            <Button Classes="pos-type" Classes.active="{Binding IsEatIn}" Content="TABLE"
+                    Command="{Binding SetOrderTypeCommand}" CommandParameter="EatIn" />
+          </UniformGrid>
 
-          <Grid ColumnDefinitions="*,*,*" IsEnabled="{Binding CanEditSelectedLine}">
-            <Button Grid.Column="0" Classes="pos-key" Content="−" Command="{Binding QtyMinusCommand}" Margin="0,0,4,0" />
-            <Button Grid.Column="1" Classes="pos-key" Content="+" Command="{Binding QtyPlusCommand}" Margin="0,0,4,0" />
-            <Button Grid.Column="2" Classes="pos-key" Content="⌫" Command="{Binding RemoveLineCommand}" />
-          </Grid>
+          <!-- 3. Customer (compact) -->
+          <StackPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+            <Grid ColumnDefinitions="*,*" Margin="0,0,0,0">
+              <TextBox Classes="pos-field-sm" Watermark="Name" Text="{Binding CustomerName}" Margin="0,0,4,4" />
+              <TextBox Grid.Column="1" Classes="pos-field-sm" Watermark="Phone" Text="{Binding CustomerPhone}" Margin="0,0,0,4" />
+            </Grid>
+            <TextBox Classes="pos-field-sm" Watermark="Address" Text="{Binding DeliveryAddress}"
+                     IsVisible="{Binding IsDelivery}" />
+            <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding IsDelivery}">
+              <TextBox Classes="pos-field-sm" Watermark="Postcode" Text="{Binding DeliveryPostcode}" Margin="0,0,4,0" />
+            </Grid>
+            <TextBox Classes="pos-field-sm" Watermark="Table / pager #" Text="{Binding TableNumber}"
+                     IsVisible="{Binding IsEatIn}" />
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{Binding CustomerSummary}" Foreground="#78716c" FontSize="11"
+                         VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                         IsVisible="{Binding !ShowCustomerMore}" />
+              <Button Grid.Column="1" Classes="pos-nav" Content="Notes"
+                      Command="{Binding ToggleCustomerMoreCommand}" Width="64" Height="28" FontSize="11" Margin="0" />
+            </Grid>
+            <TextBox Classes="pos-field-sm" Watermark="Order notes" Text="{Binding OrderNotes}"
+                     IsVisible="{Binding ShowCustomerMore}" />
+          </StackPanel>
 
-          <Border Background="#0c0a09" CornerRadius="6" Padding="6">
-            <StackPanel>
-              <Grid ColumnDefinitions="*,Auto" Margin="2,0,2,4">
-                <TextBlock Text="{Binding CashTenderedText, StringFormat=Cash £{0}}" FontSize="16"
-                           FontWeight="Bold" Foreground="#86efac" VerticalAlignment="Center" />
-                <TextBlock Grid.Column="1" Text="{Binding ChangeText}" Foreground="#fde68a" FontWeight="SemiBold" />
+          <!-- 5. Footer: totals + line edit + primary actions (always visible) -->
+          <Border DockPanel.Dock="Bottom" Classes="pos-ticket-footer" Margin="0,8,0,0"
+                  IsVisible="{Binding !ShowCashPanel}">
+            <StackPanel Spacing="8">
+              <Grid ColumnDefinitions="Auto,*,Auto">
+                <StackPanel Orientation="Horizontal" Spacing="4" IsEnabled="{Binding CanEditSelectedLine}">
+                  <Button Classes="pos-key-sm" Content="−" Command="{Binding QtyMinusCommand}" Width="44" Margin="0,0,4,0" />
+                  <Button Classes="pos-key-sm" Content="+" Command="{Binding QtyPlusCommand}" Width="44" Margin="0,0,4,0" />
+                  <Button Classes="pos-key-sm" Content="⌫" Command="{Binding RemoveLineCommand}" Width="44" Margin="0" />
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="{Binding LineCount, StringFormat={}{0} items}"
+                           Foreground="#a8a29e" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0" />
+                <StackPanel Grid.Column="2" HorizontalAlignment="Right">
+                  <TextBlock Text="{Binding Total, StringFormat={}£{0:0.00}}"
+                             FontSize="26" FontWeight="Bold" Foreground="#fafaf9" HorizontalAlignment="Right" />
+                  <TextBlock Text="{Binding DeliveryFee, StringFormat=+del £{0:0.00}}"
+                             Foreground="#a8a29e" FontSize="11" HorizontalAlignment="Right"
+                             IsVisible="{Binding IsDelivery}" />
+                </StackPanel>
+              </Grid>
+
+              <Button Classes="pos-action pos-send" Content="{Binding SendButtonText}"
+                      Command="{Binding SendKitchenCommand}" Height="50" />
+              <Grid ColumnDefinitions="*,*,*" >
+                <Button Grid.Column="0" Classes="pos-action pos-hold" Content="{Binding LblHold}"
+                        Command="{Binding HoldTicketCommand}" Margin="0,0,4,0" Height="48" />
+                <Button Grid.Column="1" Classes="pos-action pos-cash" Content="{Binding LblPayCash}"
+                        Command="{Binding BeginCashPayCommand}" Margin="0,0,4,0" Height="48" />
+                <Button Grid.Column="2" Classes="pos-action pos-card" Content="{Binding LblPayCard}"
+                        Command="{Binding PayCardCommand}" Height="48" />
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <!-- Cash tender overlay (replaces footer when paying) -->
+          <Border DockPanel.Dock="Bottom" Classes="pos-ticket-footer" Margin="0,8,0,0"
+                  IsVisible="{Binding ShowCashPanel}">
+            <StackPanel Spacing="6">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel>
+                  <TextBlock Text="Cash tender" Foreground="#a8a29e" FontSize="11" />
+                  <TextBlock Text="{Binding CashTenderedText, StringFormat={}£{0}}" FontSize="22"
+                             FontWeight="Bold" Foreground="#86efac" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" HorizontalAlignment="Right">
+                  <TextBlock Text="{Binding Total, StringFormat=Due £{0:0.00}}" Foreground="#fafaf9" FontWeight="SemiBold" HorizontalAlignment="Right" />
+                  <TextBlock Text="{Binding ChangeText}" Foreground="#fde68a" FontWeight="Bold" FontSize="16" HorizontalAlignment="Right" />
+                </StackPanel>
               </Grid>
               <UniformGrid Columns="4">
                 <Button Classes="pos-key" Content="1" Command="{Binding CashDigitCommand}" CommandParameter="1" />
@@ -220,63 +285,62 @@
                 <Button Classes="pos-key" Content="." Command="{Binding CashDigitCommand}" CommandParameter="." />
                 <Button Classes="pos-key" Content="£50" Command="{Binding CashQuickCommand}" CommandParameter="50" />
               </UniformGrid>
+              <Grid ColumnDefinitions="*,2*">
+                <Button Grid.Column="0" Classes="pos-nav" Content="{Binding LblBack}"
+                        Command="{Binding CancelCashPayCommand}" Height="52" Margin="0,0,6,0" />
+                <Button Grid.Column="1" Classes="pos-action pos-cash" Content="{Binding LblConfirmCash}"
+                        Command="{Binding PayCashCommand}" Height="52" />
+              </Grid>
             </StackPanel>
           </Border>
 
-          <Button Classes="pos-action pos-send" Content="{Binding SendButtonText}" Command="{Binding SendKitchenCommand}" Height="52" />
-          <Grid ColumnDefinitions="*,*">
-            <Button Grid.Column="0" Classes="pos-action pos-card" Content="{Binding LblHold}"
-                    Command="{Binding HoldTicketCommand}" Margin="0,0,4,0" Height="48" />
-            <Button Grid.Column="1" Classes="pos-nav" Content="{Binding LblNew}"
-                    Command="{Binding NewTicketCommand}" Height="48" />
-          </Grid>
-          <Grid ColumnDefinitions="*,*">
-            <Button Grid.Column="0" Classes="pos-action pos-cash" Content="{Binding LblPayCash}"
-                    Command="{Binding PayCashCommand}" Margin="0,0,4,0" Height="52" />
-            <Button Grid.Column="1" Classes="pos-action pos-card" Content="{Binding LblPayCard}"
-                    Command="{Binding PayCardCommand}" Height="52" />
-          </Grid>
-          <Button Classes="pos-nav" Content="{Binding LblClear}" Command="{Binding ClearTicketCommand}" Height="36" />
+          <!-- 4. LINES — fills remaining height -->
+          <Grid>
+            <ListBox Classes="pos-ticket" ItemsSource="{Binding Lines}" SelectedItem="{Binding SelectedLine}"
+                     IsVisible="{Binding !IsTicketEmpty}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="domain:CartLine">
+                  <Border Padding="10,8" Opacity="{Binding KitchenSent, Converter={x:Static conv:BoolToOpacityConverter.Instance}}">
+                    <Grid ColumnDefinitions="44,*,72">
+                      <Border Background="#292524" CornerRadius="6" Width="40" Height="40"
+                              VerticalAlignment="Top" HorizontalAlignment="Left">
+                        <TextBlock Text="{Binding Quantity}" FontWeight="Bold" FontSize="18" Foreground="#fb923c"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                      </Border>
+                      <StackPanel Grid.Column="1" Margin="10,0,8,0">
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBlock Text="{Binding Name}" TextWrapping="Wrap" Foreground="#fafaf9"
+                                     FontWeight="SemiBold" FontSize="14" />
+                          <Border Grid.Column="1" Background="#44403c" CornerRadius="3" Padding="6,2"
+                                  Margin="6,0,0,0" VerticalAlignment="Top"
+                                  IsVisible="{Binding KitchenSent}">
+                            <TextBlock Text="SENT" FontSize="9" FontWeight="Bold" Foreground="#fdba74" />
+                          </Border>
+                        </Grid>
+                        <TextBlock Text="{Binding ItemTranslation}" Foreground="#a8a29e" FontSize="12"
+                                   IsVisible="{Binding HasTranslation}" />
+                        <TextBlock Text="{Binding OptionsSummary}" TextWrapping="Wrap" Foreground="#78716c"
+                                   FontSize="11" Margin="0,2,0,0" IsVisible="{Binding HasExtras}" />
+                      </StackPanel>
+                      <TextBlock Grid.Column="2" Text="{Binding LineTotal, StringFormat={}£{0:0.00}}"
+                                 FontWeight="Bold" FontSize="15" Foreground="#fafaf9"
+                                 HorizontalAlignment="Right" VerticalAlignment="Top" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
 
-          <ItemsControl ItemsSource="{Binding HeldOrders}" MaxHeight="72">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="domain:PosOrder">
-                <Button Classes="pos-chip" Margin="0,2"
-                        Command="{Binding DataContext.ResumeHeldCommand, ElementName=Root}"
-                        CommandParameter="{Binding}">
-                  <TextBlock>
-                    <Run Text="{Binding HoldLabel}" />
-                    <Run Text=" · " />
-                    <Run Text="{Binding OrderNumber}" />
-                  </TextBlock>
-                </Button>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
-
-        <ListBox Classes="pos-ticket" ItemsSource="{Binding Lines}" SelectedItem="{Binding SelectedLine}" Margin="0,8">
-          <ListBox.ItemTemplate>
-            <DataTemplate x:DataType="domain:CartLine">
-              <Grid ColumnDefinitions="36,*,48,64" Margin="8,6" Opacity="{Binding KitchenSent, Converter={x:Static conv:BoolToOpacityConverter.Instance}}">
-                <TextBlock Text="{Binding Quantity, StringFormat={}{0}×}" FontWeight="Bold" Foreground="#fb923c"
-                           FontSize="15" VerticalAlignment="Top" />
-                <StackPanel Grid.Column="1" Margin="4,0">
-                  <TextBlock Text="{Binding Name}" TextWrapping="Wrap" Foreground="#fafaf9" FontWeight="SemiBold" FontSize="13" />
-                  <TextBlock Text="{Binding ItemTranslation}" Foreground="#a8a29e" FontSize="11" />
-                  <TextBlock Text="{Binding OptionsSummary}" TextWrapping="Wrap" Foreground="#78716c" FontSize="11" />
-                </StackPanel>
-                <Border Grid.Column="2" Background="#44403c" CornerRadius="3" Padding="4,2" VerticalAlignment="Top"
-                        HorizontalAlignment="Center" Margin="2,0">
-                  <TextBlock Text="{Binding SentBadge}" FontSize="9" FontWeight="Bold" Foreground="#fdba74" />
-                </Border>
-                <TextBlock Grid.Column="3" Text="{Binding LineTotal, StringFormat={}£{0:0.00}}"
-                           FontWeight="Bold" Foreground="#fafaf9" HorizontalAlignment="Right" />
-              </Grid>
-            </DataTemplate>
-          </ListBox.ItemTemplate>
-        </ListBox>
-      </DockPanel>
+            <StackPanel IsVisible="{Binding IsTicketEmpty}" VerticalAlignment="Center" HorizontalAlignment="Center"
+                        Opacity="0.55" Margin="20">
+              <TextBlock Text="TICKET" FontSize="13" FontWeight="Bold" Foreground="#78716c"
+                         HorizontalAlignment="Center" LetterSpacing="2" />
+              <TextBlock Text="{Binding EmptyTicketHint}" FontSize="14" Foreground="#a8a29e"
+                         HorizontalAlignment="Center" Margin="0,8,0,0" TextWrapping="Wrap" TextAlignment="Center" />
+            </StackPanel>
+          </Grid>
+        </DockPanel>
+      </Grid>
     </Border>
   </Grid>
 </UserControl>

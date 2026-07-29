@@ -31,7 +31,9 @@ public sealed class CartLine
     public bool KitchenSent { get; set; }
     public DateTimeOffset? KitchenSentAt { get; set; }
 
-    public string SentBadge => KitchenSent ? "SENT" : "NEW";
+    public string SentBadge => KitchenSent ? "SENT" : "";
+    public bool HasExtras => Selections.Any(s => s.Choices.Count > 0) || !string.IsNullOrWhiteSpace(Notes);
+    public bool HasTranslation => !string.IsNullOrWhiteSpace(ItemTranslation);
 
     public string DisplayLabel
     {
@@ -60,7 +62,7 @@ public sealed class CartLine
                     bits.Add($"+ {c.Label}");
             }
             if (!string.IsNullOrWhiteSpace(Notes))
-                bits.Add($"NOTE: {Notes}");
+                bits.Add($"※ {Notes}");
             return string.Join("  ", bits);
         }
     }

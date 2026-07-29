@@ -71,21 +71,21 @@
   </Style>
 
   <Style Selector="Button.pos-type">
-    <Setter Property="Height" Value="44" />
+    <Setter Property="Height" Value="40" />
     <Setter Property="Margin" Value="0,0,4,0" />
     <Setter Property="Background" Value="#44403c" />
     <Setter Property="Foreground" Value="#fafaf9" />
     <Setter Property="BorderThickness" Value="0" />
     <Setter Property="CornerRadius" Value="4" />
     <Setter Property="FontWeight" Value="Bold" />
-    <Setter Property="FontSize" Value="13" />
+    <Setter Property="FontSize" Value="12" />
   </Style>
   <Style Selector="Button.pos-type.active">
     <Setter Property="Background" Value="#ea580c" />
   </Style>
 
   <Style Selector="Button.pos-key">
-    <Setter Property="Height" Value="44" />
+    <Setter Property="Height" Value="48" />
     <Setter Property="Margin" Value="2" />
     <Setter Property="Background" Value="#57534e" />
     <Setter Property="Foreground" Value="White" />
@@ -96,6 +96,16 @@
   </Style>
   <Style Selector="Button.pos-key:pointerover /template/ ContentPresenter">
     <Setter Property="Background" Value="#78716c" />
+  </Style>
+  <Style Selector="Button.pos-key-sm">
+    <Setter Property="Height" Value="40" />
+    <Setter Property="Margin" Value="0,0,4,0" />
+    <Setter Property="Background" Value="#44403c" />
+    <Setter Property="Foreground" Value="#fafaf9" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="FontSize" Value="18" />
+    <Setter Property="FontWeight" Value="Bold" />
   </Style>
 
   <Style Selector="Button.pos-action">
@@ -118,6 +128,9 @@
   </Style>
   <Style Selector="Button.pos-danger">
     <Setter Property="Background" Value="#991b1b" />
+  </Style>
+  <Style Selector="Button.pos-hold">
+    <Setter Property="Background" Value="#57534e" />
   </Style>
 
   <Style Selector="Button.pos-chip">
@@ -159,6 +172,18 @@
     <Setter Property="Padding" Value="10,0" />
     <Setter Property="VerticalContentAlignment" Value="Center" />
   </Style>
+  <Style Selector="TextBox.pos-field-sm">
+    <Setter Property="Height" Value="34" />
+    <Setter Property="Margin" Value="0,0,0,4" />
+    <Setter Property="Background" Value="#292524" />
+    <Setter Property="Foreground" Value="#fafaf9" />
+    <Setter Property="BorderBrush" Value="#44403c" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
 
   <Style Selector="ListBox.pos-ticket">
     <Setter Property="Background" Value="Transparent" />
@@ -166,15 +191,22 @@
   </Style>
   <Style Selector="ListBox.pos-ticket ListBoxItem">
     <Setter Property="Padding" Value="0" />
-    <Setter Property="Margin" Value="0,0,0,4" />
-    <Setter Property="Background" Value="#292524" />
-    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Margin" Value="0,0,0,6" />
+    <Setter Property="Background" Value="#1f1c1a" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="MinHeight" Value="52" />
   </Style>
   <Style Selector="ListBox.pos-ticket ListBoxItem:selected /template/ ContentPresenter">
-    <Setter Property="Background" Value="#44403c" />
+    <Setter Property="Background" Value="#3d2e24" />
   </Style>
   <Style Selector="ListBox.pos-ticket ListBoxItem:pointerover /template/ ContentPresenter">
-    <Setter Property="Background" Value="#3f3a36" />
+    <Setter Property="Background" Value="#2a2623" />
+  </Style>
+
+  <Style Selector="Border.pos-ticket-footer">
+    <Setter Property="Background" Value="#0c0a09" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="10,8" />
   </Style>
 
 </Styles>

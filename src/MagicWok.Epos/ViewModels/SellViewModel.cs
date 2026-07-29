@@ -77,6 +77,17 @@ public partial class SellViewModel : ViewModelBase
     [ObservableProperty] private string _lblHold = "HOLD";
     [ObservableProperty] private string _lblPayCash = "CASH";
     [ObservableProperty] private string _lblPayCard = "CARD";
+    [ObservableProperty] private bool _showCashPanel;
+    [ObservableProperty] private bool _showHeldPanel;
+    [ObservableProperty] private bool _showCustomerMore;
+    [ObservableProperty] private bool _isTicketEmpty = true;
+    [ObservableProperty] private int _heldCount;
+    [ObservableProperty] private string _ticketNumberText = "NEW";
+    [ObservableProperty] private string _customerSummary = "";
+    [ObservableProperty] private string _lblConfirmCash = "CONFIRM CASH";
+    [ObservableProperty] private string _lblBack = "Back";
+    [ObservableProperty] private string _emptyTicketHint = "Tap dishes to build ticket";
+    [ObservableProperty] private string _heldButtonText = "Held";
 
     public void RefreshUiLabels()
     {
@@ -88,6 +99,9 @@ public partial class SellViewModel : ViewModelBase
         LblHold = zh ? "挂起" : "HOLD";
         LblPayCash = zh ? "现金" : "CASH";
         LblPayCard = zh ? "刷卡" : "CARD";
+        LblConfirmCash = zh ? "确认收现" : "CONFIRM CASH";
+        LblBack = zh ? "返回" : "Back";
+        EmptyTicketHint = zh ? "点菜开始建单" : "Tap dishes to build ticket";
         UpdateTicketChrome();
     }
 
@@ -105,6 +119,44 @@ public partial class SellViewModel : ViewModelBase
         HeldOrders.Clear();
         foreach (var o in _app.Orders.GetTodayFiltered("held"))
             HeldOrders.Add(o);
+        HeldCount = HeldOrders.Count;
+        var zh = _app.GetSettings().UiLanguage == "zh";
+        HeldButtonText = HeldCount > 0
+            ? (zh ? $"挂单 ({HeldCount})" : $"Held ({HeldCount})")
+            : (zh ? "挂单" : "Held");
+    }
+
+    [RelayCommand]
+    private void ToggleHeldPanel()
+    {
+        ShowHeldPanel = !ShowHeldPanel;
+        if (ShowHeldPanel) RefreshHeldList();
+    }
+
+    [RelayCommand]
+    private void ToggleCustomerMore() => ShowCustomerMore = !ShowCustomerMore;
+
+    [RelayCommand]
+    private void BeginCashPay()
+    {
+        if (Lines.Count == 0)
+        {
+            PanelStatus = "Ticket is empty";
+            return;
+        }
+        ShowCashPanel = true;
+        if (string.IsNullOrWhiteSpace(CashTenderedText))
+            CashExact();
+        else
+            UpdateChangePreview();
+    }
+
+    [RelayCommand]
+    private void CancelCashPay()
+    {
+        ShowCashPanel = false;
+        CashTenderedText = "";
+        ChangeText = "";
     }
 
     public void RefreshMenu()
@@ -531,6 +583,13 @@ public partial class SellViewModel : ViewModelBase
     [RelayCommand]
     private async Task PayCashAsync()
     {
+        // First tap opens tender pad; confirm from pad
+        if (!ShowCashPanel)
+        {
+            BeginCashPay();
+            return;
+        }
+
         try
         {
             ValidateForSendOrPay(requireAddress: true);
@@ -569,6 +628,7 @@ public partial class SellViewModel : ViewModelBase
 
             PanelStatus = $"Cash paid {order.OrderNumber} £{order.Total:0.00}  {ChangeText}";
             _setStatus(PanelStatus);
+            ShowCashPanel = false;
             NewTicket(force: true);
         }
         catch (Exception ex)
@@ -679,6 +739,9 @@ public partial class SellViewModel : ViewModelBase
         OrderNotes = "";
         CashTenderedText = "";
         ChangeText = "";
+        ShowCashPanel = false;
+        ShowHeldPanel = false;
+        ShowCustomerMore = false;
         OrderType = "Collection";
         SyncTicketTotals();
         RefreshHeldList();
@@ -782,11 +845,28 @@ public partial class SellViewModel : ViewModelBase
         DeliveryFee = tmp.DeliveryFee;
         Total = tmp.Total;
         LineCount = Lines.Sum(l => l.Quantity);
+        IsTicketEmpty = Lines.Count == 0;
         HasUnsentLines = Lines.Any(l => !l.KitchenSent);
         TicketIsSent = Lines.Any(l => l.KitchenSent) || _ticket.Status == PosOrderStatus.Sent;
         RefreshLines();
         UpdateChangePreview();
         UpdateTicketChrome();
+        UpdateCustomerSummary();
+    }
+
+    private void UpdateCustomerSummary()
+    {
+        var bits = new List<string>();
+        if (!string.IsNullOrWhiteSpace(CustomerName)) bits.Add(CustomerName.Trim());
+        if (!string.IsNullOrWhiteSpace(CustomerPhone)) bits.Add(CustomerPhone.Trim());
+        if (IsDelivery)
+        {
+            if (!string.IsNullOrWhiteSpace(DeliveryPostcode)) bits.Add(DeliveryPostcode.Trim());
+            else if (!string.IsNullOrWhiteSpace(DeliveryAddress)) bits.Add(DeliveryAddress.Trim());
+        }
+        if (IsEatIn && !string.IsNullOrWhiteSpace(TableNumber))
+            bits.Add($"T{TableNumber.Trim()}");
+        CustomerSummary = bits.Count == 0 ? "" : string.Join(" · ", bits);
     }
 
     private void UpdateTicketChrome()
@@ -801,13 +881,20 @@ public partial class SellViewModel : ViewModelBase
             PosOrderStatus.Voided => "VOID",
             _ => Lines.Any(l => l.KitchenSent) ? "SENT" : "DRAFT",
         };
+        TicketNumberText = num;
         TicketStatusBadge = status;
         TicketHeader = $"{num} · {status}";
         if (Lines.Any(l => l.KitchenSent) && Lines.Any(l => !l.KitchenSent))
             SendButtonText = zh ? "补打厨房" : "SEND NEW";
         else
-            SendButtonText = zh ? "送厨" : "SEND KITCHEN";
+            SendButtonText = zh ? "送厨" : "SEND";
     }
+
+    partial void OnCustomerNameChanged(string value) => UpdateCustomerSummary();
+    partial void OnCustomerPhoneChanged(string value) => UpdateCustomerSummary();
+    partial void OnDeliveryAddressChanged(string value) => UpdateCustomerSummary();
+    partial void OnDeliveryPostcodeChanged(string value) => UpdateCustomerSummary();
+    partial void OnTableNumberChanged(string value) => UpdateCustomerSummary();
 
     private void RefreshLines()
     {
@@ -825,6 +912,8 @@ public partial class SellViewModel : ViewModelBase
         IsDelivery = value == "Delivery";
         IsWalkIn = value == "WalkIn";
         IsEatIn = value == "EatIn";
+        if (IsDelivery || IsEatIn)
+            ShowCustomerMore = true;
         SyncTicketTotals();
     }
 
