@@ -2,19 +2,28 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MagicWok.Epos.ViewModels"
              xmlns:domain="using:MagicWok.Epos.Domain"
+             xmlns:conv="using:MagicWok.Epos.Converters"
              x:Class="MagicWok.Epos.Views.SellView"
              x:Name="Root"
              x:DataType="vm:SellViewModel"
              Background="#1c1917">
 
-  <Grid ColumnDefinitions="148,*,380">
+  <Grid ColumnDefinitions="148,*,400">
 
     <Border Grid.Column="0" Background="#141210" CornerRadius="8" Padding="8" Margin="0,0,8,0">
       <DockPanel>
-        <TextBox DockPanel.Dock="Top" Classes="pos-field" Watermark="Search # / name"
-                 Text="{Binding SearchText}" Margin="0,0,0,8" />
+        <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,8">
+          <TextBox Classes="pos-field" Watermark="Search name"
+                   Text="{Binding SearchText}" />
+          <Grid ColumnDefinitions="*,56">
+            <TextBox Classes="pos-field" Watermark="# dish no." Text="{Binding DishNumberText}" Margin="0,0,4,0" />
+            <Button Grid.Column="1" Classes="pos-key" Content="+" Command="{Binding AddByDishNumberCommand}" Height="40" />
+          </Grid>
+          <Button Classes="pos-nav" Content="{Binding LblPhoneOrder}"
+                  Command="{Binding StartPhoneOrderCommand}" Height="40" />
+        </StackPanel>
         <Button DockPanel.Dock="Bottom" Classes="pos-nav" Content="Ad-hoc / 临点"
-                Command="{Binding ToggleAdHocCommand}" Height="44" Margin="0,8,0,0" />
+                Command="{Binding ToggleAdHocCommand}" Height="48" Margin="0,8,0,0" />
         <ScrollViewer>
           <ItemsControl ItemsSource="{Binding CategoryTiles}">
             <ItemsControl.ItemTemplate>
@@ -36,7 +45,7 @@
           <Grid ColumnDefinitions="*,Auto">
             <TextBlock Text="{Binding CategoryHeading}" FontSize="18" FontWeight="Bold" Foreground="#fafaf9" />
             <TextBlock Grid.Column="1" Text="{Binding PanelStatus}" Foreground="#fdba74" FontSize="12"
-                       VerticalAlignment="Center" MaxWidth="280" TextTrimming="CharacterEllipsis" />
+                       VerticalAlignment="Center" MaxWidth="300" TextTrimming="CharacterEllipsis" />
           </Grid>
         </Border>
 
@@ -52,7 +61,7 @@
 
         <Border DockPanel.Dock="Bottom" Background="#141210" CornerRadius="8" Padding="8" Margin="0,8,0,0">
           <DockPanel>
-            <TextBlock DockPanel.Dock="Top" Text="Quick notes / 快捷备注" Foreground="#a8a29e" Margin="0,0,0,6" FontSize="12" />
+            <TextBlock DockPanel.Dock="Top" Text="Quick notes → last line / 快捷备注" Foreground="#a8a29e" Margin="0,0,0,6" FontSize="12" />
             <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Height="88">
               <ItemsControl ItemsSource="{Binding QuickNotes}">
                 <ItemsControl.ItemsPanel>
@@ -133,6 +142,17 @@
 
     <Border Grid.Column="2" Background="#141210" CornerRadius="8" Padding="10">
       <DockPanel>
+        <Border DockPanel.Dock="Top" Background="#0c0a09" CornerRadius="6" Padding="8,6" Margin="0,0,0,8">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{Binding TicketHeader}" FontSize="15" FontWeight="Bold" Foreground="#fafaf9"
+                       VerticalAlignment="Center" />
+            <Border Grid.Column="1" Background="#c2410c" CornerRadius="4" Padding="8,2"
+                    IsVisible="{Binding TicketIsSent}">
+              <TextBlock Text="{Binding TicketStatusBadge}" FontWeight="Bold" FontSize="11" Foreground="#fff7ed" />
+            </Border>
+          </Grid>
+        </Border>
+
         <UniformGrid DockPanel.Dock="Top" Columns="4" Margin="0,0,0,8">
           <Button Classes="pos-type" Classes.active="{Binding IsCollection}" Content="COL&#x0a;自取"
                   Command="{Binding SetOrderTypeCommand}" CommandParameter="Collection" Margin="0,0,4,0" />
@@ -151,6 +171,8 @@
                    IsVisible="{Binding IsDelivery}" />
           <TextBox Classes="pos-field" Watermark="Postcode" Text="{Binding DeliveryPostcode}"
                    IsVisible="{Binding IsDelivery}" />
+          <TextBox Classes="pos-field" Watermark="Table / pager #" Text="{Binding TableNumber}"
+                   IsVisible="{Binding IsEatIn}" />
           <TextBox Classes="pos-field" Watermark="Order notes / 整单备注" Text="{Binding OrderNotes}" />
         </StackPanel>
 
@@ -167,7 +189,7 @@
                        IsVisible="{Binding IsDelivery}" />
           </Grid>
 
-          <Grid ColumnDefinitions="*,*,*">
+          <Grid ColumnDefinitions="*,*,*" IsEnabled="{Binding CanEditSelectedLine}">
             <Button Grid.Column="0" Classes="pos-key" Content="−" Command="{Binding QtyMinusCommand}" Margin="0,0,4,0" />
             <Button Grid.Column="1" Classes="pos-key" Content="+" Command="{Binding QtyPlusCommand}" Margin="0,0,4,0" />
             <Button Grid.Column="2" Classes="pos-key" Content="⌫" Command="{Binding RemoveLineCommand}" />
@@ -201,20 +223,42 @@
             </StackPanel>
           </Border>
 
-          <Button Classes="pos-action pos-send" Content="SEND KITCHEN / 送厨" Command="{Binding SendKitchenCommand}" />
+          <Button Classes="pos-action pos-send" Content="{Binding SendButtonText}" Command="{Binding SendKitchenCommand}" Height="52" />
           <Grid ColumnDefinitions="*,*">
-            <Button Grid.Column="0" Classes="pos-action pos-cash" Content="CASH / 现金"
-                    Command="{Binding PayCashCommand}" Margin="0,0,4,0" />
-            <Button Grid.Column="1" Classes="pos-action pos-card" Content="CARD / 刷卡"
-                    Command="{Binding PayCardCommand}" />
+            <Button Grid.Column="0" Classes="pos-action pos-card" Content="{Binding LblHold}"
+                    Command="{Binding HoldTicketCommand}" Margin="0,0,4,0" Height="48" />
+            <Button Grid.Column="1" Classes="pos-nav" Content="{Binding LblNew}"
+                    Command="{Binding NewTicketCommand}" Height="48" />
           </Grid>
-          <Button Classes="pos-nav" Content="Clear ticket / 清空" Command="{Binding ClearTicketCommand}" Height="36" />
+          <Grid ColumnDefinitions="*,*">
+            <Button Grid.Column="0" Classes="pos-action pos-cash" Content="{Binding LblPayCash}"
+                    Command="{Binding PayCashCommand}" Margin="0,0,4,0" Height="52" />
+            <Button Grid.Column="1" Classes="pos-action pos-card" Content="{Binding LblPayCard}"
+                    Command="{Binding PayCardCommand}" Height="52" />
+          </Grid>
+          <Button Classes="pos-nav" Content="{Binding LblClear}" Command="{Binding ClearTicketCommand}" Height="36" />
+
+          <ItemsControl ItemsSource="{Binding HeldOrders}" MaxHeight="72">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="domain:PosOrder">
+                <Button Classes="pos-chip" Margin="0,2"
+                        Command="{Binding DataContext.ResumeHeldCommand, ElementName=Root}"
+                        CommandParameter="{Binding}">
+                  <TextBlock>
+                    <Run Text="{Binding HoldLabel}" />
+                    <Run Text=" · " />
+                    <Run Text="{Binding OrderNumber}" />
+                  </TextBlock>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
         </StackPanel>
 
         <ListBox Classes="pos-ticket" ItemsSource="{Binding Lines}" SelectedItem="{Binding SelectedLine}" Margin="0,8">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="domain:CartLine">
-              <Grid ColumnDefinitions="36,*,64" Margin="8,6">
+              <Grid ColumnDefinitions="36,*,48,64" Margin="8,6" Opacity="{Binding KitchenSent, Converter={x:Static conv:BoolToOpacityConverter.Instance}}">
                 <TextBlock Text="{Binding Quantity, StringFormat={}{0}×}" FontWeight="Bold" Foreground="#fb923c"
                            FontSize="15" VerticalAlignment="Top" />
                 <StackPanel Grid.Column="1" Margin="4,0">
@@ -222,7 +266,11 @@
                   <TextBlock Text="{Binding ItemTranslation}" Foreground="#a8a29e" FontSize="11" />
                   <TextBlock Text="{Binding OptionsSummary}" TextWrapping="Wrap" Foreground="#78716c" FontSize="11" />
                 </StackPanel>
-                <TextBlock Grid.Column="2" Text="{Binding LineTotal, StringFormat={}£{0:0.00}}"
+                <Border Grid.Column="2" Background="#44403c" CornerRadius="3" Padding="4,2" VerticalAlignment="Top"
+                        HorizontalAlignment="Center" Margin="2,0">
+                  <TextBlock Text="{Binding SentBadge}" FontSize="9" FontWeight="Bold" Foreground="#fdba74" />
+                </Border>
+                <TextBlock Grid.Column="3" Text="{Binding LineTotal, StringFormat={}£{0:0.00}}"
                            FontWeight="Bold" Foreground="#fafaf9" HorizontalAlignment="Right" />
               </Grid>
             </DataTemplate>

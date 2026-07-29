@@ -129,6 +129,9 @@ public sealed class EposDb : IDisposable
         EnsureColumn(conn, "orders", "payment_label", "TEXT");
         EnsureColumn(conn, "orders", "ticket_footer", "TEXT");
         EnsureColumn(conn, "orders", "below_minimum_surcharge", "REAL NOT NULL DEFAULT 0");
+        EnsureColumn(conn, "orders", "table_number", "TEXT");
+        EnsureColumn(conn, "orders", "hold_label", "TEXT");
+        EnsureColumn(conn, "orders", "void_reason", "TEXT");
     }
 
     private static void EnsureColumn(SqliteConnection conn, string table, string column, string typeSql)

@@ -27,6 +27,11 @@ public sealed class CartLine
     public decimal LineTotal { get; set; }
     public string? Notes { get; set; }
     public bool IsAdHoc { get; set; }
+    /// <summary>True after this line has been printed to kitchen.</summary>
+    public bool KitchenSent { get; set; }
+    public DateTimeOffset? KitchenSentAt { get; set; }
+
+    public string SentBadge => KitchenSent ? "SENT" : "NEW";
 
     public string DisplayLabel
     {
@@ -81,6 +86,11 @@ public sealed class PosOrder
     public string? CustomerPhone { get; set; }
     public string? DeliveryAddress { get; set; }
     public string? DeliveryPostcode { get; set; }
+    /// <summary>Table / pager number for Eat-in.</summary>
+    public string? TableNumber { get; set; }
+    /// <summary>Hold ticket label (name or phone).</summary>
+    public string? HoldLabel { get; set; }
+    public string? VoidReason { get; set; }
     public List<CartLine> Lines { get; set; } = [];
     public decimal Subtotal { get; set; }
     public decimal DeliveryFee { get; set; }
@@ -102,6 +112,11 @@ public sealed class PosOrder
     public List<OrderTender> Tenders { get; set; } = [];
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.Now;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.Now;
+
+    public bool IsUnpaid => Status is PosOrderStatus.Draft or PosOrderStatus.Open
+        or PosOrderStatus.Sent or PosOrderStatus.Held;
+    public int UnsentLineCount => Lines.Count(l => !l.KitchenSent);
+    public bool HasUnsentLines => UnsentLineCount > 0;
 }
 
 public sealed class Customer

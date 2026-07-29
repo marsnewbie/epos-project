@@ -18,7 +18,10 @@ public enum PosOrderStatus
 {
     Draft,
     Open,
+    /// <summary>Sent to kitchen, not yet paid.</summary>
     Sent,
+    /// <summary>Parked for later (name/phone label).</summary>
+    Held,
     Paid,
     Completed,
     Cancelled,
@@ -54,6 +57,12 @@ public enum OptionGroupType
     Select,
 }
 
+public sealed class QuickNoteDef
+{
+    public string En { get; set; } = "";
+    public string Zh { get; set; } = "";
+}
+
 /// <summary>Industry quick kitchen notes (POS speed buttons).</summary>
 public static class QuickKitchenNotes
 {
@@ -74,4 +83,7 @@ public static class QuickKitchenNotes
         ("Well done", "煎透"),
         ("Soft", "嫩一点"),
     ];
+
+    public static List<QuickNoteDef> CreateDefaultList() =>
+        Defaults.Select(d => new QuickNoteDef { En = d.En, Zh = d.Zh }).ToList();
 }

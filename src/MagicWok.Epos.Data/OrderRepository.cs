@@ -17,12 +17,13 @@ public sealed class OrderRepository
         cmd.CommandText = """
             INSERT INTO orders(
               id,order_number,order_type,source,status,customer_id,customer_name,customer_phone,
-              delivery_address,delivery_postcode,lines_json,subtotal,delivery_fee,discount_total,total,
+              delivery_address,delivery_postcode,table_number,hold_label,void_reason,
+              lines_json,subtotal,delivery_fee,discount_total,total,
               notes,requested_for,fulfilment_label,payment_label,ticket_footer,below_minimum_surcharge,
               online_external_id,online_payload,kitchen_printed,front_printed,online_acked,
               tenders_json,created_at,updated_at)
             VALUES(
-              $id,$on,$ot,$src,$st,$cid,$cn,$cp,$da,$dp,$lj,$sub,$df,$disc,$tot,
+              $id,$on,$ot,$src,$st,$cid,$cn,$cp,$da,$dp,$tn,$hl,$vr,$lj,$sub,$df,$disc,$tot,
               $notes,$rf,$fl,$pl,$tf,$bms,$oe,$op,$kp,$fp,$oa,$tj,$ca,$ua)
             ON CONFLICT(id) DO UPDATE SET
               order_number=excluded.order_number,
@@ -34,6 +35,9 @@ public sealed class OrderRepository
               customer_phone=excluded.customer_phone,
               delivery_address=excluded.delivery_address,
               delivery_postcode=excluded.delivery_postcode,
+              table_number=excluded.table_number,
+              hold_label=excluded.hold_label,
+              void_reason=excluded.void_reason,
               lines_json=excluded.lines_json,
               subtotal=excluded.subtotal,
               delivery_fee=excluded.delivery_fee,
@@ -110,6 +114,19 @@ public sealed class OrderRepository
         return list;
     }
 
+    public List<PosOrder> GetTodayFiltered(string filter)
+    {
+        var all = GetToday();
+        return filter.ToLowerInvariant() switch
+        {
+            "unpaid" => all.Where(o => o.IsUnpaid && o.Status != PosOrderStatus.Held).ToList(),
+            "held" => all.Where(o => o.Status == PosOrderStatus.Held).ToList(),
+            "paid" => all.Where(o => o.Status is PosOrderStatus.Paid or PosOrderStatus.Completed).ToList(),
+            "voided" => all.Where(o => o.Status == PosOrderStatus.Voided).ToList(),
+            _ => all,
+        };
+    }
+
     private static void Bind(SqliteCommand cmd, PosOrder o)
     {
         cmd.Parameters.AddWithValue("$id", o.Id);
@@ -122,6 +139,9 @@ public sealed class OrderRepository
         cmd.Parameters.AddWithValue("$cp", (object?)o.CustomerPhone ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$da", (object?)o.DeliveryAddress ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$dp", (object?)o.DeliveryPostcode ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$tn", (object?)o.TableNumber ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$hl", (object?)o.HoldLabel ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$vr", (object?)o.VoidReason ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$lj", JsonUtil.Serialize(o.Lines));
         cmd.Parameters.AddWithValue("$sub", (double)o.Subtotal);
         cmd.Parameters.AddWithValue("$df", (double)o.DeliveryFee);
@@ -169,6 +189,9 @@ public sealed class OrderRepository
             CustomerPhone = SN("customer_phone"),
             DeliveryAddress = SN("delivery_address"),
             DeliveryPostcode = SN("delivery_postcode"),
+            TableNumber = Has("table_number") ? SN("table_number") : null,
+            HoldLabel = Has("hold_label") ? SN("hold_label") : null,
+            VoidReason = Has("void_reason") ? SN("void_reason") : null,
             Lines = JsonUtil.Deserialize<List<CartLine>>(S("lines_json")),
             Subtotal = D("subtotal"),
             DeliveryFee = D("delivery_fee"),

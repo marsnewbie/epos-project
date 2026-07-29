@@ -11,25 +11,53 @@ public partial class OrdersViewModel : ViewModelBase
 {
     private readonly AppServices _app;
     private readonly Action<string> _setStatus;
+    private readonly Action<PosOrder>? _openOnSell;
 
-    public OrdersViewModel(AppServices app, Action<string> setStatus)
+    public OrdersViewModel(AppServices app, Action<string> setStatus, Action<PosOrder>? openOnSell = null)
     {
         _app = app;
         _setStatus = setStatus;
+        _openOnSell = openOnSell;
     }
 
     public ObservableCollection<PosOrder> Orders { get; } = [];
 
     [ObservableProperty] private PosOrder? _selectedOrder;
     [ObservableProperty] private string _detailText = "";
+    [ObservableProperty] private string _filter = "All";
+    [ObservableProperty] private bool _filterAll = true;
+    [ObservableProperty] private bool _filterUnpaid;
+    [ObservableProperty] private bool _filterHeld;
+    [ObservableProperty] private bool _filterPaid;
+    [ObservableProperty] private string _todaySummary = "";
 
     public void Refresh()
     {
         Orders.Clear();
-        foreach (var o in _app.Orders.GetToday())
+        foreach (var o in _app.Orders.GetTodayFiltered(Filter))
             Orders.Add(o);
         if (SelectedOrder is not null)
             SelectedOrder = Orders.FirstOrDefault(o => o.Id == SelectedOrder.Id);
+
+        var all = _app.Orders.GetToday();
+        var paid = all.Where(o => o.Status is PosOrderStatus.Paid or PosOrderStatus.Completed).ToList();
+        var cash = paid.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.Cash).Sum(t => t.Amount);
+        var card = paid.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.CardManual).Sum(t => t.Amount);
+        var online = paid.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.OnlinePaid).Sum(t => t.Amount);
+        TodaySummary =
+            $"Today: {paid.Count} paid · Cash £{cash:0.00} · Card £{card:0.00} · Online £{online:0.00} · " +
+            $"Unpaid {all.Count(o => o.IsUnpaid)} · Held {all.Count(o => o.Status == PosOrderStatus.Held)}";
+    }
+
+    [RelayCommand]
+    private void SetFilter(string? filter)
+    {
+        Filter = filter ?? "All";
+        FilterAll = Filter.Equals("All", StringComparison.OrdinalIgnoreCase);
+        FilterUnpaid = Filter.Equals("Unpaid", StringComparison.OrdinalIgnoreCase);
+        FilterHeld = Filter.Equals("Held", StringComparison.OrdinalIgnoreCase);
+        FilterPaid = Filter.Equals("Paid", StringComparison.OrdinalIgnoreCase);
+        Refresh();
     }
 
     partial void OnSelectedOrderChanged(PosOrder? value)
@@ -42,15 +70,57 @@ public partial class OrdersViewModel : ViewModelBase
 
         var lines = string.Join("\n", value.Lines.Select(l =>
             $"{l.Quantity}x {l.Name} £{l.LineTotal:0.00}" +
+            (l.KitchenSent ? " [SENT]" : " [NEW]") +
             (string.IsNullOrWhiteSpace(l.Notes) ? "" : $" ({l.Notes})")));
         DetailText =
             $"{value.OrderNumber}  {value.OrderType}  {value.Source}  {value.Status}\n" +
+            (string.IsNullOrWhiteSpace(value.HoldLabel) ? "" : $"Hold: {value.HoldLabel}\n") +
+            (string.IsNullOrWhiteSpace(value.TableNumber) ? "" : $"Table: {value.TableNumber}\n") +
             $"{value.CustomerName} {value.CustomerPhone}\n" +
             $"{value.DeliveryAddress} {value.DeliveryPostcode}\n" +
             $"{lines}\n" +
             $"Subtotal £{value.Subtotal:0.00}  Delivery £{value.DeliveryFee:0.00}  Total £{value.Total:0.00}\n" +
             $"Kitchen={(value.KitchenPrinted ? "Y" : "N")} Front={(value.FrontPrinted ? "Y" : "N")}\n" +
-            $"Notes: {value.Notes}";
+            $"Notes: {value.Notes}" +
+            (string.IsNullOrWhiteSpace(value.VoidReason) ? "" : $"\nVoid: {value.VoidReason}");
+    }
+
+    [RelayCommand]
+    private void OpenOnSell()
+    {
+        if (SelectedOrder is null) return;
+        if (SelectedOrder.Status is PosOrderStatus.Paid or PosOrderStatus.Completed or PosOrderStatus.Voided)
+        {
+            _setStatus("Paid/voided — use Reprint only");
+            return;
+        }
+        _openOnSell?.Invoke(SelectedOrder);
+    }
+
+    [RelayCommand]
+    private async Task VoidOrderAsync()
+    {
+        if (SelectedOrder is null) return;
+        if (SelectedOrder.Status is PosOrderStatus.Voided)
+        {
+            _setStatus("Already voided");
+            return;
+        }
+        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "Void order"))
+            return;
+        var reason = await UiPrompt.PromptTextAsync("Void reason", "Reason / 原因", initial: "Staff error");
+        if (reason is null) return;
+        try
+        {
+            var printVoid = _app.GetSettings().PrintVoidKitchenTicket;
+            await _app.Print.VoidOrderAsync(SelectedOrder, reason.Trim(), printVoid);
+            _setStatus($"Voided {SelectedOrder.OrderNumber}");
+            Refresh();
+        }
+        catch (Exception ex)
+        {
+            _setStatus($"Void failed: {ex.Message}");
+        }
     }
 
     [RelayCommand]
@@ -107,16 +177,17 @@ public partial class OnlineViewModel : ViewModelBase
     [ObservableProperty] private bool _credentialsOk;
     [ObservableProperty] private bool _setupNeeded = true;
     [ObservableProperty] private string _setupHint = "";
+    [ObservableProperty] private bool _showAdvanced;
 
     public void Refresh()
     {
         var s = _app.GetSettings();
         PollingEnabled = s.OnlinePollingEnabled && _app.OnlinePoller.IsRunning;
         CredentialsOk = !string.IsNullOrWhiteSpace(s.OnlineUsername) && !string.IsNullOrWhiteSpace(s.OnlinePassword);
-        SetupNeeded = !CredentialsOk || !PollingEnabled;
+        SetupNeeded = !CredentialsOk;
         SetupHint = BuildSetupHint(s, CredentialsOk, PollingEnabled);
         PollerStatus = string.IsNullOrWhiteSpace(_app.OnlinePoller.LastStatus)
-            ? (PollingEnabled ? "Polling…" : "Idle")
+            ? (PollingEnabled ? "Accepting online orders…" : "Online OFF")
             : _app.OnlinePoller.LastStatus;
         Orders.Clear();
         foreach (var o in _app.Orders.GetOnlineRecent())
@@ -128,21 +199,13 @@ public partial class OnlineViewModel : ViewModelBase
         var lines = new List<string>();
         if (!credsOk)
         {
-            lines.Add("1) Open website Admin → Print");
-            lines.Add("2) Copy Res ID (a), Username (u), Password (p) into EPOS Settings → Online");
-            lines.Add("3) Save Settings, then come back here and tap Start poller");
-            lines.Add("EPOS will NOT receive orders until a/u/p are saved.");
+            lines.Add("Settings → Online (Advanced): paste a/u/p from website Admin → Print, then Save.");
+            lines.Add("EPOS will NOT receive orders until credentials are saved.");
         }
         else if (!polling)
-        {
-            lines.Add("Credentials OK. Tap Start poller (or Poll once) to fetch website orders.");
-            lines.Add("Turn off GcAnyOrder phone app while EPOS is polling — only one device can claim each order.");
-        }
+            lines.Add("Credentials OK. Tap the big switch to accept online orders.");
         else
-        {
-            lines.Add($"Polling every {s.OnlinePollIntervalSeconds}s → {s.OnlineOrderServerUrl}");
-            lines.Add("If an order was already claimed by the phone app, wait ~2 min or reset print status in Admin.");
-        }
+            lines.Add($"Polling every {s.OnlinePollIntervalSeconds}s. Turn off GcAnyOrder phone while EPOS is on.");
         return string.Join("\n", lines);
     }
 
@@ -165,7 +228,7 @@ public partial class OnlineViewModel : ViewModelBase
     {
         if (!string.IsNullOrWhiteSpace(s.OnlineUsername) && !string.IsNullOrWhiteSpace(s.OnlinePassword))
             return true;
-        var msg = "Missing Online username/password. Settings → Online: paste a/u/p from website Admin → Print, then Save.";
+        var msg = "Missing Online username/password. Settings → Online (Advanced).";
         PollerStatus = msg;
         SetupHint = BuildSetupHint(s, false, false);
         SetupNeeded = true;
@@ -173,6 +236,18 @@ public partial class OnlineViewModel : ViewModelBase
         _setStatus(msg);
         return false;
     }
+
+    [RelayCommand]
+    private async Task ToggleAcceptingAsync()
+    {
+        if (PollingEnabled)
+            await StopPollerAsync();
+        else
+            await StartPollerAsync();
+    }
+
+    [RelayCommand]
+    private void ToggleAdvanced() => ShowAdvanced = !ShowAdvanced;
 
     [RelayCommand]
     private async Task StartPollerAsync()
@@ -184,11 +259,10 @@ public partial class OnlineViewModel : ViewModelBase
         _app.SaveSettings(s);
         _app.OnlinePoller.Configure(OnlineOrderPollerOptions.FromSettings(s));
         await _app.OnlinePoller.StartAsync();
-        // Kick immediately so user sees result without waiting interval
         try { await _app.OnlinePoller.PollOnceAsync(); }
         catch (Exception ex) { PollerStatus = ex.Message; }
         Refresh();
-        _setStatus(CredentialsOk ? "Online poller started" : PollerStatus);
+        _setStatus(CredentialsOk ? "Online accepting ON" : PollerStatus);
     }
 
     [RelayCommand]
@@ -200,7 +274,7 @@ public partial class OnlineViewModel : ViewModelBase
         await _app.OnlinePoller.StopAsync();
         PollingEnabled = false;
         Refresh();
-        _setStatus("Online poller stopped");
+        _setStatus("Online accepting OFF");
     }
 
     [RelayCommand]
@@ -212,7 +286,6 @@ public partial class OnlineViewModel : ViewModelBase
         try
         {
             await _app.OnlinePoller.PollOnceAsync();
-            // Give MainViewModel handler a moment to upsert/print
             await Task.Delay(400);
             Refresh();
             _setStatus(_app.OnlinePoller.LastStatus);
@@ -237,7 +310,7 @@ public partial class OnlineViewModel : ViewModelBase
             await Task.Delay(400);
             Refresh();
             var msg = _app.OnlinePoller.LastStatus.StartsWith("No order", StringComparison.OrdinalIgnoreCase)
-                ? "Connection OK — queue empty (or order already claimed by another device)."
+                ? "Connection OK — queue empty (or order already claimed)."
                 : _app.OnlinePoller.LastStatus;
             PollerStatus = msg;
             _setStatus(msg);
@@ -288,11 +361,13 @@ public partial class CustomersViewModel : ViewModelBase
 {
     private readonly AppServices _app;
     private readonly Action<string> _setStatus;
+    private readonly Action<Customer>? _startOrder;
 
-    public CustomersViewModel(AppServices app, Action<string> setStatus)
+    public CustomersViewModel(AppServices app, Action<string> setStatus, Action<Customer>? startOrder = null)
     {
         _app = app;
         _setStatus = setStatus;
+        _startOrder = startOrder;
     }
 
     public ObservableCollection<Customer> Customers { get; } = [];
@@ -355,154 +430,20 @@ public partial class CustomersViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private void StartOrder()
+    {
+        if (SelectedCustomer is null)
+        {
+            _setStatus("Select a customer first");
+            return;
+        }
+        _startOrder?.Invoke(SelectedCustomer);
+    }
+
+    [RelayCommand]
     private void SimulateCallerId()
     {
         _app.CallerId.Simulate(SimulatePhone.Trim());
         _setStatus($"Simulated CID {SimulatePhone}");
-    }
-}
-
-public partial class SettingsViewModel : ViewModelBase
-{
-    private readonly AppServices _app;
-    private readonly Action<string> _setStatus;
-
-    public SettingsViewModel(AppServices app, Action<string> setStatus)
-    {
-        _app = app;
-        _setStatus = setStatus;
-        Reload();
-    }
-
-    [ObservableProperty] private string _shopName = "";
-    [ObservableProperty] private string _shopAddress = "";
-    [ObservableProperty] private string _shopPostcode = "";
-    [ObservableProperty] private string _shopPhone = "";
-    [ObservableProperty] private string _kitchenPrinter = "GlPrinter80";
-    [ObservableProperty] private string _frontPrinter = "GlPrinter80";
-    [ObservableProperty] private string _printEncoding = "gbk";
-    [ObservableProperty] private bool _printChineseAsRaster = true;
-    [ObservableProperty] private bool _openDrawerOnCash = true;
-    [ObservableProperty] private bool _sendKitchenOnSend = true;
-    [ObservableProperty] private bool _printFrontOnPay = true;
-    [ObservableProperty] private bool _autoKitchenPrintOnline = true;
-    [ObservableProperty] private string _onlineBaseUrl = "";
-    [ObservableProperty] private string _orderServerUrl = "";
-    [ObservableProperty] private string _callbackUrl = "";
-    [ObservableProperty] private string _printedUrl = "";
-    [ObservableProperty] private string _onlineResId = "";
-    [ObservableProperty] private string _onlineUsername = "";
-    [ObservableProperty] private string _onlinePassword = "";
-    [ObservableProperty] private string _pollIntervalText = "4";
-    [ObservableProperty] private bool _onlinePollingEnabled;
-    [ObservableProperty] private string _defaultDeliveryFeeText = "0";
-    [ObservableProperty] private string _menuInfo = "";
-
-    public void Reload()
-    {
-        var s = _app.ReloadSettings();
-        ShopName = s.ShopName;
-        ShopAddress = s.ShopAddress;
-        ShopPostcode = s.ShopPostcode;
-        ShopPhone = s.ShopPhone;
-        KitchenPrinter = s.KitchenPrinterName;
-        FrontPrinter = s.FrontPrinterName;
-        PrintEncoding = s.PrintEncoding;
-        PrintChineseAsRaster = s.PrintChineseAsRaster;
-        OpenDrawerOnCash = s.OpenDrawerOnCash;
-        SendKitchenOnSend = s.SendKitchenOnSend;
-        PrintFrontOnPay = s.PrintFrontOnPay;
-        AutoKitchenPrintOnline = s.AutoKitchenPrintOnline;
-        OnlineBaseUrl = s.OnlineBaseUrl;
-        OrderServerUrl = s.OnlineOrderServerUrl;
-        CallbackUrl = s.OnlineCallbackUrl;
-        PrintedUrl = s.OnlinePrintedUrl;
-        OnlineResId = s.OnlineResId;
-        OnlineUsername = s.OnlineUsername;
-        OnlinePassword = s.OnlinePassword;
-        PollIntervalText = s.OnlinePollIntervalSeconds.ToString();
-        OnlinePollingEnabled = s.OnlinePollingEnabled;
-        DefaultDeliveryFeeText = s.DefaultDeliveryFee.ToString("0.##");
-        MenuInfo = $"Items: {_app.Menu.CountItems()} | Last import: {s.LastMenuImportAt ?? "n/a"}";
-    }
-
-    [RelayCommand]
-    private void Save()
-    {
-        var s = _app.GetSettings();
-        s.ShopName = ShopName.Trim();
-        s.ShopAddress = ShopAddress.Trim();
-        s.ShopPostcode = ShopPostcode.Trim();
-        s.ShopPhone = ShopPhone.Trim();
-        s.KitchenPrinterName = KitchenPrinter.Trim();
-        s.FrontPrinterName = FrontPrinter.Trim();
-        s.PrintEncoding = PrintEncoding.Trim();
-        s.PrintChineseAsRaster = PrintChineseAsRaster;
-        s.OpenDrawerOnCash = OpenDrawerOnCash;
-        s.SendKitchenOnSend = SendKitchenOnSend;
-        s.PrintFrontOnPay = PrintFrontOnPay;
-        s.AutoKitchenPrintOnline = AutoKitchenPrintOnline;
-        s.OnlineBaseUrl = OnlineBaseUrl.Trim().TrimEnd('/');
-        s.OnlineOrderServerUrl = OrderServerUrl.Trim();
-        s.OnlinePrintedUrl = PrintedUrl.Trim();
-        s.OnlineCallbackUrl = string.IsNullOrWhiteSpace(PrintedUrl) ? CallbackUrl.Trim() : PrintedUrl.Trim();
-        s.OnlineResId = OnlineResId.Trim();
-        s.OnlineUsername = OnlineUsername.Trim();
-        s.OnlinePassword = OnlinePassword;
-        s.OnlinePollIntervalSeconds = int.TryParse(PollIntervalText, out var iv) ? Math.Clamp(iv, 2, 60) : 4;
-        s.OnlinePollingEnabled = OnlinePollingEnabled;
-        s.DefaultDeliveryFee = decimal.TryParse(DefaultDeliveryFeeText, out var fee) ? fee : 0;
-        _app.SaveSettings(s);
-        _setStatus("Settings saved");
-        MenuInfo = $"Items: {_app.Menu.CountItems()} | Last import: {s.LastMenuImportAt ?? "n/a"}";
-    }
-
-    [RelayCommand]
-    private void ApplyBaseUrl()
-    {
-        var s = _app.GetSettings();
-        s.ApplyOnlineBaseUrl(OnlineBaseUrl);
-        OrderServerUrl = s.OnlineOrderServerUrl;
-        CallbackUrl = s.OnlineCallbackUrl;
-        PrintedUrl = s.OnlinePrintedUrl;
-        _setStatus("Derived Online URLs from base");
-    }
-
-    [RelayCommand]
-    private void ReimportMenu()
-    {
-        var (cats, items) = _app.MenuSeeder.ImportEmbedded();
-        Reload();
-        _setStatus($"Re-imported menu: {cats} categories, {items} items");
-    }
-
-    [RelayCommand]
-    private async Task TestPrintAsync()
-    {
-        Save();
-        try
-        {
-            await _app.KitchenPrinter.PrintTestPageAsync();
-            _setStatus($"Test print → {KitchenPrinter}");
-        }
-        catch (Exception ex)
-        {
-            _setStatus($"Test print failed: {ex.Message}");
-        }
-    }
-
-    [RelayCommand]
-    private async Task OpenDrawerAsync()
-    {
-        Save();
-        try
-        {
-            await _app.CashDrawer.OpenAsync();
-            _setStatus("Drawer pulse sent");
-        }
-        catch (Exception ex)
-        {
-            _setStatus($"Drawer failed: {ex.Message}");
-        }
     }
 }

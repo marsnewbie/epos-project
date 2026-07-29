@@ -26,7 +26,6 @@
                    FontFamily="Consolas, Cascadia Mono, monospace" />
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
           <Button Classes="pos-nav" Content="EN / 中文" Command="{Binding ToggleLanguageCommand}" Width="96" Height="40" />
-          <Button Classes="pos-nav" Content="Test print" Command="{Binding TestPrintCommand}" Width="100" Height="40" />
           <Button Classes="pos-nav" Content="Drawer" Command="{Binding OpenDrawerCommand}" Width="88" Height="40" />
         </StackPanel>
       </Grid>

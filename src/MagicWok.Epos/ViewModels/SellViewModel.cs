@@ -10,17 +10,19 @@ public partial class SellViewModel : ViewModelBase
 {
     private readonly AppServices _app;
     private readonly Action<string> _setStatus;
+    private readonly Action? _goOrders;
     private PosOrder _ticket = new();
     private Dictionary<string, IReadOnlyList<string>> _pendingSelections = new();
 
-    public SellViewModel(AppServices app, Action<string> setStatus)
+    public SellViewModel(AppServices app, Action<string> setStatus, Action? goOrders = null)
     {
         _app = app;
         _setStatus = setStatus;
-        foreach (var (en, zh) in QuickKitchenNotes.Defaults)
-            QuickNotes.Add(new QuickNoteItem(en, zh));
+        _goOrders = goOrders;
+        ReloadQuickNotes();
         RefreshMenu();
-        NewTicket();
+        NewTicket(force: true);
+        RefreshUiLabels();
     }
 
     public ObservableCollection<CategoryTile> CategoryTiles { get; } = [];
@@ -28,16 +30,19 @@ public partial class SellViewModel : ViewModelBase
     public ObservableCollection<CartLine> Lines { get; } = [];
     public ObservableCollection<QuickNoteItem> QuickNotes { get; } = [];
     public ObservableCollection<OptionChoiceChip> OptionChips { get; } = [];
+    public ObservableCollection<PosOrder> HeldOrders { get; } = [];
 
     [ObservableProperty] private Category? _selectedCategory;
     [ObservableProperty] private MenuItem? _selectedItem;
     [ObservableProperty] private CartLine? _selectedLine;
     [ObservableProperty] private string _searchText = "";
+    [ObservableProperty] private string _dishNumberText = "";
     [ObservableProperty] private string _orderType = "Collection";
     [ObservableProperty] private string _customerName = "";
     [ObservableProperty] private string _customerPhone = "";
     [ObservableProperty] private string _deliveryAddress = "";
     [ObservableProperty] private string _deliveryPostcode = "";
+    [ObservableProperty] private string _tableNumber = "";
     [ObservableProperty] private string _orderNotes = "";
     [ObservableProperty] private string _lineNotesDraft = "";
     [ObservableProperty] private string _panelStatus = "";
@@ -59,6 +64,48 @@ public partial class SellViewModel : ViewModelBase
     [ObservableProperty] private int _lineCount;
     [ObservableProperty] private bool _showAdHoc;
     [ObservableProperty] private string _categoryHeading = "Menu";
+    [ObservableProperty] private string _ticketHeader = "NEW TICKET";
+    [ObservableProperty] private string _ticketStatusBadge = "DRAFT";
+    [ObservableProperty] private bool _hasUnsentLines;
+    [ObservableProperty] private bool _ticketIsSent;
+    [ObservableProperty] private bool _canEditSelectedLine = true;
+    [ObservableProperty] private string _sendButtonText = "SEND KITCHEN";
+    [ObservableProperty] private string _lblPhoneOrder = "Phone order";
+    [ObservableProperty] private string _lblHeld = "Held";
+    [ObservableProperty] private string _lblNew = "New";
+    [ObservableProperty] private string _lblClear = "Clear";
+    [ObservableProperty] private string _lblHold = "HOLD";
+    [ObservableProperty] private string _lblPayCash = "CASH";
+    [ObservableProperty] private string _lblPayCard = "CARD";
+
+    public void RefreshUiLabels()
+    {
+        var zh = _app.GetSettings().UiLanguage == "zh";
+        LblPhoneOrder = zh ? "电话单" : "Phone order";
+        LblHeld = zh ? "挂单" : "Held";
+        LblNew = zh ? "新单" : "New";
+        LblClear = zh ? "清空" : "Clear";
+        LblHold = zh ? "挂起" : "HOLD";
+        LblPayCash = zh ? "现金" : "CASH";
+        LblPayCard = zh ? "刷卡" : "CARD";
+        UpdateTicketChrome();
+    }
+
+    public void ReloadQuickNotes()
+    {
+        QuickNotes.Clear();
+        var notes = _app.GetSettings().QuickNotes;
+        if (notes.Count == 0) notes = QuickKitchenNotes.CreateDefaultList();
+        foreach (var n in notes)
+            QuickNotes.Add(new QuickNoteItem(n.En, n.Zh));
+    }
+
+    public void RefreshHeldList()
+    {
+        HeldOrders.Clear();
+        foreach (var o in _app.Orders.GetTodayFiltered("held"))
+            HeldOrders.Add(o);
+    }
 
     public void RefreshMenu()
     {
@@ -90,6 +137,11 @@ public partial class SellViewModel : ViewModelBase
 
     partial void OnSearchTextChanged(string value) => LoadItems();
 
+    partial void OnSelectedLineChanged(CartLine? value)
+    {
+        CanEditSelectedLine = value is null || !value.KitchenSent;
+    }
+
     private void LoadItems()
     {
         Items.Clear();
@@ -115,6 +167,11 @@ public partial class SellViewModel : ViewModelBase
     private void SelectItem(MenuItem? item)
     {
         if (item is null) return;
+        if (!item.IsAvailable)
+        {
+            PanelStatus = $"86 — {item.Name} sold out";
+            return;
+        }
         SelectedItem = item;
         _pendingSelections = LinePricing.DefaultSelections(item);
         RebuildOptionChips();
@@ -129,6 +186,19 @@ public partial class SellViewModel : ViewModelBase
             ? item.Name
             : $"{item.MenuNumber}  {item.Name}";
         ShowModifierPanel = true;
+    }
+
+    [RelayCommand]
+    private async Task EightySixItemAsync(MenuItem? item)
+    {
+        if (item is null) return;
+        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "86 / sold out"))
+            return;
+        item.IsAvailable = false;
+        _app.Menu.SetItemAvailable(item.Id, false);
+        LoadItems();
+        PanelStatus = $"86 {item.MenuNumber} {item.Name}";
+        _setStatus(PanelStatus);
     }
 
     [RelayCommand]
@@ -149,6 +219,37 @@ public partial class SellViewModel : ViewModelBase
 
     [RelayCommand]
     private void ToggleAdHoc() => ShowAdHoc = !ShowAdHoc;
+
+    [RelayCommand]
+    private void StartPhoneOrder()
+    {
+        OrderType = "Collection";
+        CustomerName = "";
+        CustomerPhone = "";
+        DeliveryAddress = "";
+        DeliveryPostcode = "";
+        PanelStatus = "Phone order — enter name/phone or pick from Customers";
+        _setStatus(PanelStatus);
+    }
+
+    [RelayCommand]
+    private void AddByDishNumber()
+    {
+        var num = DishNumberText.Trim().TrimStart('#');
+        if (string.IsNullOrWhiteSpace(num))
+        {
+            PanelStatus = "Enter dish # then Add";
+            return;
+        }
+        var item = _app.Menu.FindByMenuNumber(num);
+        if (item is null)
+        {
+            PanelStatus = $"No dish #{num}";
+            return;
+        }
+        DishNumberText = "";
+        SelectItem(item);
+    }
 
     [RelayCommand]
     private void CashDigit(string? digit)
@@ -223,6 +324,7 @@ public partial class SellViewModel : ViewModelBase
 
         var line = LinePricing.BuildMenuLine(SelectedItem, 1, _pendingSelections, LineNotesDraft);
         Lines.Add(line);
+        SelectedLine = line;
         LineNotesDraft = "";
         PanelStatus = $"Added {line.Name} £{line.LineTotal:0.00}";
         ShowModifierPanel = false;
@@ -240,6 +342,7 @@ public partial class SellViewModel : ViewModelBase
 
         var line = LinePricing.BuildAdHocLine(AdHocName, price, 1, AdHocZh, LineNotesDraft);
         Lines.Add(line);
+        SelectedLine = line;
         AdHocName = "";
         AdHocPrice = "";
         AdHocZh = "";
@@ -252,21 +355,33 @@ public partial class SellViewModel : ViewModelBase
     {
         if (note is null) return;
         var tag = $"{note.En}/{note.Zh}";
-        if (SelectedLine is not null)
+        var target = SelectedLine ?? Lines.LastOrDefault();
+        if (target is null)
         {
-            SelectedLine.Notes = string.IsNullOrWhiteSpace(SelectedLine.Notes) ? tag : $"{SelectedLine.Notes}; {tag}";
-            RefreshLines();
-            PanelStatus = $"Note: {tag}";
+            PanelStatus = "Add a dish first — note binds to last line";
+            return;
+        }
+        if (target.KitchenSent)
+        {
+            PanelStatus = "Line already sent — cannot edit notes";
             return;
         }
 
-        LineNotesDraft = string.IsNullOrWhiteSpace(LineNotesDraft) ? tag : $"{LineNotesDraft}; {tag}";
+        target.Notes = string.IsNullOrWhiteSpace(target.Notes) ? tag : $"{target.Notes}; {tag}";
+        SelectedLine = target;
+        RefreshLines();
+        PanelStatus = $"Note → {target.Name}: {tag}";
     }
 
     [RelayCommand]
     private void QtyPlus()
     {
         if (SelectedLine is null) return;
+        if (SelectedLine.KitchenSent)
+        {
+            PanelStatus = "Sent line locked — void or add new line";
+            return;
+        }
         SelectedLine.Quantity++;
         LinePricing.RecalculateLine(SelectedLine);
         SyncTicketTotals();
@@ -276,6 +391,11 @@ public partial class SellViewModel : ViewModelBase
     private void QtyMinus()
     {
         if (SelectedLine is null) return;
+        if (SelectedLine.KitchenSent)
+        {
+            PanelStatus = "Sent line locked — use Void for corrections";
+            return;
+        }
         if (SelectedLine.Quantity <= 1)
         {
             Lines.Remove(SelectedLine);
@@ -293,25 +413,64 @@ public partial class SellViewModel : ViewModelBase
     private void RemoveLine()
     {
         if (SelectedLine is null) return;
+        if (SelectedLine.KitchenSent)
+        {
+            PanelStatus = "Sent line locked — Void order (PIN) to cancel";
+            return;
+        }
         Lines.Remove(SelectedLine);
         SelectedLine = null;
         SyncTicketTotals();
     }
 
     [RelayCommand]
-    private void ClearTicket() => NewTicket();
+    private async Task ClearTicketAsync()
+    {
+        if (Lines.Count > 0 || !string.IsNullOrWhiteSpace(_ticket.OrderNumber))
+        {
+            if (!await UiPrompt.ConfirmAsync("Clear ticket?", "Clear current ticket? Unsaved unpaid lines will be lost."))
+                return;
+        }
+        NewTicket(force: true);
+        PanelStatus = "Ticket cleared";
+    }
+
+    [RelayCommand]
+    private async Task NewTicketAsync()
+    {
+        if (Lines.Count > 0 && _ticket.Status is PosOrderStatus.Draft or PosOrderStatus.Sent)
+        {
+            if (!await UiPrompt.ConfirmAsync("New ticket?", "Current ticket stays in Orders if already sent. Start a blank ticket?"))
+                return;
+            if (_ticket.Status == PosOrderStatus.Draft && Lines.Count > 0)
+            {
+                // leave draft unsaved unless already persisted
+            }
+        }
+        NewTicket(force: true);
+        PanelStatus = "New ticket";
+    }
 
     [RelayCommand]
     private async Task SendKitchenAsync()
     {
         try
         {
-            var order = BuildOrderFromTicket(PosOrderStatus.Sent);
-            _app.Orders.Upsert(order);
-            await _app.Print.PrintKitchenAsync(order);
-            PanelStatus = $"Kitchen printed {order.OrderNumber}";
+            ValidateForSendOrPay(requireAddress: true);
+            var unsentOnly = Lines.Any(l => l.KitchenSent) && Lines.Any(l => !l.KitchenSent);
+            if (!Lines.Any(l => !l.KitchenSent) && Lines.Any(l => l.KitchenSent))
+            {
+                PanelStatus = "Nothing new to send — add dishes first";
+                return;
+            }
+
+            var order = PersistTicket(PosOrderStatus.Sent);
+            await _app.Print.PrintKitchenAsync(order, unsentOnly: unsentOnly);
+            LoadTicket(order);
+            PanelStatus = unsentOnly
+                ? $"Sent NEW items · {order.OrderNumber}"
+                : $"Kitchen SENT · {order.OrderNumber} — ticket stays open for pay";
             _setStatus(PanelStatus);
-            NewTicket();
         }
         catch (Exception ex)
         {
@@ -321,29 +480,96 @@ public partial class SellViewModel : ViewModelBase
     }
 
     [RelayCommand]
+    private async Task HoldTicketAsync()
+    {
+        try
+        {
+            if (Lines.Count == 0) throw new InvalidOperationException("Ticket is empty.");
+            var label = await UiPrompt.PromptTextAsync(
+                "Hold ticket — name or phone",
+                "Name / phone label",
+                initial: string.IsNullOrWhiteSpace(CustomerName) ? CustomerPhone : CustomerName);
+            if (label is null) return;
+            if (string.IsNullOrWhiteSpace(label))
+            {
+                PanelStatus = "Hold needs a name or phone label";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(CustomerName))
+                CustomerName = label.Trim();
+            var order = PersistTicket(PosOrderStatus.Held);
+            order.HoldLabel = label.Trim();
+            order.UpdatedAt = DateTimeOffset.Now;
+            _app.Orders.Upsert(order);
+            NewTicket(force: true);
+            RefreshHeldList();
+            PanelStatus = $"Held: {label.Trim()}";
+            _setStatus(PanelStatus);
+        }
+        catch (Exception ex)
+        {
+            PanelStatus = $"Hold failed: {ex.Message}";
+            _setStatus(PanelStatus);
+        }
+    }
+
+    [RelayCommand]
+    private void ResumeHeld(PosOrder? order)
+    {
+        if (order is null) return;
+        if (Lines.Count > 0)
+        {
+            PanelStatus = "Clear or pay current ticket before resuming Held";
+            return;
+        }
+        LoadTicket(order);
+        PanelStatus = $"Resumed held {order.OrderNumber} ({order.HoldLabel})";
+        _setStatus(PanelStatus);
+    }
+
+    [RelayCommand]
     private async Task PayCashAsync()
     {
         try
         {
-            var order = BuildOrderFromTicket(PosOrderStatus.Paid);
-            order.Tenders.Add(new OrderTender { Type = TenderType.Cash, Amount = order.Total });
+            ValidateForSendOrPay(requireAddress: true);
+            var settings = _app.GetSettings();
+            var order = PersistTicket(PosOrderStatus.Paid);
+
+            decimal tendered = order.Total;
+            if (decimal.TryParse(CashTenderedText, out var t) && t > 0)
+                tendered = t;
+            if (tendered < order.Total)
+                throw new InvalidOperationException($"Cash tendered £{tendered:0.00} < total £{order.Total:0.00}");
+
+            order.Tenders.Add(new OrderTender
+            {
+                Type = TenderType.Cash,
+                Amount = tendered,
+                Reference = tendered > order.Total ? $"change:{(tendered - order.Total):0.00}" : "exact",
+            });
+            order.PaymentLabel = "CASH";
+            order.Status = PosOrderStatus.Paid;
             _app.Orders.Upsert(order);
 
-            var settings = _app.GetSettings();
-            if (settings.SendKitchenOnSend && !order.KitchenPrinted)
+            if (settings.SendKitchenOnPay && order.HasUnsentLines)
+                await _app.Print.PrintKitchenAsync(order, unsentOnly: order.Lines.Any(l => l.KitchenSent));
+            else if (settings.SendKitchenOnPay && !order.KitchenPrinted)
                 await _app.Print.PrintKitchenAsync(order);
+
             if (settings.PrintFrontOnPay)
                 await _app.Print.PrintFrontAsync(order);
             if (settings.OpenDrawerOnCash)
                 await _app.CashDrawer.OpenAsync();
 
-            ChangeText = decimal.TryParse(CashTenderedText, out var tendered) && tendered >= order.Total
+            ChangeText = tendered > order.Total
                 ? $"Change £{tendered - order.Total:0.00}"
-                : "";
+                : "Exact";
 
-            PanelStatus = $"Cash paid {order.OrderNumber} £{order.Total:0.00}";
+            PanelStatus = $"Cash paid {order.OrderNumber} £{order.Total:0.00}  {ChangeText}";
             _setStatus(PanelStatus);
-            NewTicket();
+            NewTicket(force: true);
         }
         catch (Exception ex)
         {
@@ -357,7 +583,9 @@ public partial class SellViewModel : ViewModelBase
     {
         try
         {
-            var order = BuildOrderFromTicket(PosOrderStatus.Paid);
+            ValidateForSendOrPay(requireAddress: true);
+            var settings = _app.GetSettings();
+            var order = PersistTicket(PosOrderStatus.Paid);
             var result = await _app.CardTerminal.StartSaleAsync(order.Total);
             order.Tenders.Add(new OrderTender
             {
@@ -365,23 +593,35 @@ public partial class SellViewModel : ViewModelBase
                 Amount = order.Total,
                 Reference = result.Message,
             });
+            order.PaymentLabel = "CARD";
+            order.Status = PosOrderStatus.Paid;
             _app.Orders.Upsert(order);
 
-            var settings = _app.GetSettings();
-            if (settings.SendKitchenOnSend && !order.KitchenPrinted)
+            if (settings.SendKitchenOnPay && order.HasUnsentLines)
+                await _app.Print.PrintKitchenAsync(order, unsentOnly: order.Lines.Any(l => l.KitchenSent));
+            else if (settings.SendKitchenOnPay && !order.KitchenPrinted)
                 await _app.Print.PrintKitchenAsync(order);
+
             if (settings.PrintFrontOnPay)
                 await _app.Print.PrintFrontAsync(order);
 
             PanelStatus = $"Card (manual) {order.OrderNumber} £{order.Total:0.00}";
             _setStatus(PanelStatus);
-            NewTicket();
+            NewTicket(force: true);
         }
         catch (Exception ex)
         {
             PanelStatus = $"Card pay failed: {ex.Message}";
             _setStatus(PanelStatus);
         }
+    }
+
+    /// <summary>Open an unpaid / held order from Orders into Sell for continue-pay.</summary>
+    public void LoadOrderForContinue(PosOrder order)
+    {
+        LoadTicket(order);
+        PanelStatus = $"Opened {order.OrderNumber} · {order.Status} — continue pay or add items";
+        _setStatus(PanelStatus);
     }
 
     public void ApplyCallerId(string phone)
@@ -403,41 +643,103 @@ public partial class SellViewModel : ViewModelBase
         else PanelStatus = $"New caller {phone}";
     }
 
-    private void NewTicket()
+    public void StartDeliveryForCustomer(Customer customer, CustomerAddress? address = null)
+    {
+        if (Lines.Count > 0 && _ticket.Status == PosOrderStatus.Draft)
+        {
+            // keep food, switch customer
+        }
+        else if (Lines.Count == 0)
+            NewTicket(force: true);
+
+        CustomerName = customer.Name;
+        CustomerPhone = customer.Phone;
+        var addr = address ?? customer.Addresses.FirstOrDefault(a => a.IsDefault) ?? customer.Addresses.FirstOrDefault();
+        if (addr is not null)
+        {
+            DeliveryAddress = string.Join(", ", new[] { addr.Line1, addr.Line2 }.Where(x => !string.IsNullOrWhiteSpace(x)));
+            DeliveryPostcode = addr.Postcode;
+            OrderType = "Delivery";
+        }
+        else
+            OrderType = "Collection";
+        PanelStatus = $"Phone order · {customer.Name}";
+    }
+
+    private void NewTicket(bool force = false)
     {
         _ticket = new PosOrder();
         Lines.Clear();
+        SelectedLine = null;
         CustomerName = "";
         CustomerPhone = "";
         DeliveryAddress = "";
         DeliveryPostcode = "";
+        TableNumber = "";
         OrderNotes = "";
         CashTenderedText = "";
         ChangeText = "";
+        OrderType = "Collection";
         SyncTicketTotals();
+        RefreshHeldList();
     }
 
-    private PosOrder BuildOrderFromTicket(PosOrderStatus status)
+    private void LoadTicket(PosOrder order)
+    {
+        _ticket = order;
+        Lines.Clear();
+        foreach (var l in order.Lines) Lines.Add(l);
+        OrderType = order.OrderType.ToString();
+        CustomerName = order.CustomerName ?? "";
+        CustomerPhone = order.CustomerPhone ?? "";
+        DeliveryAddress = order.DeliveryAddress ?? "";
+        DeliveryPostcode = order.DeliveryPostcode ?? "";
+        TableNumber = order.TableNumber ?? "";
+        OrderNotes = order.Notes ?? "";
+        CashTenderedText = "";
+        ChangeText = "";
+        SelectedLine = Lines.LastOrDefault(l => !l.KitchenSent) ?? Lines.LastOrDefault();
+        SyncTicketTotals();
+        RefreshHeldList();
+    }
+
+    private void ValidateForSendOrPay(bool requireAddress)
     {
         if (Lines.Count == 0) throw new InvalidOperationException("Ticket is empty.");
-        if (OrderType == "Delivery" &&
+        if (OrderType == "Delivery" && requireAddress &&
             string.IsNullOrWhiteSpace(DeliveryAddress) &&
             string.IsNullOrWhiteSpace(DeliveryPostcode))
             throw new InvalidOperationException("Delivery needs address or postcode.");
+        if (OrderType == "EatIn" && string.IsNullOrWhiteSpace(TableNumber))
+            throw new InvalidOperationException("TABLE needs table / pager number.");
+    }
 
+    private PosOrder PersistTicket(PosOrderStatus status)
+    {
         _ticket.OrderNumber = string.IsNullOrWhiteSpace(_ticket.OrderNumber)
             ? _app.Settings.AllocateOrderNumber()
             : _ticket.OrderNumber;
         _ticket.OrderType = Enum.Parse<PosOrderType>(OrderType);
         _ticket.Source = PosOrderSource.Pos;
-        _ticket.Status = status;
+        // Don't downgrade Sent → Draft when only adding items
+        if (status == PosOrderStatus.Sent || _ticket.Status is PosOrderStatus.Draft or PosOrderStatus.Open or PosOrderStatus.Held)
+            _ticket.Status = status;
+        else if (status == PosOrderStatus.Paid)
+            _ticket.Status = PosOrderStatus.Paid;
+        else if (status == PosOrderStatus.Held)
+            _ticket.Status = PosOrderStatus.Held;
+
         _ticket.CustomerName = NullIfEmpty(CustomerName);
         _ticket.CustomerPhone = NullIfEmpty(CustomerPhone);
         _ticket.DeliveryAddress = NullIfEmpty(DeliveryAddress);
         _ticket.DeliveryPostcode = NullIfEmpty(DeliveryPostcode);
+        _ticket.TableNumber = NullIfEmpty(TableNumber);
+        if (_ticket.OrderType == PosOrderType.EatIn && !string.IsNullOrWhiteSpace(TableNumber))
+            _ticket.FulfilmentLabel = $"Table {TableNumber.Trim()}";
         _ticket.Notes = NullIfEmpty(OrderNotes);
         _ticket.Lines = Lines.ToList();
         _ticket.DeliveryFee = _ticket.OrderType == PosOrderType.Delivery ? _app.GetSettings().DefaultDeliveryFee : 0;
+        _ticket.UpdatedAt = DateTimeOffset.Now;
         LinePricing.RecalculateOrder(_ticket);
 
         if (!string.IsNullOrWhiteSpace(_ticket.CustomerPhone))
@@ -447,17 +749,24 @@ public partial class SellViewModel : ViewModelBase
             if (!string.IsNullOrWhiteSpace(_ticket.CustomerName)) c.Name = _ticket.CustomerName!;
             if (!string.IsNullOrWhiteSpace(_ticket.DeliveryAddress) || !string.IsNullOrWhiteSpace(_ticket.DeliveryPostcode))
             {
-                c.Addresses.Add(new CustomerAddress
+                var already = c.Addresses.Any(a =>
+                    string.Equals(a.Line1, _ticket.DeliveryAddress, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(a.Postcode, _ticket.DeliveryPostcode, StringComparison.OrdinalIgnoreCase));
+                if (!already)
                 {
-                    Line1 = _ticket.DeliveryAddress ?? "",
-                    Postcode = _ticket.DeliveryPostcode ?? "",
-                    IsDefault = c.Addresses.Count == 0,
-                });
+                    c.Addresses.Add(new CustomerAddress
+                    {
+                        Line1 = _ticket.DeliveryAddress ?? "",
+                        Postcode = _ticket.DeliveryPostcode ?? "",
+                        IsDefault = c.Addresses.Count == 0,
+                    });
+                }
             }
             _app.Customers.Upsert(c);
             _ticket.CustomerId = c.Id;
         }
 
+        _app.Orders.Upsert(_ticket);
         return _ticket;
     }
 
@@ -473,15 +782,41 @@ public partial class SellViewModel : ViewModelBase
         DeliveryFee = tmp.DeliveryFee;
         Total = tmp.Total;
         LineCount = Lines.Sum(l => l.Quantity);
+        HasUnsentLines = Lines.Any(l => !l.KitchenSent);
+        TicketIsSent = Lines.Any(l => l.KitchenSent) || _ticket.Status == PosOrderStatus.Sent;
         RefreshLines();
         UpdateChangePreview();
+        UpdateTicketChrome();
+    }
+
+    private void UpdateTicketChrome()
+    {
+        var zh = _app.GetSettings().UiLanguage == "zh";
+        var num = string.IsNullOrWhiteSpace(_ticket.OrderNumber) ? (zh ? "新单" : "NEW") : _ticket.OrderNumber;
+        var status = _ticket.Status switch
+        {
+            PosOrderStatus.Sent => "SENT",
+            PosOrderStatus.Held => "HELD",
+            PosOrderStatus.Paid => "PAID",
+            PosOrderStatus.Voided => "VOID",
+            _ => Lines.Any(l => l.KitchenSent) ? "SENT" : "DRAFT",
+        };
+        TicketStatusBadge = status;
+        TicketHeader = $"{num} · {status}";
+        if (Lines.Any(l => l.KitchenSent) && Lines.Any(l => !l.KitchenSent))
+            SendButtonText = zh ? "补打厨房" : "SEND NEW";
+        else
+            SendButtonText = zh ? "送厨" : "SEND KITCHEN";
     }
 
     private void RefreshLines()
     {
         var snap = Lines.ToList();
+        var selId = SelectedLine?.Id;
         Lines.Clear();
         foreach (var l in snap) Lines.Add(l);
+        if (selId is not null)
+            SelectedLine = Lines.FirstOrDefault(l => l.Id == selId);
     }
 
     partial void OnOrderTypeChanged(string value)

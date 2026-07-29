@@ -8,10 +8,19 @@
   <Grid ColumnDefinitions="1.1*,*" Margin="4">
     <Border Grid.Column="0" Background="#141210" CornerRadius="8" Padding="10" Margin="0,0,8,0">
       <DockPanel>
-        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
-          <TextBlock Text="Today's orders / 今日订单" FontSize="18" FontWeight="Bold" Foreground="#fafaf9" VerticalAlignment="Center" />
-          <Button Grid.Column="1" Classes="pos-nav" Content="Refresh" Click="OnRefresh" Width="100" Height="40" />
-        </Grid>
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10" Spacing="8">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="Today / 今日" FontSize="18" FontWeight="Bold" Foreground="#fafaf9" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="pos-nav" Content="Refresh" Click="OnRefresh" Width="100" Height="40" />
+          </Grid>
+          <UniformGrid Columns="4">
+            <Button Classes="pos-nav" Classes.active="{Binding FilterAll}" Content="All" Command="{Binding SetFilterCommand}" CommandParameter="All" Height="40" Margin="0,0,4,0" />
+            <Button Classes="pos-nav" Classes.active="{Binding FilterUnpaid}" Content="Unpaid" Command="{Binding SetFilterCommand}" CommandParameter="Unpaid" Height="40" Margin="0,0,4,0" />
+            <Button Classes="pos-nav" Classes.active="{Binding FilterHeld}" Content="Held" Command="{Binding SetFilterCommand}" CommandParameter="Held" Height="40" Margin="0,0,4,0" />
+            <Button Classes="pos-nav" Classes.active="{Binding FilterPaid}" Content="Paid" Command="{Binding SetFilterCommand}" CommandParameter="Paid" Height="40" />
+          </UniformGrid>
+          <TextBlock Text="{Binding TodaySummary}" Foreground="#a8a29e" FontSize="11" TextWrapping="Wrap" />
+        </StackPanel>
         <ListBox Classes="pos-ticket" ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder}">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="domain:PosOrder">
@@ -21,11 +30,10 @@
                   <TextBlock FontSize="12" Foreground="#fdba74" Margin="0,2,0,0">
                     <Run Text="{Binding OrderType}" />
                     <Run Text=" · " />
-                    <Run Text="{Binding Source}" />
-                    <Run Text=" · " />
                     <Run Text="{Binding Status}" />
                   </TextBlock>
                   <TextBlock FontSize="12" Foreground="#a8a29e" Text="{Binding CustomerName}" />
+                  <TextBlock FontSize="11" Foreground="#78716c" Text="{Binding HoldLabel}" />
                 </StackPanel>
                 <TextBlock Grid.Column="1" FontSize="18" FontWeight="Bold" Foreground="#fafaf9"
                            Text="{Binding Total, StringFormat={}£{0:0.00}}" VerticalAlignment="Center" />
@@ -38,9 +46,13 @@
 
     <Border Grid.Column="1" Background="#141210" CornerRadius="8" Padding="10">
       <DockPanel>
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
-          <Button Classes="pos-action pos-send" Content="Reprint kitchen" Command="{Binding ReprintKitchenCommand}" Width="180" />
-          <Button Classes="pos-action pos-card" Content="Reprint front" Command="{Binding ReprintFrontCommand}" Width="160" />
+        <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,10,0,0">
+          <Button Classes="pos-action pos-cash" Content="Open on Sell / 续付加菜" Command="{Binding OpenOnSellCommand}" Height="48" />
+          <Grid ColumnDefinitions="*,*">
+            <Button Grid.Column="0" Classes="pos-action pos-send" Content="Reprint kitchen" Command="{Binding ReprintKitchenCommand}" Margin="0,0,4,0" Height="44" />
+            <Button Grid.Column="1" Classes="pos-action pos-card" Content="Reprint front" Command="{Binding ReprintFrontCommand}" Height="44" />
+          </Grid>
+          <Button Classes="pos-action pos-danger" Content="VOID (PIN) / 作废" Command="{Binding VoidOrderCommand}" Height="44" />
         </StackPanel>
         <TextBlock DockPanel.Dock="Top" Text="Order detail" FontWeight="Bold" Foreground="#a8a29e" Margin="0,0,0,8" />
         <TextBox Text="{Binding DetailText}" AcceptsReturn="True" IsReadOnly="True" TextWrapping="Wrap"

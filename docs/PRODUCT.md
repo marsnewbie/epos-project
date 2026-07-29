@@ -6,102 +6,48 @@ The customer website is a **self-service cart**. This EPOS is a **staff-operated
 
 | Module | Purpose |
 |--------|---------|
-| Sell | Fast order build: categories, search by name/number, modifiers, qty |
-| Ticket | Live basket: order type, customer, address, pay, send kitchen |
-| Orders | Today’s list, reprint kitchen/front, void (PIN) |
-| Online | Website orders: auto-fetch, sound, auto kitchen print |
-| Customers | Phone book + addresses; Caller ID match |
-| Shift | Open / cash drop / Z-report |
-| Menu | Local catalogue, 86 (sold out), import from website |
-| Staff | PIN roles: cashier / manager |
-| Settings | All hardware + online + shop config |
-| Reports | Day sales by tender / channel |
+| Sell | Fast order build: categories, dish #, modifiers, qty, quick notes |
+| Ticket | Live basket on the right: order type, customer, **Send / Hold / Pay** (ticket stays after Send) |
+| Orders | Today’s list (Unpaid / Held / Paid), open unpaid on Sell, reprint, void (PIN) |
+| Online | Website orders: big Accepting ON/OFF; Advanced = poll/test |
+| Customers | Phone book + addresses; start order; Caller ID match |
+| Shift | Today tender summary (Settings → Shift) |
+| Menu | Local catalogue, 86, price edit (Settings → Menu) |
+| Staff | Manager PIN (void / drawer / 86) |
+| Settings | Shop / Menu / Notes / Delivery / Hardware / Staff / Online (advanced) |
+
+## Ticket lifecycle (P0)
+
+1. **Draft** — building the ticket  
+2. **Send kitchen** — persist + print; **ticket stays open** with SENT badge; lines marked sent  
+3. **Add more** — new lines show NEW; **Send new / 补打** prints only unsent lines  
+4. **Hold** — park with name/phone label; resume from Sell Held strip or Orders  
+5. **Pay Cash / Card** — tender; optional kitchen-on-pay if not yet sent; front receipt; cash opens drawer  
+6. **Void** — Orders → PIN + reason; optional VOID kitchen ticket  
+
+Statuses: `Draft | Sent | Held | Paid | Voided` (plus Open/Completed for online).
 
 ## Order types (POS)
 
-- **Collection**
-- **Delivery** (address + postcode + fee)
-- **Walk-in / Wait** (customer waiting in shop)
-- **Eat-in / Table** (optional module; can disable for pure takeaway)
+- **Collection** / **Delivery** (address required before Send/Pay) / **Walk-in** / **Eat-in** (table # required)
 
-Website only has collection + delivery — POS needs the extra shop-floor types.
+## Phone / Caller ID
 
-## Phone / Caller ID flow (must-have)
+1. CID or **Phone order** / Customers → Start order  
+2. Match customer → name + address → Delivery or Collection ticket  
 
-1. Call comes in → CID shows number (or staff taps “Phone order”).
-2. Match local customer → show name + saved addresses.
-3. One-tap start **Delivery** or **Collection** ticket.
-4. If new number → create customer quickly (name + phone).
+## Quick notes
 
-## Address entry (delivery)
-
-Traditional POS behaviour to preserve:
-
-- Type postcode / partial address → **suggestions** (UK postcode lookup later; v1 can use local saved addresses + free text).
-- Select address line → fills address + postcode fields.
-- Delivery fee from local rules (miles/postcode bands — can mirror website settings when imported).
-- “No address yet” allowed while building food; block Pay/Send until address valid for delivery.
-
-## Ad-hoc items
-
-Staff often sell something **not on the menu**:
-
-- **Ad-hoc / Open item** button → name + price (+ optional kitchen translation).
-- Prints on kitchen ticket like a normal line.
-- Should appear in reports as “Ad-hoc”.
-
-Website has no ad-hoc — POS must.
-
-## Dish modifiers vs quick notes
-
-### Structured modifiers (from menu)
-
-Same idea as website `optionGroups` (radio/checkbox, price deltas, required/min/max, conditional `showWhen`). Import from website when possible.
-
-### Quick note buttons (POS speed — critical)
-
-One-tap kitchen instructions, **not** full free-text every time. Industry defaults (EN / kitchen CN):
-
-| EN button | Kitchen CN example |
-|-----------|-------------------|
-| No onion | 不要葱 |
-| No garlic | 不要蒜 |
-| No coriander | 不要香菜 |
-| Mild / Extra spicy | 少辣 / 多辣 |
-| No chilli | 不要辣 |
-| Less oil / salt | 少油 / 少盐 |
-| Well done / Soft | 煎透 / 嫩一点 |
-| Sauce separate | 酱汁分开 |
-| Cutlery / No cutlery | 要餐具 / 不要餐具 |
-| Urgent | 急单 |
-
-Also: free-text note field for exceptions. Notes merge onto the line and print on kitchen ticket.
-
-(Reference: earlier cloudpos `item-notes-modal` quick notes — keep the idea, polish UX.)
-
-## Global order notes
-
-Separate from line notes: “leave at door”, “doorbell broken”, “allergy: peanut” — print on ticket header/footer.
+Tap notes → bind to **selected or last line**. Editable in Settings → Quick notes (EN + kitchen CN).
 
 ## Pay flow
 
-1. Review totals (subtotal, delivery fee, discounts).
-2. Tender: **Cash** / **Card (manual)** / later terminal SDK.
-3. Cash → optional change calculator → **open cash drawer**.
-4. Print **front** receipt (optional) + ensure **kitchen** already sent (or send on pay — shop preference in Settings: “Send kitchen on Send” vs “on Pay”).
+1. Review totals  
+2. Cash (tendered + change / Exact) or Card (manual)  
+3. Settings: **Also print kitchen on Pay if not yet sent** · **Print front on pay** · **Open drawer on cash**
 
-Traditional UK takeaway often: **Send to kitchen early**, pay on collection — support both via Settings.
+## Settings sections
 
-## Differences from magicwoksite checkout
-
-| Topic | Website | EPOS |
-|-------|---------|------|
-| Who operates | Customer | Staff |
-| Ad-hoc | No | Yes |
-| Caller ID | No | Yes |
-| Quick note pads | Rare (free text) | Yes |
-| Tables / walk-in | No | Yes |
-| Online inbound | Creates order | Pulls + prints |
-| Payment | Checkout (cash/card intent) | Counter tenders + drawer |
+Shop · Menu/86 · Quick notes · Delivery fee · Hardware (printers, CID, test print) · Staff PIN · Shift today · Online (advanced URLs + a/u/p)
 
 See [MENU_AND_WEBSITE.md](MENU_AND_WEBSITE.md) for field mapping.

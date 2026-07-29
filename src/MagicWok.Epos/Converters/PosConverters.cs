@@ -38,3 +38,15 @@ public sealed class NullOrEmptyToBoolConverter : IValueConverter
     public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => throw new NotSupportedException();
 }
+
+/// <summary>Sent kitchen lines appear dimmed (0.55), new lines full opacity.</summary>
+public sealed class BoolToOpacityConverter : IValueConverter
+{
+    public static BoolToOpacityConverter Instance { get; } = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => value is true ? 0.55 : 1.0;
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}

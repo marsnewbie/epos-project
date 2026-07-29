@@ -194,6 +194,67 @@ public sealed class MenuRepository
         tx.Commit();
     }
 
+    public void UpsertItem(MenuItem i)
+    {
+        var conn = _db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            INSERT INTO menu_items(id,category_id,menu_number,name,item_translation,description,base_price,is_available,is_bundle,option_groups_json,sort_order)
+            VALUES($id,$c,$mn,$n,$tr,$d,$p,$a,$b,$og,$s)
+            ON CONFLICT(id) DO UPDATE SET
+              category_id=excluded.category_id,
+              menu_number=excluded.menu_number,
+              name=excluded.name,
+              item_translation=excluded.item_translation,
+              description=excluded.description,
+              base_price=excluded.base_price,
+              is_available=excluded.is_available,
+              is_bundle=excluded.is_bundle,
+              option_groups_json=excluded.option_groups_json,
+              sort_order=excluded.sort_order
+            """;
+        cmd.Parameters.AddWithValue("$id", i.Id);
+        cmd.Parameters.AddWithValue("$c", i.CategoryId);
+        cmd.Parameters.AddWithValue("$mn", (object?)i.MenuNumber ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$n", i.Name);
+        cmd.Parameters.AddWithValue("$tr", (object?)i.ItemTranslation ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$d", (object?)i.Description ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$p", (double)i.BasePrice);
+        cmd.Parameters.AddWithValue("$a", i.IsAvailable ? 1 : 0);
+        cmd.Parameters.AddWithValue("$b", i.IsBundle ? 1 : 0);
+        cmd.Parameters.AddWithValue("$og", JsonUtil.Serialize(i.OptionGroups));
+        cmd.Parameters.AddWithValue("$s", i.SortOrder);
+        cmd.ExecuteNonQuery();
+    }
+
+    public void SetItemAvailable(string id, bool available)
+    {
+        var conn = _db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "UPDATE menu_items SET is_available=$a WHERE id=$id";
+        cmd.Parameters.AddWithValue("$a", available ? 1 : 0);
+        cmd.Parameters.AddWithValue("$id", id);
+        cmd.ExecuteNonQuery();
+    }
+
+    public void UpdateItemPrice(string id, decimal price)
+    {
+        var conn = _db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "UPDATE menu_items SET base_price=$p WHERE id=$id";
+        cmd.Parameters.AddWithValue("$p", (double)price);
+        cmd.Parameters.AddWithValue("$id", id);
+        cmd.ExecuteNonQuery();
+    }
+
+    public MenuItem? FindByMenuNumber(string menuNumber)
+    {
+        var q = menuNumber.Trim();
+        if (q.Length == 0) return null;
+        return GetItems(availableOnly: false)
+            .FirstOrDefault(i => string.Equals(i.MenuNumber, q, StringComparison.OrdinalIgnoreCase));
+    }
+
     private static MenuItem ReadItem(SqliteDataReader r) => new()
     {
         Id = r.GetString(0),

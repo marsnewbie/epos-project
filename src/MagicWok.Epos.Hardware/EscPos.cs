@@ -267,17 +267,26 @@ public sealed class EscPosTicketBuilder
 
 public static class TicketRenderer
 {
-    public static byte[] RenderKitchen(PosOrder order, AppSettings settings)
+    public static byte[] RenderKitchen(PosOrder order, AppSettings settings, bool unsentOnly = false, bool isVoid = false)
     {
         var enc = string.IsNullOrWhiteSpace(settings.PrintEncoding) ? "gbk" : settings.PrintEncoding;
         var raster = settings.PrintChineseAsRaster;
         var b = new EscPosTicketBuilder(enc, rasterCjk: raster);
         var shop = string.IsNullOrWhiteSpace(settings.ShopName) ? "Magic Wok Chinese" : settings.ShopName;
+        var lines = unsentOnly ? order.Lines.Where(l => !l.KitchenSent).ToList() : order.Lines.ToList();
+        if (lines.Count == 0) lines = order.Lines.ToList();
 
         b.Center().Normal().Bold(true).Line(shop.ToUpperInvariant()).Bold(false).Left();
+        if (isVoid)
+            b.KitchenLine("*** VOID ***", large: true);
+        else if (unsentOnly && order.Lines.Any(l => l.KitchenSent))
+            b.KitchenLine("*** ADDITIONS ***", large: true);
         b.KitchenLine(OrderTypeEnglish(order.OrderType), large: true);
         b.Normal().Line($"Order No:{order.OrderNumber}");
         b.Line(order.CreatedAt.ToLocalTime().ToString("HH:mm dd-MM-yy"));
+
+        if (!string.IsNullOrWhiteSpace(order.TableNumber))
+            b.KitchenLine($"TABLE {order.TableNumber}", large: true);
 
         var when = FirstNonEmpty(order.RequestedFor, order.FulfilmentLabel);
         if (!string.IsNullOrWhiteSpace(when))
@@ -291,7 +300,7 @@ public static class TicketRenderer
 
         b.Separator('-');
 
-        foreach (var line in order.Lines)
+        foreach (var line in lines)
         {
             b.Normal().ItemEnglishAndPrice($"{line.Quantity} x {line.Name}", EscPos.Money(line.LineTotal));
 
@@ -315,13 +324,16 @@ public static class TicketRenderer
         }
 
         b.Separator('-');
-        if (order.DiscountTotal > 0)
-            b.Normal().ColumnsAscii("Discount", "-" + EscPos.Money(order.DiscountTotal));
-        if (order.DeliveryFee > 0)
-            b.Normal().ColumnsAscii("Delivery", EscPos.Money(order.DeliveryFee));
+        if (!unsentOnly)
+        {
+            if (order.DiscountTotal > 0)
+                b.Normal().ColumnsAscii("Discount", "-" + EscPos.Money(order.DiscountTotal));
+            if (order.DeliveryFee > 0)
+                b.Normal().ColumnsAscii("Delivery", EscPos.Money(order.DeliveryFee));
 
-        b.Large().Bold(true).ColumnsAscii("Total", EscPos.Money(order.Total), cols: 24).Bold(false).Normal();
-        b.Separator('-');
+            b.Large().Bold(true).ColumnsAscii("Total", EscPos.Money(order.Total), cols: 24).Bold(false).Normal();
+            b.Separator('-');
+        }
 
         var pay = ResolvePayment(order);
         if (!string.IsNullOrWhiteSpace(pay))
@@ -340,6 +352,14 @@ public static class TicketRenderer
                 b.Normal().Line(addrLine);
             if (!string.IsNullOrWhiteSpace(order.DeliveryPostcode))
                 b.Line(order.DeliveryPostcode!);
+        }
+        else if (order.OrderType == PosOrderType.EatIn)
+        {
+            b.KitchenLine(string.IsNullOrWhiteSpace(order.TableNumber) ? "EAT-IN" : $"TABLE {order.TableNumber}", large: true);
+        }
+        else if (order.OrderType == PosOrderType.WalkIn)
+        {
+            b.KitchenLine("WAITING", large: true);
         }
         else
         {

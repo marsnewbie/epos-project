@@ -2,68 +2,154 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:MagicWok.Epos.ViewModels"
              x:Class="MagicWok.Epos.Views.SettingsView"
+             x:Name="Root"
              x:DataType="vm:SettingsViewModel"
              Background="#1c1917">
-  <ScrollViewer Margin="4">
-    <StackPanel Spacing="0" MaxWidth="760">
-      <Border Background="#141210" CornerRadius="8" Padding="16" Margin="0,0,0,10">
-        <StackPanel Spacing="4">
-          <TextBlock Text="Shop / 店铺" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,8" />
-          <TextBox Classes="pos-field" Watermark="Shop name" Text="{Binding ShopName}" />
-          <TextBox Classes="pos-field" Watermark="Address" Text="{Binding ShopAddress}" />
-          <TextBox Classes="pos-field" Watermark="Postcode" Text="{Binding ShopPostcode}" />
-          <TextBox Classes="pos-field" Watermark="Phone" Text="{Binding ShopPhone}" />
-          <TextBox Classes="pos-field" Watermark="Default delivery fee" Text="{Binding DefaultDeliveryFeeText}" />
-        </StackPanel>
-      </Border>
+  <Grid ColumnDefinitions="160,*" Margin="4">
+    <Border Background="#141210" CornerRadius="8" Padding="8" Margin="0,0,8,0">
+      <StackPanel>
+        <Button Classes="pos-nav" Classes.active="{Binding IsShop}" Content="Shop" Command="{Binding GoSectionCommand}" CommandParameter="Shop" />
+        <Button Classes="pos-nav" Classes.active="{Binding IsMenu}" Content="Menu / 86" Command="{Binding GoSectionCommand}" CommandParameter="Menu" />
+        <Button Classes="pos-nav" Classes.active="{Binding IsNotes}" Content="Quick notes" Command="{Binding GoSectionCommand}" CommandParameter="Notes" />
+        <Button Classes="pos-nav" Classes.active="{Binding IsDelivery}" Content="Delivery" Command="{Binding GoSectionCommand}" CommandParameter="Delivery" />
+        <Button Classes="pos-nav" Classes.active="{Binding IsHardware}" Content="Hardware" Command="{Binding GoSectionCommand}" CommandParameter="Hardware" />
+        <Button Classes="pos-nav" Classes.active="{Binding IsStaff}" Content="Staff / PIN" Command="{Binding GoSectionCommand}" CommandParameter="Staff" />
+        <Button Classes="pos-nav" Classes.active="{Binding IsShift}" Content="Shift today" Command="{Binding GoSectionCommand}" CommandParameter="Shift" />
+        <Button Classes="pos-nav" Classes.active="{Binding IsOnline}" Content="Online ▸" Command="{Binding GoSectionCommand}" CommandParameter="Online" Margin="0,12,0,0" />
+        <Button Classes="pos-action pos-cash" Content="SAVE" Command="{Binding SaveCommand}" Height="52" Margin="0,16,0,0" />
+      </StackPanel>
+    </Border>
 
-      <Border Background="#141210" CornerRadius="8" Padding="16" Margin="0,0,0,10">
-        <StackPanel Spacing="4">
-          <TextBlock Text="Printers / 打印机" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,8" />
-          <TextBox Classes="pos-field" Watermark="Kitchen printer queue" Text="{Binding KitchenPrinter}" />
-          <TextBox Classes="pos-field" Watermark="Front printer queue" Text="{Binding FrontPrinter}" />
-          <TextBox Classes="pos-field" Watermark="Encoding gbk|gb18030|utf8 (use gbk for GlPrinter80)" Text="{Binding PrintEncoding}" />
-          <CheckBox IsChecked="{Binding PrintChineseAsRaster}" Content="Print Chinese as image (fix garb on GlPrinter80)" Foreground="#e7e5e4" Margin="0,4" />
-          <CheckBox IsChecked="{Binding OpenDrawerOnCash}" Content="Open drawer on cash pay" Foreground="#e7e5e4" Margin="0,4" />
-          <CheckBox IsChecked="{Binding SendKitchenOnSend}" Content="Send kitchen on Send/Pay" Foreground="#e7e5e4" Margin="0,4" />
-          <CheckBox IsChecked="{Binding PrintFrontOnPay}" Content="Print front receipt on pay" Foreground="#e7e5e4" Margin="0,4" />
-          <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
-            <Button Classes="pos-action pos-send" Content="Save + test print" Command="{Binding TestPrintCommand}" Width="180" />
-            <Button Classes="pos-nav" Content="Open drawer" Command="{Binding OpenDrawerCommand}" Width="140" Height="52" />
+    <ScrollViewer Grid.Column="1">
+      <StackPanel MaxWidth="820">
+
+        <Border Background="#141210" CornerRadius="8" Padding="16" IsVisible="{Binding IsShop}">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Shop / 店铺" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,8" />
+            <TextBox Classes="pos-field" Watermark="Shop name" Text="{Binding ShopName}" />
+            <TextBox Classes="pos-field" Watermark="Address" Text="{Binding ShopAddress}" />
+            <TextBox Classes="pos-field" Watermark="Postcode" Text="{Binding ShopPostcode}" />
+            <TextBox Classes="pos-field" Watermark="Phone" Text="{Binding ShopPhone}" />
           </StackPanel>
-        </StackPanel>
-      </Border>
+        </Border>
 
-      <Border Background="#141210" CornerRadius="8" Padding="16" Margin="0,0,0,10">
-        <StackPanel Spacing="4">
-          <TextBlock Text="Online orders / 线上" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,4" />
-          <TextBlock Text="Copy a / u / p from website Admin → Print. Stored locally only."
-                     FontSize="12" Foreground="#a8a29e" TextWrapping="Wrap" Margin="0,0,0,8" />
-          <TextBox Classes="pos-field" Watermark="Base URL" Text="{Binding OnlineBaseUrl}" />
-          <Button Classes="pos-nav" Content="Apply base URL → 3 endpoints" Command="{Binding ApplyBaseUrlCommand}"
-                  HorizontalAlignment="Left" Width="260" Height="40" Margin="0,0,0,8" />
-          <TextBox Classes="pos-field" Watermark="EPOS Next URL (/api/print/epos/next)" Text="{Binding OrderServerUrl}" />
-          <TextBox Classes="pos-field" Watermark="EPOS Ack URL (/api/print/epos/ack)" Text="{Binding PrintedUrl}" />
-          <TextBox Classes="pos-field" Watermark="Res ID (a)" Text="{Binding OnlineResId}" />
-          <TextBox Classes="pos-field" Watermark="Username (u)" Text="{Binding OnlineUsername}" />
-          <TextBox Classes="pos-field" Watermark="Password (p)" Text="{Binding OnlinePassword}" PasswordChar="•" />
-          <TextBox Classes="pos-field" Watermark="Poll interval seconds" Text="{Binding PollIntervalText}" />
-          <CheckBox IsChecked="{Binding OnlinePollingEnabled}" Content="Enable polling on startup" Foreground="#e7e5e4" Margin="0,4" />
-          <CheckBox IsChecked="{Binding AutoKitchenPrintOnline}" Content="Auto kitchen print online orders" Foreground="#e7e5e4" Margin="0,4" />
-        </StackPanel>
-      </Border>
+        <Border Background="#141210" CornerRadius="8" Padding="16" IsVisible="{Binding IsDelivery}">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Delivery / 外卖费" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,8" />
+            <TextBox Classes="pos-field" Watermark="Default delivery fee £" Text="{Binding DefaultDeliveryFeeText}" />
+            <TextBlock Text="Advanced postcode bands can be added later." Foreground="#a8a29e" FontSize="12" Margin="0,8,0,0" />
+          </StackPanel>
+        </Border>
 
-      <Border Background="#141210" CornerRadius="8" Padding="16" Margin="0,0,0,10">
-        <StackPanel Spacing="8">
-          <TextBlock Text="Menu / 菜单" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" />
-          <TextBlock Text="{Binding MenuInfo}" TextWrapping="Wrap" Foreground="#a8a29e" />
-          <Button Classes="pos-nav" Content="Re-import embedded Magic Wok menu"
-                  Command="{Binding ReimportMenuCommand}" HorizontalAlignment="Left" Width="320" Height="44" />
-        </StackPanel>
-      </Border>
+        <Border Background="#141210" CornerRadius="8" Padding="16" IsVisible="{Binding IsHardware}">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Hardware / 硬件" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,8" />
+            <TextBox Classes="pos-field" Watermark="Kitchen printer queue" Text="{Binding KitchenPrinter}" />
+            <TextBox Classes="pos-field" Watermark="Front printer queue" Text="{Binding FrontPrinter}" />
+            <TextBox Classes="pos-field" Watermark="Encoding gbk|gb18030|utf8" Text="{Binding PrintEncoding}" />
+            <CheckBox IsChecked="{Binding PrintChineseAsRaster}" Content="Print Chinese as image (GlPrinter80)" Foreground="#e7e5e4" Margin="0,4" />
+            <CheckBox IsChecked="{Binding OpenDrawerOnCash}" Content="Open drawer on cash pay" Foreground="#e7e5e4" Margin="0,4" />
+            <CheckBox IsChecked="{Binding SendKitchenOnPay}" Content="Also print kitchen on Pay if not yet sent" Foreground="#e7e5e4" Margin="0,4" />
+            <CheckBox IsChecked="{Binding PrintFrontOnPay}" Content="Print front receipt on pay" Foreground="#e7e5e4" Margin="0,4" />
+            <CheckBox IsChecked="{Binding PrintVoidKitchenTicket}" Content="Print VOID kitchen ticket on void" Foreground="#e7e5e4" Margin="0,4" />
+            <TextBlock Text="Caller ID" FontWeight="SemiBold" Foreground="#fdba74" Margin="0,12,0,4" />
+            <CheckBox IsChecked="{Binding CallerIdEnabled}" Content="Enable Caller ID" Foreground="#e7e5e4" />
+            <TextBox Classes="pos-field" Watermark="Mode: simulate | serial" Text="{Binding CallerIdMode}" />
+            <TextBox Classes="pos-field" Watermark="COM port" Text="{Binding CallerIdCom}" />
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
+              <Button Classes="pos-action pos-send" Content="Test print" Command="{Binding TestPrintCommand}" Width="140" />
+              <Button Classes="pos-nav" Content="Open drawer (PIN)" Command="{Binding OpenDrawerCommand}" Width="160" Height="52" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
 
-      <Button Classes="pos-action pos-cash" Content="SAVE SETTINGS / 保存"
-              Command="{Binding SaveCommand}" HorizontalAlignment="Left" Width="240" Margin="0,8,0,24" />
-    </StackPanel>
-  </ScrollViewer>
+        <Border Background="#141210" CornerRadius="8" Padding="16" IsVisible="{Binding IsStaff}">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Staff / PIN" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,8" />
+            <TextBlock Text="Manager PIN protects Void, Open drawer, and 86." Foreground="#a8a29e" FontSize="12" Margin="0,0,0,8" />
+            <TextBox Classes="pos-field" Watermark="Manager PIN" Text="{Binding ManagerPin}" PasswordChar="•" />
+            <TextBox Classes="pos-field" Watermark="Cashier PIN (optional)" Text="{Binding CashierPin}" PasswordChar="•" />
+          </StackPanel>
+        </Border>
+
+        <Border Background="#141210" CornerRadius="8" Padding="16" IsVisible="{Binding IsShift}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Today summary / 今日汇总" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" />
+            <TextBox Text="{Binding ShiftSummary}" IsReadOnly="True" AcceptsReturn="True" Classes="pos-field" MinHeight="180" />
+          </StackPanel>
+        </Border>
+
+        <Border Background="#141210" CornerRadius="8" Padding="16" IsVisible="{Binding IsNotes}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Quick notes / 快捷备注" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" />
+            <Grid ColumnDefinitions="*,*,Auto,Auto">
+              <TextBox Classes="pos-field" Watermark="English" Text="{Binding NewNoteEn}" Margin="0,0,6,0" />
+              <TextBox Grid.Column="1" Classes="pos-field" Watermark="厨房中文" Text="{Binding NewNoteZh}" Margin="0,0,6,0" />
+              <Button Grid.Column="2" Classes="pos-action pos-send" Content="Add" Command="{Binding AddNoteCommand}" Width="80" Height="40" />
+            </Grid>
+            <ItemsControl ItemsSource="{Binding NoteRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:QuickNoteEditRow">
+                  <Grid ColumnDefinitions="*,*,Auto" Margin="0,4">
+                    <TextBox Classes="pos-field" Text="{Binding En}" Margin="0,0,6,0" />
+                    <TextBox Grid.Column="1" Classes="pos-field" Text="{Binding Zh}" Margin="0,0,6,0" />
+                    <Button Grid.Column="2" Classes="pos-nav" Content="Del"
+                            Command="{Binding DataContext.RemoveNoteCommand, ElementName=Root}"
+                            CommandParameter="{Binding}" Width="64" Height="40" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="Save settings to apply notes on Sell." Foreground="#a8a29e" FontSize="12" />
+          </StackPanel>
+        </Border>
+
+        <Border Background="#141210" CornerRadius="8" Padding="16" IsVisible="{Binding IsMenu}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Menu / 改价 / 86" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" />
+            <TextBlock Text="{Binding MenuInfo}" Foreground="#a8a29e" />
+            <TextBox Classes="pos-field" Watermark="Search # or name" Text="{Binding MenuSearch}" />
+            <Button Classes="pos-nav" Content="Re-import embedded seed menu"
+                    Command="{Binding ReimportMenuCommand}" HorizontalAlignment="Left" Width="280" Height="40" />
+            <ItemsControl ItemsSource="{Binding MenuRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:MenuEditRow">
+                  <Grid ColumnDefinitions="*,90,70,80" Margin="0,4">
+                    <TextBlock Text="{Binding Label}" Foreground="#fafaf9" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                    <TextBox Grid.Column="1" Classes="pos-field" Text="{Binding PriceText}" Margin="4,0" />
+                    <Button Grid.Column="2" Classes="pos-nav" Content="{Binding IsAvailable, StringFormat=86:{0}}"
+                            Command="{Binding DataContext.Toggle86Command, ElementName=Root}"
+                            CommandParameter="{Binding}" Height="40" Margin="2,0" FontSize="11" />
+                    <Button Grid.Column="3" Classes="pos-action pos-send" Content="Save"
+                            Command="{Binding DataContext.SaveMenuRowCommand, ElementName=Root}"
+                            CommandParameter="{Binding}" Height="40" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <Border Background="#141210" CornerRadius="8" Padding="16" IsVisible="{Binding IsOnline}">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Online (Advanced) / 线上" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,4" />
+            <TextBlock Text="Copy a / u / p from website Admin → Print. Stored locally only."
+                       FontSize="12" Foreground="#a8a29e" TextWrapping="Wrap" Margin="0,0,0,8" />
+            <TextBox Classes="pos-field" Watermark="Base URL" Text="{Binding OnlineBaseUrl}" />
+            <Button Classes="pos-nav" Content="Apply base URL → endpoints" Command="{Binding ApplyBaseUrlCommand}"
+                    HorizontalAlignment="Left" Width="260" Height="40" Margin="0,0,0,8" />
+            <TextBox Classes="pos-field" Watermark="Next URL" Text="{Binding OrderServerUrl}" />
+            <TextBox Classes="pos-field" Watermark="Ack URL" Text="{Binding PrintedUrl}" />
+            <TextBox Classes="pos-field" Watermark="Res ID (a)" Text="{Binding OnlineResId}" />
+            <TextBox Classes="pos-field" Watermark="Username (u)" Text="{Binding OnlineUsername}" />
+            <TextBox Classes="pos-field" Watermark="Password (p)" Text="{Binding OnlinePassword}" PasswordChar="•" />
+            <TextBox Classes="pos-field" Watermark="Poll interval seconds" Text="{Binding PollIntervalText}" />
+            <CheckBox IsChecked="{Binding OnlinePollingEnabled}" Content="Enable polling on startup" Foreground="#e7e5e4" Margin="0,4" />
+            <CheckBox IsChecked="{Binding AutoKitchenPrintOnline}" Content="Auto kitchen print online orders" Foreground="#e7e5e4" Margin="0,4" />
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+  </Grid>
 </UserControl>

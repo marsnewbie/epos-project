@@ -82,7 +82,7 @@ public sealed class PrintService
 
     public PrintService(AppServices app) => _app = app;
 
-    public async Task<PrintJob> PrintKitchenAsync(PosOrder order, bool isReprint = false)
+    public async Task<PrintJob> PrintKitchenAsync(PosOrder order, bool isReprint = false, bool unsentOnly = false, bool isVoid = false)
     {
         var settings = _app.GetSettings();
         var job = new PrintJob
@@ -91,23 +91,35 @@ public sealed class PrintService
             OrderNumber = order.OrderNumber,
             Channel = PrintJobChannel.Kitchen,
             Status = PrintJobStatus.Claimed,
-            PayloadText = $"kitchen:{order.OrderNumber}",
+            PayloadText = isVoid ? $"void:{order.OrderNumber}" : unsentOnly ? $"kitchen-new:{order.OrderNumber}" : $"kitchen:{order.OrderNumber}",
         };
         _app.PrintJobs.Insert(job);
 
         try
         {
-            var bytes = TicketRenderer.RenderKitchen(order, settings);
+            var printUnsent = unsentOnly && !isReprint && !isVoid;
+            var bytes = TicketRenderer.RenderKitchen(order, settings, unsentOnly: printUnsent, isVoid: isVoid);
             await _app.KitchenPrinter.PrintRawAsync(bytes);
             job.Status = PrintJobStatus.Printed;
             job.PrintedAt = DateTimeOffset.Now;
             job.Attempts++;
             _app.PrintJobs.Update(job);
 
-            order.KitchenPrinted = true;
+            if (!isVoid)
+            {
+                var now = DateTimeOffset.Now;
+                foreach (var line in order.Lines)
+                {
+                    if (printUnsent && line.KitchenSent) continue;
+                    line.KitchenSent = true;
+                    line.KitchenSentAt ??= now;
+                }
+                order.KitchenPrinted = true;
+                if (order.Status is PosOrderStatus.Draft or PosOrderStatus.Open or PosOrderStatus.Held)
+                    order.Status = PosOrderStatus.Sent;
+            }
+
             order.UpdatedAt = DateTimeOffset.Now;
-            if (order.Status is PosOrderStatus.Draft or PosOrderStatus.Open)
-                order.Status = PosOrderStatus.Sent;
             _app.Orders.Upsert(order);
             return job;
         }
@@ -119,6 +131,16 @@ public sealed class PrintService
             _app.PrintJobs.Update(job);
             throw;
         }
+    }
+
+    public async Task VoidOrderAsync(PosOrder order, string reason, bool printKitchen)
+    {
+        order.Status = PosOrderStatus.Voided;
+        order.VoidReason = reason;
+        order.UpdatedAt = DateTimeOffset.Now;
+        _app.Orders.Upsert(order);
+        if (printKitchen && order.KitchenPrinted)
+            await PrintKitchenAsync(order, isVoid: true);
     }
 
     public async Task<PrintJob> PrintFrontAsync(PosOrder order)

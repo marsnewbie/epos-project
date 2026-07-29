@@ -14,9 +14,20 @@ public sealed class AppSettings
     /// <summary>Render CJK kitchen lines as ESC/POS raster (reliable on Windows → GlPrinter80).</summary>
     public bool PrintChineseAsRaster { get; set; } = true;
     public bool OpenDrawerOnCash { get; set; } = true;
-    public bool SendKitchenOnSend { get; set; } = true;
+    /// <summary>
+    /// When paying: if kitchen not yet printed, print kitchen automatically.
+    /// Send button always prints kitchen regardless of this flag.
+    /// </summary>
+    public bool SendKitchenOnPay { get; set; } = true;
+    /// <summary>Legacy alias — maps to SendKitchenOnPay for older settings JSON.</summary>
+    public bool SendKitchenOnSend
+    {
+        get => SendKitchenOnPay;
+        set => SendKitchenOnPay = value;
+    }
     public bool PrintFrontOnPay { get; set; } = true;
     public bool AutoKitchenPrintOnline { get; set; } = true;
+    public bool PrintVoidKitchenTicket { get; set; } = true;
 
     /// <summary>Editable shop website base; endpoints derive unless overridden.</summary>
     public string OnlineBaseUrl { get; set; } = "https://magicwoksite.vercel.app";
@@ -38,6 +49,12 @@ public sealed class AppSettings
     public decimal DefaultDeliveryFee { get; set; }
     public string? LastMenuImportAt { get; set; }
     public int NextOrderSequence { get; set; } = 1;
+
+    /// <summary>Manager PIN for void / drawer / sensitive settings. Default 1234 — change in shop.</summary>
+    public string ManagerPin { get; set; } = "1234";
+    public string? CashierPin { get; set; }
+
+    public List<QuickNoteDef> QuickNotes { get; set; } = QuickKitchenNotes.CreateDefaultList();
 
     public void ApplyOnlineBaseUrl(string baseUrl)
     {

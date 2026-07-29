@@ -1,6 +1,7 @@
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MagicWok.Epos.Domain;
 using MagicWok.Epos.Services;
 
 namespace MagicWok.Epos.ViewModels;
@@ -17,11 +18,26 @@ public partial class MainViewModel : ViewModelBase
     public MainViewModel(AppServices app)
     {
         _app = app;
-        Sell = new SellViewModel(app, SetStatus);
-        Orders = new OrdersViewModel(app, SetStatus);
+        Sell = new SellViewModel(app, SetStatus, () => GoOrders());
+        Orders = new OrdersViewModel(app, SetStatus, order =>
+        {
+            Sell.LoadOrderForContinue(order);
+            GoSell();
+        });
         Online = new OnlineViewModel(app, SetStatus);
-        Customers = new CustomersViewModel(app, SetStatus);
-        SettingsVm = new SettingsViewModel(app, SetStatus);
+        Customers = new CustomersViewModel(app, SetStatus, customer =>
+        {
+            Sell.StartDeliveryForCustomer(customer);
+            GoSell();
+        });
+        SettingsVm = new SettingsViewModel(app, SetStatus, () =>
+        {
+            Sell.ReloadQuickNotes();
+            Sell.RefreshMenu();
+            Sell.RefreshUiLabels();
+            ShopName = _app.GetSettings().ShopName;
+            RefreshNavLabels();
+        });
 
         ShopName = app.GetSettings().ShopName;
         CurrentPage = Sell;
@@ -101,7 +117,12 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private bool _isSettingsNav;
 
     [RelayCommand]
-    private void GoSell() => Navigate("sell", Sell, IsZh ? "点单" : "Sell", () => Sell.RefreshMenu());
+    private void GoSell() => Navigate("sell", Sell, IsZh ? "点单" : "Sell", () =>
+    {
+        Sell.RefreshMenu();
+        Sell.RefreshUiLabels();
+        Sell.RefreshHeldList();
+    });
 
     [RelayCommand]
     private void GoOrders() => Navigate("orders", Orders, IsZh ? "订单" : "Orders", () => Orders.Refresh());
@@ -137,22 +158,10 @@ public partial class MainViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private async Task TestPrintAsync()
-    {
-        try
-        {
-            await _app.KitchenPrinter.PrintTestPageAsync();
-            StatusText = $"Test print → {_app.KitchenPrinter.Name}";
-        }
-        catch (Exception ex)
-        {
-            StatusText = $"Test print failed: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
     private async Task OpenDrawerAsync()
     {
+        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "Open drawer"))
+            return;
         try
         {
             await _app.CashDrawer.OpenAsync();
@@ -171,6 +180,7 @@ public partial class MainViewModel : ViewModelBase
         s.UiLanguage = s.UiLanguage == "zh" ? "en" : "zh";
         _app.SaveSettings(s);
         RefreshNavLabels();
+        Sell.RefreshUiLabels();
         StatusText = s.UiLanguage == "zh" ? "界面：中文" : "UI language: English";
         if (IsSellNav) GoSell();
         else if (IsOrdersNav) GoOrders();
