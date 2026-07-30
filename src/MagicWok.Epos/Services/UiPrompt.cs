@@ -22,9 +22,9 @@ public static class UiPrompt
         }
     }
 
-    private static IBrush Fg => new SolidColorBrush(Color.Parse("#fafaf9"));
-    private static IBrush FgMuted => new SolidColorBrush(Color.Parse("#e7e5e4"));
-    private static IBrush Bg => new SolidColorBrush(Color.Parse("#1c1917"));
+    private static IBrush Fg => new SolidColorBrush(Color.Parse("#1c1917"));
+    private static IBrush FgMuted => new SolidColorBrush(Color.Parse("#5b6472"));
+    private static IBrush Bg => new SolidColorBrush(Color.Parse("#ffffff"));
 
     public static async Task<bool> ConfirmAsync(string title, string message)
     {
@@ -42,10 +42,10 @@ public static class UiPrompt
             Background = Bg,
         };
 
-        var ok = new Button { Content = "OK / 确认", Width = 140, Height = 48 };
+        var ok = new Button { Content = UiText.Ok, Width = 140, Height = 48 };
         ok.Classes.Add("pos-action");
         ok.Classes.Add("pos-cash");
-        var cancel = new Button { Content = "Cancel", Width = 120, Height = 48 };
+        var cancel = new Button { Content = UiText.Cancel, Width = 120, Height = 48 };
         cancel.Classes.Add("pos-nav");
         ok.Click += (_, _) => { result = true; dlg.Close(); };
         cancel.Click += (_, _) => dlg.Close();
@@ -101,10 +101,10 @@ public static class UiPrompt
             Background = Bg,
         };
 
-        var ok = new Button { Content = "OK", Width = 120, Height = 48 };
+        var ok = new Button { Content = UiText.Ok, Width = 120, Height = 48 };
         ok.Classes.Add("pos-action");
         ok.Classes.Add("pos-cash");
-        var cancel = new Button { Content = "Cancel", Width = 120, Height = 48 };
+        var cancel = new Button { Content = UiText.Cancel, Width = 120, Height = 48 };
         cancel.Classes.Add("pos-nav");
         ok.Click += (_, _) => { result = box.Text; dlg.Close(); };
         cancel.Click += (_, _) => dlg.Close();
@@ -141,11 +141,11 @@ public static class UiPrompt
 
     public static async Task<bool> RequireManagerPinAsync(AppSettings settings, string actionLabel)
     {
-        var pin = await PromptTextAsync($"Manager PIN · {actionLabel}", "PIN", password: true);
+        var pin = await PromptTextAsync(UiText.ManagerPinTitle(actionLabel), "PIN", password: true);
         if (pin is null) return false;
         if (string.Equals(pin.Trim(), settings.ManagerPin?.Trim() ?? "1234", StringComparison.Ordinal))
             return true;
-        await ConfirmAsync("PIN incorrect", "Manager PIN did not match. / PIN 不正确");
+        await ConfirmAsync(UiText.PinIncorrectTitle, UiText.PinIncorrectBody);
         return false;
     }
 }

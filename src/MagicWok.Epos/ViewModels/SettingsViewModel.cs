@@ -17,6 +17,7 @@ public partial class SettingsViewModel : ViewModelBase
         _app = app;
         _setStatus = setStatus;
         _onSaved = onSaved;
+        RefreshUiLabels();
         Reload();
     }
 
@@ -79,6 +80,71 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private string _newNoteEn = "";
     [ObservableProperty] private string _newNoteZh = "";
 
+    [ObservableProperty] private string _lblSecShop = "Shop";
+    [ObservableProperty] private string _lblSecMenu = "Menu";
+    [ObservableProperty] private string _lblSecNotes = "Quick notes";
+    [ObservableProperty] private string _lblSecDelivery = "Delivery";
+    [ObservableProperty] private string _lblSecHardware = "Hardware";
+    [ObservableProperty] private string _lblSecStaff = "Staff / PIN";
+    [ObservableProperty] private string _lblSecShift = "Shift today";
+    [ObservableProperty] private string _lblSecOnline = "Online";
+    [ObservableProperty] private string _lblSave = "Save";
+    [ObservableProperty] private string _lblAddCategory = "+ Category";
+    [ObservableProperty] private string _lblEdit = "Edit";
+    [ObservableProperty] private string _lblHideShow = "Hide/Show";
+    [ObservableProperty] private string _lblDelete = "Delete";
+    [ObservableProperty] private string _lblAddDish = "+ Dish";
+    [ObservableProperty] private string _lblSaveDish = "Save dish";
+    [ObservableProperty] private string _lblDuplicate = "Duplicate";
+    [ObservableProperty] private string _lbl86 = "86";
+    [ObservableProperty] private string _lblAddGroup = "+ Group";
+    [ObservableProperty] private string _lblAddChoice = "+ Choice";
+    [ObservableProperty] private string _lblRemove = "Remove";
+    [ObservableProperty] private string _lblReimport = "Re-import seed";
+    [ObservableProperty] private string _lblMenuOpsTitle = "Menu operations";
+    [ObservableProperty] private string _lblMenuOpsHint = "";
+    [ObservableProperty] private string _lblCategories = "Categories";
+    [ObservableProperty] private string _lblDishes = "Dishes";
+    [ObservableProperty] private string _lblDishEditor = "Dish editor";
+    [ObservableProperty] private string _lblOptionGroups = "Option groups";
+    [ObservableProperty] private string _lblChoices = "Choices";
+    [ObservableProperty] private string _lblUiLangNote = "";
+    [ObservableProperty] private string _lblRequired = "Req";
+
+    public void RefreshUiLabels()
+    {
+        LblSecShop = UiText.SecShop;
+        LblSecMenu = UiText.SecMenu;
+        LblSecNotes = UiText.SecNotes;
+        LblSecDelivery = UiText.SecDelivery;
+        LblSecHardware = UiText.SecHardware;
+        LblSecStaff = UiText.SecStaff;
+        LblSecShift = UiText.SecShift;
+        LblSecOnline = UiText.SecOnline;
+        LblSave = UiText.SaveSettings;
+        LblAddCategory = UiText.AddCategory;
+        LblEdit = UiText.Edit;
+        LblHideShow = UiText.HideShow;
+        LblDelete = UiText.Delete;
+        LblAddDish = UiText.AddDish;
+        LblSaveDish = UiText.SaveDish;
+        LblDuplicate = UiText.Duplicate;
+        Lbl86 = UiText.EightySix;
+        LblAddGroup = UiText.AddGroup;
+        LblAddChoice = UiText.AddChoice;
+        LblRemove = UiText.Remove;
+        LblReimport = UiText.Reimport;
+        LblMenuOpsTitle = UiText.MenuOpsTitle;
+        LblMenuOpsHint = UiText.MenuOpsHint;
+        LblCategories = UiText.Categories;
+        LblDishes = UiText.Dishes;
+        LblDishEditor = UiText.DishEditor;
+        LblOptionGroups = UiText.OptionGroups;
+        LblChoices = UiText.Choices;
+        LblUiLangNote = UiText.UiLangNote;
+        LblRequired = UiText.Pick("Req", "必选");
+    }
+
     [RelayCommand]
     private void GoSection(string? section)
     {
@@ -127,7 +193,9 @@ public partial class SettingsViewModel : ViewModelBase
         CallerIdEnabled = s.CallerIdEnabled;
         CallerIdMode = s.CallerIdMode;
         CallerIdCom = s.CallerIdComPort;
-        MenuInfo = $"Items: {_app.Menu.CountItems()} | Last import: {s.LastMenuImportAt ?? "n/a"}";
+        MenuInfo = UiText.Pick(
+            $"Items: {_app.Menu.CountItems()} | Last import: {s.LastMenuImportAt ?? "n/a"}",
+            $"菜品: {_app.Menu.CountItems()} | 上次导入: {s.LastMenuImportAt ?? "无"}");
         ReloadMenuBrowser();
         ReloadNoteRows();
         ReloadShift();

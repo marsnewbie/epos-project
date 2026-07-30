@@ -46,6 +46,11 @@ Tap notes → bind to **selected or last line**. Editable in Settings → Quick 
 2. Cash (tendered + change / Exact) or Card (manual)  
 3. Settings: **Also print kitchen on Pay if not yet sent** · **Print front on pay** · **Open drawer on cash**
 
+## Language (industry standard)
+
+- **UI language** (top bar): switches chrome only — nav, buttons, filters, dialogs, status text. One language at a time (never EN+中文 on the same button).
+- **Menu catalogue language**: independent. Sell shows English front name + kitchen Chinese subtitle. Kitchen print keeps EN + 中文. UI toggle does **not** rewrite dish names.
+
 ## Settings sections
 
 Shop · **Menu operations** · Quick notes · Delivery fee · Hardware (printers, CID, test print) · Staff PIN · Shift today · Online (advanced URLs + a/u/p)

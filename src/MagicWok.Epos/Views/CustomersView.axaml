@@ -4,20 +4,19 @@
              xmlns:domain="using:MagicWok.Epos.Domain"
              x:Class="MagicWok.Epos.Views.CustomersView"
              x:DataType="vm:CustomersViewModel"
-             Background="#1c1917">
+             Background="#e8eaed">
   <Grid ColumnDefinitions="*,*" Margin="4">
-    <Border Grid.Column="0" Background="#141210" CornerRadius="8" Padding="10" Margin="0,0,8,0">
+    <Border Grid.Column="0" Classes="pos-panel" Padding="10" Margin="0,0,8,0">
       <DockPanel>
-        <TextBox DockPanel.Dock="Top" Classes="pos-field" Watermark="Search name / phone"
+        <TextBox DockPanel.Dock="Top" Classes="pos-field" Watermark="{Binding WmSearch}"
                  Text="{Binding SearchText}" Margin="0,0,0,8" />
-        <TextBlock DockPanel.Dock="Top" Text="Phone book / 电话簿" FontSize="18" FontWeight="Bold"
-                   Foreground="#fafaf9" Margin="0,0,0,8" />
+        <TextBlock DockPanel.Dock="Top" Text="{Binding LblTitle}" Classes="pos-title" Margin="0,0,0,8" />
         <ListBox Classes="pos-ticket" ItemsSource="{Binding Customers}" SelectedItem="{Binding SelectedCustomer}">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="domain:Customer">
               <StackPanel Margin="10,8">
-                <TextBlock FontWeight="Bold" FontSize="15" Foreground="#fafaf9" Text="{Binding Name}" />
-                <TextBlock FontSize="14" Foreground="#fdba74" Text="{Binding Phone}" Margin="0,2,0,0" />
+                <TextBlock FontWeight="Bold" FontSize="15" Foreground="#1c1917" Text="{Binding Name}" />
+                <TextBlock FontSize="14" Foreground="#c2410c" Text="{Binding Phone}" Margin="0,2,0,0" />
               </StackPanel>
             </DataTemplate>
           </ListBox.ItemTemplate>
@@ -25,25 +24,26 @@
       </DockPanel>
     </Border>
 
-    <Border Grid.Column="1" Background="#141210" CornerRadius="8" Padding="14">
+    <Border Grid.Column="1" Classes="pos-panel" Padding="14">
       <StackPanel Spacing="4" MaxWidth="480">
-        <TextBlock Text="Customer / 顾客" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,8" />
-        <TextBox Classes="pos-field" Watermark="Name" Text="{Binding EditName}" />
-        <TextBox Classes="pos-field" Watermark="Phone" Text="{Binding EditPhone}" />
-        <TextBox Classes="pos-field" Watermark="Address" Text="{Binding EditAddress}" />
-        <TextBox Classes="pos-field" Watermark="Postcode" Text="{Binding EditPostcode}" />
-        <Button Classes="pos-action pos-send" Content="Save customer" Command="{Binding SaveCustomerCommand}"
-                HorizontalAlignment="Left" Width="180" Margin="0,8,0,0" />
-        <Button Classes="pos-action pos-cash" Content="Start order on Sell / 开单"
-                Command="{Binding StartOrderCommand}" HorizontalAlignment="Left" Width="240" Margin="0,8,0,0" Height="48" />
+        <TextBlock Text="{Binding LblCustomer}" Classes="pos-title" Margin="0,0,0,8" />
+        <TextBox Classes="pos-field" Watermark="{Binding WmName}" Text="{Binding EditName}" />
+        <TextBox Classes="pos-field" Watermark="{Binding WmPhone}" Text="{Binding EditPhone}" />
+        <TextBox Classes="pos-field" Watermark="{Binding WmAddress}" Text="{Binding EditAddress}" />
+        <TextBox Classes="pos-field" Watermark="{Binding WmPostcode}" Text="{Binding EditPostcode}" />
+        <Button Classes="pos-action pos-send" Content="{Binding LblSave}" Command="{Binding SaveCustomerCommand}"
+                HorizontalAlignment="Left" Width="200" Margin="0,8,0,0" />
+        <Button Classes="pos-action pos-cash" Content="{Binding LblStartOrder}"
+                Command="{Binding StartOrderCommand}" HorizontalAlignment="Left" Width="200" Margin="0,8,0,0" Height="48" />
 
-        <Border Background="#0c0a09" CornerRadius="8" Padding="12" Margin="0,24,0,0">
+        <Border Background="#f4f6f8" CornerRadius="8" Padding="12" Margin="0,24,0,0"
+                BorderBrush="#d0d5dd" BorderThickness="1">
           <StackPanel Spacing="8">
-            <TextBlock Text="Caller ID simulate / 来电模拟" FontWeight="Bold" Foreground="#fafaf9" />
-            <TextBlock Text="Fills Sell ticket with matched customer" Foreground="#a8a29e" FontSize="12" />
+            <TextBlock Text="{Binding LblCallerId}" FontWeight="Bold" Foreground="#1c1917" />
+            <TextBlock Text="{Binding LblCallerHint}" Classes="pos-muted" FontSize="12" />
             <TextBox Classes="pos-field" Text="{Binding SimulatePhone}" />
-            <Button Classes="pos-action pos-card" Content="Simulate incoming call"
-                    Command="{Binding SimulateCallerIdCommand}" HorizontalAlignment="Left" Width="220" />
+            <Button Classes="pos-action pos-card" Content="{Binding LblSimulate}"
+                    Command="{Binding SimulateCallerIdCommand}" HorizontalAlignment="Left" Width="240" />
           </StackPanel>
         </Border>
       </StackPanel>

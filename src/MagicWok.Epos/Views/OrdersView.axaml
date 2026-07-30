@@ -4,38 +4,43 @@
              xmlns:domain="using:MagicWok.Epos.Domain"
              x:Class="MagicWok.Epos.Views.OrdersView"
              x:DataType="vm:OrdersViewModel"
-             Background="#1c1917">
+             Background="#e8eaed">
   <Grid ColumnDefinitions="1.1*,*" Margin="4">
-    <Border Grid.Column="0" Background="#141210" CornerRadius="8" Padding="10" Margin="0,0,8,0">
+    <Border Grid.Column="0" Classes="pos-panel" Padding="10" Margin="0,0,8,0">
       <DockPanel>
         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10" Spacing="8">
           <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Text="Today / 今日" FontSize="18" FontWeight="Bold" Foreground="#fafaf9" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Classes="pos-nav" Content="Refresh" Click="OnRefresh" Width="100" Height="40" />
+            <TextBlock Text="{Binding LblToday}" Classes="pos-title" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="pos-nav" Content="{Binding LblRefresh}" Click="OnRefresh"
+                    Width="110" Height="40" />
           </Grid>
           <UniformGrid Columns="4">
-            <Button Classes="pos-nav" Classes.active="{Binding FilterAll}" Content="All" Command="{Binding SetFilterCommand}" CommandParameter="All" Height="40" Margin="0,0,4,0" />
-            <Button Classes="pos-nav" Classes.active="{Binding FilterUnpaid}" Content="Unpaid" Command="{Binding SetFilterCommand}" CommandParameter="Unpaid" Height="40" Margin="0,0,4,0" />
-            <Button Classes="pos-nav" Classes.active="{Binding FilterHeld}" Content="Held" Command="{Binding SetFilterCommand}" CommandParameter="Held" Height="40" Margin="0,0,4,0" />
-            <Button Classes="pos-nav" Classes.active="{Binding FilterPaid}" Content="Paid" Command="{Binding SetFilterCommand}" CommandParameter="Paid" Height="40" />
+            <Button Classes="pos-nav" Classes.active="{Binding FilterAll}" Content="{Binding LblFilterAll}"
+                    Command="{Binding SetFilterCommand}" CommandParameter="All" Height="40" Margin="0,0,4,0" />
+            <Button Classes="pos-nav" Classes.active="{Binding FilterUnpaid}" Content="{Binding LblFilterUnpaid}"
+                    Command="{Binding SetFilterCommand}" CommandParameter="Unpaid" Height="40" Margin="0,0,4,0" />
+            <Button Classes="pos-nav" Classes.active="{Binding FilterHeld}" Content="{Binding LblFilterHeld}"
+                    Command="{Binding SetFilterCommand}" CommandParameter="Held" Height="40" Margin="0,0,4,0" />
+            <Button Classes="pos-nav" Classes.active="{Binding FilterPaid}" Content="{Binding LblFilterPaid}"
+                    Command="{Binding SetFilterCommand}" CommandParameter="Paid" Height="40" />
           </UniformGrid>
-          <TextBlock Text="{Binding TodaySummary}" Foreground="#a8a29e" FontSize="11" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding TodaySummary}" Classes="pos-muted" FontSize="11" TextWrapping="Wrap" />
         </StackPanel>
         <ListBox Classes="pos-ticket" ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder}">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="domain:PosOrder">
               <Grid ColumnDefinitions="*,Auto" Margin="10,8">
                 <StackPanel>
-                  <TextBlock FontWeight="Bold" FontSize="15" Foreground="#fafaf9" Text="{Binding OrderNumber}" />
-                  <TextBlock FontSize="12" Foreground="#fdba74" Margin="0,2,0,0">
+                  <TextBlock FontWeight="Bold" FontSize="15" Foreground="#1c1917" Text="{Binding OrderNumber}" />
+                  <TextBlock FontSize="12" Foreground="#c2410c" Margin="0,2,0,0">
                     <Run Text="{Binding OrderType}" />
                     <Run Text=" · " />
                     <Run Text="{Binding Status}" />
                   </TextBlock>
-                  <TextBlock FontSize="12" Foreground="#a8a29e" Text="{Binding CustomerName}" />
-                  <TextBlock FontSize="11" Foreground="#78716c" Text="{Binding HoldLabel}" />
+                  <TextBlock FontSize="12" Foreground="#5b6472" Text="{Binding CustomerName}" />
+                  <TextBlock FontSize="11" Foreground="#9aa3b2" Text="{Binding HoldLabel}" />
                 </StackPanel>
-                <TextBlock Grid.Column="1" FontSize="18" FontWeight="Bold" Foreground="#fafaf9"
+                <TextBlock Grid.Column="1" FontSize="18" FontWeight="Bold" Foreground="#1c1917"
                            Text="{Binding Total, StringFormat={}£{0:0.00}}" VerticalAlignment="Center" />
               </Grid>
             </DataTemplate>
@@ -44,17 +49,22 @@
       </DockPanel>
     </Border>
 
-    <Border Grid.Column="1" Background="#141210" CornerRadius="8" Padding="10">
+    <Border Grid.Column="1" Classes="pos-panel" Padding="10">
       <DockPanel>
         <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,10,0,0">
-          <Button Classes="pos-action pos-cash" Content="Open on Sell / 续付加菜" Command="{Binding OpenOnSellCommand}" Height="48" />
+          <Button Classes="pos-action pos-cash" Content="{Binding LblOpenOnSell}"
+                  Command="{Binding OpenOnSellCommand}" Height="48" />
           <Grid ColumnDefinitions="*,*">
-            <Button Grid.Column="0" Classes="pos-action pos-send" Content="Reprint kitchen" Command="{Binding ReprintKitchenCommand}" Margin="0,0,4,0" Height="44" />
-            <Button Grid.Column="1" Classes="pos-action pos-card" Content="Reprint front" Command="{Binding ReprintFrontCommand}" Height="44" />
+            <Button Grid.Column="0" Classes="pos-action pos-send" Content="{Binding LblReprintKitchen}"
+                    Command="{Binding ReprintKitchenCommand}" Margin="0,0,4,0" Height="44" />
+            <Button Grid.Column="1" Classes="pos-action pos-card" Content="{Binding LblReprintFront}"
+                    Command="{Binding ReprintFrontCommand}" Height="44" />
           </Grid>
-          <Button Classes="pos-action pos-danger" Content="VOID (PIN) / 作废" Command="{Binding VoidOrderCommand}" Height="44" />
+          <Button Classes="pos-action pos-danger" Content="{Binding LblVoid}"
+                  Command="{Binding VoidOrderCommand}" Height="44" />
         </StackPanel>
-        <TextBlock DockPanel.Dock="Top" Text="Order detail" FontWeight="Bold" Foreground="#a8a29e" Margin="0,0,0,8" />
+        <TextBlock DockPanel.Dock="Top" Text="{Binding LblDetail}" FontWeight="Bold"
+                   Foreground="#5b6472" Margin="0,0,0,8" />
         <TextBox Text="{Binding DetailText}" AcceptsReturn="True" IsReadOnly="True" TextWrapping="Wrap"
                  Classes="pos-field" MinHeight="200" />
       </DockPanel>

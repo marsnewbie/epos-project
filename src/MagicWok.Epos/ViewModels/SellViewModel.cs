@@ -93,23 +93,69 @@ public partial class SellViewModel : ViewModelBase
     [ObservableProperty] private string _lblBack = "Back";
     [ObservableProperty] private string _emptyTicketHint = "Tap dishes to build ticket";
     [ObservableProperty] private string _heldButtonText = "Held";
+    [ObservableProperty] private string _wmSearch = "Search dishes";
+    [ObservableProperty] private string _wmDishNumber = "Menu #";
+    [ObservableProperty] private string _lblAdHoc = "Custom item";
+    [ObservableProperty] private string _wmAdHocName = "Item name";
+    [ObservableProperty] private string _lblAdd = "Add";
+    [ObservableProperty] private string _lblTypeCollection = "Collect";
+    [ObservableProperty] private string _lblTypeDelivery = "Deliver";
+    [ObservableProperty] private string _lblTypeWaiting = "Waiting";
+    [ObservableProperty] private string _lblTypeTable = "Table";
+    [ObservableProperty] private string _wmName = "Name";
+    [ObservableProperty] private string _wmPhone = "Phone";
+    [ObservableProperty] private string _wmAddress = "Address";
+    [ObservableProperty] private string _wmPostcode = "Postcode";
+    [ObservableProperty] private string _wmTable = "Table / pager #";
+    [ObservableProperty] private string _lblNotes = "Notes";
+    [ObservableProperty] private string _wmOrderNotes = "Order notes";
+    [ObservableProperty] private string _lblCashTender = "Cash tender";
+    [ObservableProperty] private string _lblExact = "Exact";
+    [ObservableProperty] private string _lblTicket = "TICKET";
+    [ObservableProperty] private string _lblLineSent = "SENT";
+    [ObservableProperty] private string _lblRequired = "REQ";
+    [ObservableProperty] private string _itemsCountText = "0 items";
 
     public void RefreshUiLabels()
     {
-        var zh = _app.GetSettings().UiLanguage == "zh";
-        LblPhoneOrder = zh ? "电话单" : "Phone order";
-        LblHeld = zh ? "挂单" : "Held";
-        LblNew = zh ? "新单" : "New";
-        LblClear = zh ? "清空" : "Clear";
-        LblHold = zh ? "挂单" : "Hold";
-        LblPayCash = zh ? "现金" : "Cash";
-        LblPayCard = zh ? "刷卡" : "Card";
-        LblConfirmCash = zh ? "确认收款" : "Take cash";
-        LblBack = zh ? "返回" : "Back";
-        LblAddToTicket = zh ? "加入订单" : "Add to ticket";
-        LblCancel = zh ? "取消" : "Cancel";
-        EmptyTicketHint = zh ? "点菜开始建单" : "Tap dishes to build ticket";
+        LblPhoneOrder = UiText.PhoneOrder;
+        LblHeld = UiText.Held;
+        LblNew = UiText.NewTicket;
+        LblClear = UiText.ClearTicket;
+        LblHold = UiText.Hold;
+        LblPayCash = UiText.Cash;
+        LblPayCard = UiText.Card;
+        LblConfirmCash = UiText.TakeCash;
+        LblBack = UiText.Back;
+        LblAddToTicket = UiText.AddToTicket;
+        LblCancel = UiText.Cancel;
+        EmptyTicketHint = UiText.EmptyTicket;
+        WmSearch = UiText.Search;
+        WmDishNumber = UiText.DishNumber;
+        LblAdHoc = UiText.AdHoc;
+        WmAdHocName = UiText.AdHocName;
+        LblAdd = UiText.AddByNumber;
+        LblTypeCollection = UiText.TypeCollection;
+        LblTypeDelivery = UiText.TypeDelivery;
+        LblTypeWaiting = UiText.TypeWaiting;
+        LblTypeTable = UiText.TypeTable;
+        WmName = UiText.CustomerName;
+        WmPhone = UiText.CustomerPhone;
+        WmAddress = UiText.Address;
+        WmPostcode = UiText.Postcode;
+        WmTable = UiText.TablePager;
+        LblNotes = UiText.Notes;
+        WmOrderNotes = UiText.OrderNotes;
+        LblCashTender = UiText.CashTender;
+        LblExact = UiText.Exact;
+        LblTicket = UiText.TicketLabel;
+        LblLineSent = UiText.LineSent;
+        LblRequired = UiText.Pick("REQ", "必选");
+        ItemsCountText = UiText.ItemsCount(LineCount);
+        ReloadQuickNotes();
+        RefreshHeldList();
         UpdateTicketChrome();
+        if (ShowModifierPanel) RebuildModifierPanel();
     }
 
     public void ReloadQuickNotes()
@@ -117,8 +163,15 @@ public partial class SellViewModel : ViewModelBase
         QuickNotes.Clear();
         var notes = _app.GetSettings().QuickNotes;
         if (notes.Count == 0) notes = QuickKitchenNotes.CreateDefaultList();
+        var zh = UiText.IsZh;
         foreach (var n in notes)
-            QuickNotes.Add(new QuickNoteItem(n.En, n.Zh));
+        {
+            // Chip shows UI language; kitchen still receives EN/ZH pair on apply.
+            var chip = zh
+                ? (string.IsNullOrWhiteSpace(n.Zh) ? n.En : n.Zh)
+                : n.En;
+            QuickNotes.Add(new QuickNoteItem(n.En, n.Zh, chip));
+        }
     }
 
     public void RefreshHeldList()
@@ -127,10 +180,9 @@ public partial class SellViewModel : ViewModelBase
         foreach (var o in _app.Orders.GetTodayFiltered("held"))
             HeldOrders.Add(o);
         HeldCount = HeldOrders.Count;
-        var zh = _app.GetSettings().UiLanguage == "zh";
         HeldButtonText = HeldCount > 0
-            ? (zh ? $"挂单 ({HeldCount})" : $"Held ({HeldCount})")
-            : (zh ? "挂单" : "Held");
+            ? $"{UiText.Held} ({HeldCount})"
+            : UiText.Held;
     }
 
     [RelayCommand]
@@ -1018,23 +1070,22 @@ public partial class SellViewModel : ViewModelBase
 
     private void UpdateTicketChrome()
     {
-        var zh = _app.GetSettings().UiLanguage == "zh";
-        var num = string.IsNullOrWhiteSpace(_ticket.OrderNumber) ? (zh ? "新单" : "NEW") : _ticket.OrderNumber;
+        var num = string.IsNullOrWhiteSpace(_ticket.OrderNumber) ? UiText.NewTicket : _ticket.OrderNumber;
         var status = _ticket.Status switch
         {
-            PosOrderStatus.Sent => "SENT",
-            PosOrderStatus.Held => "HELD",
-            PosOrderStatus.Paid => "PAID",
-            PosOrderStatus.Voided => "VOID",
-            _ => Lines.Any(l => l.KitchenSent) ? "SENT" : "DRAFT",
+            PosOrderStatus.Sent => UiText.StatusSent,
+            PosOrderStatus.Held => UiText.StatusHeld,
+            PosOrderStatus.Paid => UiText.StatusPaid,
+            PosOrderStatus.Voided => UiText.StatusVoid,
+            _ => Lines.Any(l => l.KitchenSent) ? UiText.StatusSent : UiText.StatusDraft,
         };
         TicketNumberText = num;
         TicketStatusBadge = status;
         TicketHeader = $"{num} · {status}";
-        if (Lines.Any(l => l.KitchenSent) && Lines.Any(l => !l.KitchenSent))
-            SendButtonText = zh ? "补打厨房" : "Send new";
-        else
-            SendButtonText = zh ? "送厨" : "Send kitchen";
+        SendButtonText = Lines.Any(l => l.KitchenSent) && Lines.Any(l => !l.KitchenSent)
+            ? UiText.SendNew
+            : UiText.SendKitchen;
+        ItemsCountText = UiText.ItemsCount(LineCount);
     }
 
     partial void OnCustomerNameChanged(string value) => UpdateCustomerSummary();
@@ -1080,9 +1131,9 @@ public partial class SellViewModel : ViewModelBase
         string.IsNullOrWhiteSpace(s) ? null : s.Trim();
 }
 
-public sealed record QuickNoteItem(string En, string Zh)
+public sealed record QuickNoteItem(string En, string Zh, string ChipLabel)
 {
-    public string Display => $"{En} / {Zh}";
+    public string Display => string.IsNullOrWhiteSpace(Zh) ? En : $"{En} / {Zh}";
 }
 
 public sealed class ModifierGroupVm

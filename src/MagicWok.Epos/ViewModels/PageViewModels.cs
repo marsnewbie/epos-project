@@ -30,6 +30,33 @@ public partial class OrdersViewModel : ViewModelBase
     [ObservableProperty] private bool _filterHeld;
     [ObservableProperty] private bool _filterPaid;
     [ObservableProperty] private string _todaySummary = "";
+    [ObservableProperty] private string _lblToday = "Today";
+    [ObservableProperty] private string _lblRefresh = "Refresh";
+    [ObservableProperty] private string _lblFilterAll = "All";
+    [ObservableProperty] private string _lblFilterUnpaid = "Unpaid";
+    [ObservableProperty] private string _lblFilterHeld = "Held";
+    [ObservableProperty] private string _lblFilterPaid = "Paid";
+    [ObservableProperty] private string _lblDetail = "Order detail";
+    [ObservableProperty] private string _lblOpenOnSell = "Open on Sell";
+    [ObservableProperty] private string _lblReprintKitchen = "Reprint kitchen";
+    [ObservableProperty] private string _lblReprintFront = "Reprint receipt";
+    [ObservableProperty] private string _lblVoid = "Void (PIN)";
+
+    public void RefreshUiLabels()
+    {
+        LblToday = UiText.Today;
+        LblRefresh = UiText.Refresh;
+        LblFilterAll = UiText.FilterAll;
+        LblFilterUnpaid = UiText.FilterUnpaid;
+        LblFilterHeld = UiText.FilterHeld;
+        LblFilterPaid = UiText.FilterPaid;
+        LblDetail = UiText.OrderDetail;
+        LblOpenOnSell = UiText.OpenOnSell;
+        LblReprintKitchen = UiText.ReprintKitchen;
+        LblReprintFront = UiText.ReprintFront;
+        LblVoid = UiText.VoidOrder;
+        Refresh();
+    }
 
     public void Refresh()
     {
@@ -44,9 +71,11 @@ public partial class OrdersViewModel : ViewModelBase
         var cash = paid.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.Cash).Sum(t => t.Amount);
         var card = paid.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.CardManual).Sum(t => t.Amount);
         var online = paid.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.OnlinePaid).Sum(t => t.Amount);
-        TodaySummary =
-            $"Today: {paid.Count} paid · Cash £{cash:0.00} · Card £{card:0.00} · Online £{online:0.00} · " +
-            $"Unpaid {all.Count(o => o.IsUnpaid)} · Held {all.Count(o => o.Status == PosOrderStatus.Held)}";
+        var unpaid = all.Count(o => o.IsUnpaid);
+        var held = all.Count(o => o.Status == PosOrderStatus.Held);
+        TodaySummary = UiText.Pick(
+            $"Today: {paid.Count} paid · Cash £{cash:0.00} · Card £{card:0.00} · Online £{online:0.00} · Unpaid {unpaid} · Held {held}",
+            $"今日：已付 {paid.Count} · 现金 £{cash:0.00} · 刷卡 £{card:0.00} · 线上 £{online:0.00} · 未付 {unpaid} · 挂单 {held}");
     }
 
     [RelayCommand]
@@ -178,6 +207,29 @@ public partial class OnlineViewModel : ViewModelBase
     [ObservableProperty] private bool _setupNeeded = true;
     [ObservableProperty] private string _setupHint = "";
     [ObservableProperty] private bool _showAdvanced;
+    [ObservableProperty] private string _lblToggle = "Toggle accepting";
+    [ObservableProperty] private string _lblAccepting = "Accepting: OFF";
+    [ObservableProperty] private string _lblAdvanced = "Advanced";
+    [ObservableProperty] private string _lblPollOnce = "Poll once";
+    [ObservableProperty] private string _lblTest = "Test connection";
+    [ObservableProperty] private string _lblReprintKitchen = "Reprint kitchen";
+    [ObservableProperty] private string _lblAck = "Ack printed";
+    [ObservableProperty] private string _lblOrdersTitle = "Online orders";
+    [ObservableProperty] private string _lblDetail = "Detail";
+    [ObservableProperty] private string _lblSetupTitle = "Setup needed";
+
+    public void RefreshUiLabels()
+    {
+        LblAdvanced = UiText.Advanced;
+        LblPollOnce = UiText.PollOnce;
+        LblTest = UiText.TestConnection;
+        LblReprintKitchen = UiText.ReprintKitchen;
+        LblAck = UiText.AckPrinted;
+        LblOrdersTitle = UiText.OnlineOrders;
+        LblDetail = UiText.Detail;
+        LblSetupTitle = UiText.SetupNeeded;
+        Refresh();
+    }
 
     public void Refresh()
     {
@@ -186,8 +238,12 @@ public partial class OnlineViewModel : ViewModelBase
         CredentialsOk = !string.IsNullOrWhiteSpace(s.OnlineUsername) && !string.IsNullOrWhiteSpace(s.OnlinePassword);
         SetupNeeded = !CredentialsOk;
         SetupHint = BuildSetupHint(s, CredentialsOk, PollingEnabled);
+        LblToggle = PollingEnabled ? UiText.OnlineToggleOn : UiText.OnlineToggleOff;
+        LblAccepting = PollingEnabled ? UiText.AcceptingYes : UiText.AcceptingNo;
         PollerStatus = string.IsNullOrWhiteSpace(_app.OnlinePoller.LastStatus)
-            ? (PollingEnabled ? "Accepting online orders…" : "Online OFF")
+            ? (PollingEnabled
+                ? UiText.Pick("Accepting online orders…", "正在接线上单…")
+                : UiText.Pick("Online OFF", "线上接单：关"))
             : _app.OnlinePoller.LastStatus;
         Orders.Clear();
         foreach (var o in _app.Orders.GetOnlineRecent())
@@ -199,13 +255,21 @@ public partial class OnlineViewModel : ViewModelBase
         var lines = new List<string>();
         if (!credsOk)
         {
-            lines.Add("Settings → Online (Advanced): paste a/u/p from website Admin → Print, then Save.");
-            lines.Add("EPOS will NOT receive orders until credentials are saved.");
+            lines.Add(UiText.Pick(
+                "Settings → Online: paste a/u/p from website Admin → Print, then Save.",
+                "设置 → 线上：粘贴网站后台 a/u/p，然后保存。"));
+            lines.Add(UiText.Pick(
+                "EPOS will NOT receive orders until credentials are saved.",
+                "未保存凭据前，EPOS 不会收到线上单。"));
         }
         else if (!polling)
-            lines.Add("Credentials OK. Tap the big switch to accept online orders.");
+            lines.Add(UiText.Pick(
+                "Credentials OK. Tap the big switch to accept online orders.",
+                "凭据已就绪。点大按钮开始接线上单。"));
         else
-            lines.Add($"Polling every {s.OnlinePollIntervalSeconds}s. Turn off GcAnyOrder phone while EPOS is on.");
+            lines.Add(UiText.Pick(
+                $"Polling every {s.OnlinePollIntervalSeconds}s. Turn off GcAnyOrder phone while EPOS is on.",
+                $"每 {s.OnlinePollIntervalSeconds} 秒拉取。EPOS 开着时请关掉手机 GcAnyOrder。"));
         return string.Join("\n", lines);
     }
 
@@ -379,6 +443,34 @@ public partial class CustomersViewModel : ViewModelBase
     [ObservableProperty] private string _editAddress = "";
     [ObservableProperty] private string _editPostcode = "";
     [ObservableProperty] private string _simulatePhone = "01212966775";
+    [ObservableProperty] private string _lblTitle = "Phone book";
+    [ObservableProperty] private string _wmSearch = "Search name / phone";
+    [ObservableProperty] private string _lblCustomer = "Customer";
+    [ObservableProperty] private string _wmName = "Name";
+    [ObservableProperty] private string _wmPhone = "Phone";
+    [ObservableProperty] private string _wmAddress = "Address";
+    [ObservableProperty] private string _wmPostcode = "Postcode";
+    [ObservableProperty] private string _lblSave = "Save customer";
+    [ObservableProperty] private string _lblStartOrder = "Start order";
+    [ObservableProperty] private string _lblCallerId = "Caller ID simulate";
+    [ObservableProperty] private string _lblCallerHint = "";
+    [ObservableProperty] private string _lblSimulate = "Simulate incoming call";
+
+    public void RefreshUiLabels()
+    {
+        LblTitle = UiText.PhoneBook;
+        WmSearch = UiText.SearchCustomer;
+        LblCustomer = UiText.Customer;
+        WmName = UiText.CustomerName;
+        WmPhone = UiText.CustomerPhone;
+        WmAddress = UiText.Address;
+        WmPostcode = UiText.Postcode;
+        LblSave = UiText.SaveCustomer;
+        LblStartOrder = UiText.StartOrder;
+        LblCallerId = UiText.CallerIdSim;
+        LblCallerHint = UiText.CallerIdHint;
+        LblSimulate = UiText.SimulateCall;
+    }
 
     public void Refresh()
     {

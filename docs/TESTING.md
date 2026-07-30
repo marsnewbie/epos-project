@@ -50,7 +50,8 @@ dotnet run --project src/MagicWok.Epos
 
 1. **Online**: big **ONLINE ON/OFF**; Poll once / Test under **Advanced**  
 2. Top **Drawer** requires Manager PIN  
-3. **EN / 中文** switches nav + Sell action labels  
+3. **Language toggle** (top bar): switches UI chrome only (nav/buttons/filters) — one language at a time; dish names stay English + kitchen Chinese  
+4. Light theme: white panels, dark text, readable under counter lighting  
 
 ## Online poller (unchanged protocol)
 

@@ -34,16 +34,17 @@ public partial class MainViewModel : ViewModelBase
         {
             Sell.ReloadQuickNotes();
             Sell.RefreshMenu();
-            Sell.RefreshUiLabels();
+            RefreshAllUiLanguage();
             ShopName = _app.GetSettings().ShopName;
-            RefreshNavLabels();
         });
 
         ShopName = app.GetSettings().ShopName;
         CurrentPage = Sell;
         NavKey = "sell";
-        RefreshNavLabels();
-        StatusText = $"Ready · {app.Menu.CountItems()} dishes · {app.GetSettings().KitchenPrinterName}";
+        RefreshAllUiLanguage();
+        StatusText = UiText.Pick(
+            $"Ready · {app.Menu.CountItems()} dishes · {app.GetSettings().KitchenPrinterName}",
+            $"就绪 · {app.Menu.CountItems()} 道菜 · {app.GetSettings().KitchenPrinterName}");
 
         _clock = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _clock.Tick += (_, _) => ClockText = DateTime.Now.ToString("HH:mm:ss  ddd d MMM");
@@ -55,7 +56,7 @@ public partial class MainViewModel : ViewModelBase
             Dispatcher.UIThread.Post(() =>
             {
                 Sell.ApplyCallerId(e.PhoneNumber);
-                StatusText = $"Caller ID: {e.PhoneNumber}";
+                StatusText = UiText.Pick($"Caller ID: {e.PhoneNumber}", $"来电: {e.PhoneNumber}");
                 GoSell();
             });
         };
@@ -67,7 +68,9 @@ public partial class MainViewModel : ViewModelBase
                 await app.Print.HandleOnlineOrderAsync(order);
                 Dispatcher.UIThread.Post(() =>
                 {
-                    StatusText = $"ONLINE {order.OrderNumber} · kitchen printed";
+                    StatusText = UiText.Pick(
+                        $"ONLINE {order.OrderNumber} · kitchen printed",
+                        $"线上 {order.OrderNumber} · 已打厨房");
                     OnlineBadge = "●";
                     Online.Refresh();
                     Orders.Refresh();
@@ -85,7 +88,7 @@ public partial class MainViewModel : ViewModelBase
             catch (Exception ex)
             {
                 Dispatcher.UIThread.Post(() =>
-                    StatusText = $"Online order error: {ex.Message}");
+                    StatusText = UiText.Pick($"Online order error: {ex.Message}", $"线上单错误: {ex.Message}"));
             }
         };
 
@@ -105,11 +108,14 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _shopName = "Magic Wok";
     [ObservableProperty] private string _navKey = "sell";
     [ObservableProperty] private string _onlineBadge = "";
-    [ObservableProperty] private string _navSell = "SELL\n点单";
-    [ObservableProperty] private string _navOrders = "ORDERS\n订单";
-    [ObservableProperty] private string _navOnline = "ONLINE\n线上";
-    [ObservableProperty] private string _navCustomers = "CUSTOMERS\n顾客";
-    [ObservableProperty] private string _navSettings = "SETTINGS\n设置";
+    [ObservableProperty] private string _navSell = "Sell";
+    [ObservableProperty] private string _navOrders = "Orders";
+    [ObservableProperty] private string _navOnline = "Online";
+    [ObservableProperty] private string _navCustomers = "Customers";
+    [ObservableProperty] private string _navSettings = "Settings";
+    [ObservableProperty] private string _lblLanguage = "中文";
+    [ObservableProperty] private string _lblDrawer = "Drawer";
+    [ObservableProperty] private string _languageHint = "";
     [ObservableProperty] private bool _isSellNav = true;
     [ObservableProperty] private bool _isOrdersNav;
     [ObservableProperty] private bool _isOnlineNav;
@@ -117,7 +123,7 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private bool _isSettingsNav;
 
     [RelayCommand]
-    private void GoSell() => Navigate("sell", Sell, IsZh ? "点单" : "Sell", () =>
+    private void GoSell() => Navigate("sell", Sell, UiText.NavSell, () =>
     {
         Sell.RefreshMenu();
         Sell.RefreshUiLabels();
@@ -125,21 +131,31 @@ public partial class MainViewModel : ViewModelBase
     });
 
     [RelayCommand]
-    private void GoOrders() => Navigate("orders", Orders, IsZh ? "订单" : "Orders", () => Orders.Refresh());
+    private void GoOrders() => Navigate("orders", Orders, UiText.NavOrders, () =>
+    {
+        Orders.RefreshUiLabels();
+        Orders.Refresh();
+    });
 
     [RelayCommand]
-    private void GoOnline() => Navigate("online", Online, IsZh ? "线上单" : "Online", () =>
+    private void GoOnline() => Navigate("online", Online, UiText.NavOnline, () =>
     {
         OnlineBadge = "";
+        Online.RefreshUiLabels();
         Online.Refresh();
     });
 
     [RelayCommand]
-    private void GoCustomers() => Navigate("customers", Customers, IsZh ? "顾客" : "Customers", () => Customers.Refresh());
+    private void GoCustomers() => Navigate("customers", Customers, UiText.NavCustomers, () =>
+    {
+        Customers.RefreshUiLabels();
+        Customers.Refresh();
+    });
 
     [RelayCommand]
-    private void GoSettings() => Navigate("settings", SettingsVm, IsZh ? "设置" : "Settings", () =>
+    private void GoSettings() => Navigate("settings", SettingsVm, UiText.NavSettings, () =>
     {
+        SettingsVm.RefreshUiLabels();
         SettingsVm.Reload();
         ShopName = _app.GetSettings().ShopName;
     });
@@ -160,16 +176,16 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private async Task OpenDrawerAsync()
     {
-        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "Open drawer"))
+        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), UiText.Pick("Open drawer", "开钱箱")))
             return;
         try
         {
             await _app.CashDrawer.OpenAsync();
-            StatusText = "Cash drawer opened";
+            StatusText = UiText.Pick("Cash drawer opened", "钱箱已打开");
         }
         catch (Exception ex)
         {
-            StatusText = $"Open drawer failed: {ex.Message}";
+            StatusText = UiText.Pick($"Open drawer failed: {ex.Message}", $"开钱箱失败: {ex.Message}");
         }
     }
 
@@ -179,9 +195,11 @@ public partial class MainViewModel : ViewModelBase
         var s = _app.GetSettings();
         s.UiLanguage = s.UiLanguage == "zh" ? "en" : "zh";
         _app.SaveSettings(s);
-        RefreshNavLabels();
-        Sell.RefreshUiLabels();
-        StatusText = s.UiLanguage == "zh" ? "界面：中文" : "UI language: English";
+        RefreshAllUiLanguage();
+        StatusText = UiText.Pick(
+            "UI language: English (menu names unchanged)",
+            "界面语言：中文（菜名不变）");
+        // Re-enter current page so titles/lists refresh
         if (IsSellNav) GoSell();
         else if (IsOrdersNav) GoOrders();
         else if (IsOnlineNav) GoOnline();
@@ -189,27 +207,22 @@ public partial class MainViewModel : ViewModelBase
         else GoSettings();
     }
 
-    private void RefreshNavLabels()
+    private void RefreshAllUiLanguage()
     {
-        if (IsZh)
-        {
-            NavSell = "点单\nSELL";
-            NavOrders = "订单\nORDERS";
-            NavOnline = "线上\nONLINE";
-            NavCustomers = "顾客\nCUST";
-            NavSettings = "设置\nSET";
-        }
-        else
-        {
-            NavSell = "SELL\n点单";
-            NavOrders = "ORDERS\n订单";
-            NavOnline = "ONLINE\n线上";
-            NavCustomers = "CUSTOMERS\n顾客";
-            NavSettings = "SETTINGS\n设置";
-        }
+        NavSell = UiText.NavSell;
+        NavOrders = UiText.NavOrders;
+        NavOnline = UiText.NavOnline;
+        NavCustomers = UiText.NavCustomers;
+        NavSettings = UiText.NavSettings;
+        LblLanguage = UiText.LanguageToggle;
+        LblDrawer = UiText.Drawer;
+        LanguageHint = UiText.UiLangNote;
+        Sell.RefreshUiLabels();
+        Orders.RefreshUiLabels();
+        Online.RefreshUiLabels();
+        Customers.RefreshUiLabels();
+        SettingsVm.RefreshUiLabels();
     }
-
-    private bool IsZh => _app.GetSettings().UiLanguage == "zh";
 
     public void SetStatus(string text) => StatusText = text;
 
@@ -219,11 +232,11 @@ public partial class MainViewModel : ViewModelBase
         try
         {
             await _app.OnlinePoller.StartAsync();
-            StatusText += " · Online poller on";
+            StatusText += UiText.Pick(" · Online poller on", " · 线上轮询已开");
         }
         catch (Exception ex)
         {
-            StatusText += $" · Poller: {ex.Message}";
+            StatusText += UiText.Pick($" · Poller: {ex.Message}", $" · 轮询: {ex.Message}");
         }
     }
 }
