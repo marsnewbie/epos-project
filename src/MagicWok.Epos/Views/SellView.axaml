@@ -104,32 +104,100 @@
         </ScrollViewer>
       </DockPanel>
 
-      <Border IsVisible="{Binding ShowModifierPanel}" Background="#CC0c0a09" CornerRadius="8" ZIndex="10">
-        <Border Background="#1c1917" BorderBrush="#c2410c" BorderThickness="2" CornerRadius="10"
-                Margin="24" Padding="16" MaxWidth="640" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <Border IsVisible="{Binding ShowModifierPanel}" Background="#E00c0a09" CornerRadius="8" ZIndex="10">
+        <Border Background="#1a1714" BorderBrush="#ea580c" BorderThickness="2" CornerRadius="12"
+                Margin="20" Padding="0" MaxWidth="720" MaxHeight="640"
+                HorizontalAlignment="Center" VerticalAlignment="Center">
           <DockPanel>
-            <TextBlock DockPanel.Dock="Top" Text="{Binding ModifierTitle}" FontSize="20" FontWeight="Bold"
-                       Foreground="#fafaf9" Margin="0,0,0,8" TextWrapping="Wrap" />
-            <TextBlock DockPanel.Dock="Top" Text="{Binding ModifierSummary}" Foreground="#fdba74"
-                       TextWrapping="Wrap" Margin="0,0,0,12" />
-            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,16,0,0">
-              <Button Classes="pos-action pos-send" Content="ADD TO TICKET" Command="{Binding AddSelectedItemCommand}" Width="200" />
-              <Button Classes="pos-action pos-danger" Content="Cancel" Command="{Binding CancelModifierCommand}" Width="120" />
-            </StackPanel>
-            <TextBox DockPanel.Dock="Bottom" Classes="pos-field" Watermark="Line note"
-                     Text="{Binding LineNotesDraft}" Margin="0,8,0,0" />
-            <ScrollViewer MaxHeight="280">
-              <ItemsControl ItemsSource="{Binding OptionChips}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <WrapPanel />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
+            <!-- Header -->
+            <Border DockPanel.Dock="Top" Background="#0c0a09" Padding="16,12" CornerRadius="12,12,0,0">
+              <Grid ColumnDefinitions="*,Auto">
+                <StackPanel>
+                  <TextBlock Text="{Binding ModifierTitle}" FontSize="20" FontWeight="Bold"
+                             Foreground="#fafaf9" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding ModifierHint}" Foreground="#a8a29e" FontSize="12"
+                             TextWrapping="Wrap" Margin="0,4,0,0" />
+                </StackPanel>
+                <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding ModifierPriceText}" FontSize="22" FontWeight="Bold"
+                             Foreground="#86efac" HorizontalAlignment="Right" />
+                  <TextBlock Text="line total" FontSize="10" Foreground="#78716c" HorizontalAlignment="Right" />
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <!-- Footer actions -->
+            <Border DockPanel.Dock="Bottom" Background="#0c0a09" Padding="12" CornerRadius="0,0,12,12">
+              <StackPanel Spacing="8">
+                <TextBlock Text="{Binding ModifierError}" Foreground="#fca5a5" FontSize="13"
+                           TextWrapping="Wrap" />
+                <TextBox Classes="pos-field-sm" Watermark="Line note / 备注" Text="{Binding LineNotesDraft}" Margin="0" />
+                <Grid ColumnDefinitions="*,2*">
+                  <Button Classes="pos-nav" Content="{Binding LblCancel}" Command="{Binding CancelModifierCommand}"
+                          Height="52" Margin="0,0,8,0" />
+                  <Button Grid.Column="1" Classes="pos-action pos-cash" Content="{Binding LblAddToTicket}"
+                          Command="{Binding AddSelectedItemCommand}" Height="52" />
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <!-- Grouped options -->
+            <ScrollViewer Padding="14,10" MaxHeight="420">
+              <ItemsControl ItemsSource="{Binding ModifierGroups}">
                 <ItemsControl.ItemTemplate>
-                  <DataTemplate x:DataType="vm:OptionChoiceChip">
-                    <Button Classes="pos-chip-opt" Classes.active="{Binding IsSelected}" Content="{Binding Label}"
-                            Command="{Binding DataContext.ToggleOptionCommand, ElementName=Root}"
-                            CommandParameter="{Binding}" />
+                  <DataTemplate x:DataType="vm:ModifierGroupVm">
+                    <Border Background="#141210" CornerRadius="8" Padding="12" Margin="0,0,0,10"
+                            BorderBrush="#292524" BorderThickness="1">
+                      <StackPanel Spacing="8">
+                        <Grid ColumnDefinitions="*,Auto">
+                          <StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                              <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="15" Foreground="#fafaf9" />
+                              <Border Background="#44403c" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding TypeLabel}" FontSize="10" FontWeight="SemiBold" Foreground="#fdba74" />
+                              </Border>
+                              <Border Background="#7f1d1d" CornerRadius="4" Padding="6,2" VerticalAlignment="Center"
+                                      IsVisible="{Binding IsRequired}">
+                                <TextBlock Text="REQ" FontSize="10" FontWeight="Bold" Foreground="#fecaca" />
+                              </Border>
+                            </StackPanel>
+                            <TextBlock Text="{Binding ConditionalNote}" Foreground="#fb923c" FontSize="11"
+                                       Margin="0,2,0,0" IsVisible="{Binding IsConditional}" />
+                            <TextBlock Text="{Binding Hint}" Foreground="#a8a29e" FontSize="12" Margin="0,2,0,0" />
+                          </StackPanel>
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding Choices}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <WrapPanel />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ModifierChoiceVm">
+                              <Button Classes="pos-opt" Classes.active="{Binding IsSelected}" Classes.multi="{Binding IsMulti}"
+                                      IsEnabled="{Binding IsEnabled}" Margin="0,0,8,8" MinWidth="140" MaxWidth="220"
+                                      Command="{Binding DataContext.ToggleOptionCommand, ElementName=Root}"
+                                      CommandParameter="{Binding}">
+                                <Grid ColumnDefinitions="22,*" Margin="2,0">
+                                  <TextBlock Text="{Binding Glyph}" FontSize="16" VerticalAlignment="Center"
+                                             Foreground="#fdba74" />
+                                  <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                    <TextBlock Text="{Binding Label}" FontWeight="SemiBold" FontSize="13"
+                                               TextWrapping="Wrap" Foreground="#fafaf9" />
+                                    <Grid ColumnDefinitions="*,Auto">
+                                      <TextBlock Text="{Binding Translation}" FontSize="11" Foreground="#a8a29e"
+                                                 TextTrimming="CharacterEllipsis" />
+                                      <TextBlock Grid.Column="1" Text="{Binding PriceDeltaText}" FontSize="11"
+                                                 FontWeight="Bold" Foreground="#86efac" Margin="6,0,0,0" />
+                                    </Grid>
+                                  </StackPanel>
+                                </Grid>
+                              </Button>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </StackPanel>
+                    </Border>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>

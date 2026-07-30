@@ -29,7 +29,7 @@ public partial class SellViewModel : ViewModelBase
     public ObservableCollection<MenuItem> Items { get; } = [];
     public ObservableCollection<CartLine> Lines { get; } = [];
     public ObservableCollection<QuickNoteItem> QuickNotes { get; } = [];
-    public ObservableCollection<OptionChoiceChip> OptionChips { get; } = [];
+    public ObservableCollection<ModifierGroupVm> ModifierGroups { get; } = [];
     public ObservableCollection<PosOrder> HeldOrders { get; } = [];
 
     [ObservableProperty] private Category? _selectedCategory;
@@ -57,6 +57,11 @@ public partial class SellViewModel : ViewModelBase
     [ObservableProperty] private string _modifierSummary = "";
     [ObservableProperty] private bool _showModifierPanel;
     [ObservableProperty] private string _modifierTitle = "";
+    [ObservableProperty] private string _modifierError = "";
+    [ObservableProperty] private string _modifierPriceText = "";
+    [ObservableProperty] private string _modifierHint = "";
+    [ObservableProperty] private string _lblAddToTicket = "Add to ticket";
+    [ObservableProperty] private string _lblCancel = "Cancel";
     [ObservableProperty] private bool _isDelivery;
     [ObservableProperty] private bool _isCollection = true;
     [ObservableProperty] private bool _isWalkIn;
@@ -96,11 +101,13 @@ public partial class SellViewModel : ViewModelBase
         LblHeld = zh ? "挂单" : "Held";
         LblNew = zh ? "新单" : "New";
         LblClear = zh ? "清空" : "Clear";
-        LblHold = zh ? "挂起" : "HOLD";
-        LblPayCash = zh ? "现金" : "CASH";
-        LblPayCard = zh ? "刷卡" : "CARD";
-        LblConfirmCash = zh ? "确认收现" : "CONFIRM CASH";
+        LblHold = zh ? "挂单" : "Hold";
+        LblPayCash = zh ? "现金" : "Cash";
+        LblPayCard = zh ? "刷卡" : "Card";
+        LblConfirmCash = zh ? "确认收款" : "Take cash";
         LblBack = zh ? "返回" : "Back";
+        LblAddToTicket = zh ? "加入订单" : "Add to ticket";
+        LblCancel = zh ? "取消" : "Cancel";
         EmptyTicketHint = zh ? "点菜开始建单" : "Tap dishes to build ticket";
         UpdateTicketChrome();
     }
@@ -226,8 +233,8 @@ public partial class SellViewModel : ViewModelBase
         }
         SelectedItem = item;
         _pendingSelections = LinePricing.DefaultSelections(item);
-        RebuildOptionChips();
-        ModifierSummary = BuildModifierSummary(item, _pendingSelections);
+        LineNotesDraft = "";
+        ModifierError = "";
         if (item.OptionGroups.Count == 0)
         {
             AddSelectedItem();
@@ -237,20 +244,9 @@ public partial class SellViewModel : ViewModelBase
         ModifierTitle = string.IsNullOrWhiteSpace(item.MenuNumber)
             ? item.Name
             : $"{item.MenuNumber}  {item.Name}";
+        ModifierHint = string.IsNullOrWhiteSpace(item.Description) ? "" : item.Description;
+        RebuildModifierPanel();
         ShowModifierPanel = true;
-    }
-
-    [RelayCommand]
-    private async Task EightySixItemAsync(MenuItem? item)
-    {
-        if (item is null) return;
-        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "86 / sold out"))
-            return;
-        item.IsAvailable = false;
-        _app.Menu.SetItemAvailable(item.Id, false);
-        LoadItems();
-        PanelStatus = $"86 {item.MenuNumber} {item.Name}";
-        _setStatus(PanelStatus);
     }
 
     [RelayCommand]
@@ -258,8 +254,187 @@ public partial class SellViewModel : ViewModelBase
     {
         ShowModifierPanel = false;
         SelectedItem = null;
-        OptionChips.Clear();
+        ModifierGroups.Clear();
         ModifierSummary = "";
+        ModifierError = "";
+        ModifierPriceText = "";
+        ModifierHint = "";
+    }
+
+    [RelayCommand]
+    private void ToggleOption(ModifierChoiceVm? choice)
+    {
+        if (SelectedItem is null || choice is null) return;
+        var group = SelectedItem.OptionGroups.FirstOrDefault(g => g.Id == choice.GroupId);
+        if (group is null) return;
+
+        var current = _pendingSelections.TryGetValue(group.Id, out var ids) ? ids.ToList() : [];
+        var zh = _app.GetSettings().UiLanguage == "zh";
+
+        if (group.Type is OptionGroupType.Radio or OptionGroupType.Select)
+        {
+            // Tap same radio again does nothing (keep required selection)
+            _pendingSelections[group.Id] = new[] { choice.ChoiceId };
+            ModifierError = "";
+        }
+        else
+        {
+            if (current.Contains(choice.ChoiceId))
+            {
+                current.Remove(choice.ChoiceId);
+            }
+            else
+            {
+                var max = group.MaxSelections ?? group.Choices.Count;
+                if (current.Count >= max)
+                {
+                    ModifierError = zh
+                        ? $"{group.Name}：最多选 {max} 项"
+                        : $"{group.Name}: choose up to {max}";
+                    RebuildModifierPanel();
+                    return;
+                }
+                current.Add(choice.ChoiceId);
+            }
+            _pendingSelections[group.Id] = current;
+            ModifierError = "";
+        }
+
+        PruneHiddenSelections();
+        RebuildModifierPanel();
+    }
+
+    [RelayCommand]
+    private void AddSelectedItem()
+    {
+        if (SelectedItem is null) return;
+        var err = LinePricing.ValidateSelections(SelectedItem, _pendingSelections);
+        if (err is not null)
+        {
+            ModifierError = err;
+            PanelStatus = err;
+            RebuildModifierPanel();
+            return;
+        }
+
+        var line = LinePricing.BuildMenuLine(SelectedItem, 1, _pendingSelections, LineNotesDraft);
+        Lines.Add(line);
+        SelectedLine = line;
+        LineNotesDraft = "";
+        PanelStatus = $"Added {line.Name} £{line.LineTotal:0.00}";
+        ShowModifierPanel = false;
+        ModifierGroups.Clear();
+        ModifierError = "";
+        SyncTicketTotals();
+    }
+
+    private void PruneHiddenSelections()
+    {
+        if (SelectedItem is null) return;
+        var visibleIds = LinePricing.GetVisibleOptionGroups(SelectedItem, _pendingSelections)
+            .Select(g => g.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (var key in _pendingSelections.Keys.ToList())
+        {
+            if (!visibleIds.Contains(key))
+                _pendingSelections.Remove(key);
+        }
+        // Apply defaults for newly visible required radio groups
+        foreach (var g in LinePricing.GetVisibleOptionGroups(SelectedItem, _pendingSelections))
+        {
+            if (_pendingSelections.ContainsKey(g.Id)) continue;
+            if (g.Type is not (OptionGroupType.Radio or OptionGroupType.Select)) continue;
+            var def = g.Choices.FirstOrDefault(c => c.IsDefault && c.IsAvailable)
+                      ?? (g.Required ? g.Choices.FirstOrDefault(c => c.IsAvailable) : null);
+            if (def is not null)
+                _pendingSelections[g.Id] = new[] { def.Id };
+        }
+    }
+
+    private void RebuildModifierPanel()
+    {
+        ModifierGroups.Clear();
+        if (SelectedItem is null) return;
+        var zh = _app.GetSettings().UiLanguage == "zh";
+        var visible = LinePricing.GetVisibleOptionGroups(SelectedItem, _pendingSelections);
+
+        foreach (var g in visible)
+        {
+            _pendingSelections.TryGetValue(g.Id, out var selectedIds);
+            selectedIds ??= Array.Empty<string>();
+            var selectedCount = selectedIds.Count;
+            var isMulti = g.Type == OptionGroupType.Checkbox;
+            var max = g.MaxSelections ?? (isMulti ? g.Choices.Count : 1);
+            var min = g.MinSelections ?? (g.Required ? 1 : 0);
+            var atMax = isMulti && selectedCount >= max;
+
+            var typeLabel = g.Type switch
+            {
+                OptionGroupType.Checkbox => zh ? "多选" : "Multi",
+                OptionGroupType.Select => zh ? "下拉单选" : "Select",
+                _ => zh ? "单选" : "Single",
+            };
+
+            string hint;
+            if (isMulti)
+            {
+                hint = zh
+                    ? $"已选 {selectedCount}/{max}" + (min > 0 ? $" · 至少 {min}" : " · 可选")
+                    : $"{selectedCount}/{max} selected" + (min > 0 ? $" · min {min}" : " · optional");
+            }
+            else
+            {
+                hint = g.Required
+                    ? (zh ? "必选一项" : "Choose one")
+                    : (zh ? "可选一项" : "Optional · choose one");
+            }
+
+            var groupVm = new ModifierGroupVm
+            {
+                GroupId = g.Id,
+                Name = g.Name,
+                TypeLabel = typeLabel,
+                Hint = hint,
+                IsRequired = g.Required,
+                IsMulti = isMulti,
+                IsConditional = g.ShowWhen is not null,
+                ConditionalNote = g.ShowWhen is null
+                    ? ""
+                    : (zh ? "附属选项（随主选项显示）" : "Follow-up options"),
+            };
+
+            foreach (var c in g.Choices.Where(x => x.IsAvailable))
+            {
+                var selected = selectedIds.Contains(c.Id);
+                var enabled = selected || !atMax || !isMulti;
+                var delta = c.PriceDelta == 0
+                    ? ""
+                    : (c.PriceDelta > 0 ? $"+£{c.PriceDelta:0.00}" : $"-£{Math.Abs(c.PriceDelta):0.00}");
+                groupVm.Choices.Add(new ModifierChoiceVm
+                {
+                    GroupId = g.Id,
+                    ChoiceId = c.Id,
+                    Label = c.Label,
+                    Translation = c.OptionTranslation ?? "",
+                    PriceDeltaText = delta,
+                    IsSelected = selected,
+                    IsEnabled = enabled,
+                    IsMulti = isMulti,
+                    Glyph = isMulti
+                        ? (selected ? "☑" : "☐")
+                        : (selected ? "●" : "○"),
+                });
+            }
+
+            ModifierGroups.Add(groupVm);
+        }
+
+        ModifierSummary = BuildModifierSummary(SelectedItem, _pendingSelections);
+        var preview = LinePricing.BuildMenuLine(SelectedItem, 1, _pendingSelections, null);
+        ModifierPriceText = $"£{preview.LineTotal:0.00}";
+        var valid = LinePricing.ValidateSelections(SelectedItem, _pendingSelections);
+        if (valid is not null && string.IsNullOrWhiteSpace(ModifierError))
+            ModifierError = ""; // keep soft until Add; show count hints in groups
     }
 
     [RelayCommand]
@@ -343,44 +518,16 @@ public partial class SellViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ToggleOption(OptionChoiceChip? chip)
+    private async Task EightySixItemAsync(MenuItem? item)
     {
-        if (SelectedItem is null || chip is null) return;
-        var group = SelectedItem.OptionGroups.FirstOrDefault(g => g.Id == chip.GroupId);
-        if (group is null) return;
-
-        var current = _pendingSelections.TryGetValue(group.Id, out var ids) ? ids.ToList() : [];
-        if (group.Type is OptionGroupType.Radio or OptionGroupType.Select)
-            _pendingSelections[group.Id] = new[] { chip.ChoiceId };
-        else
-        {
-            if (current.Contains(chip.ChoiceId)) current.Remove(chip.ChoiceId);
-            else current.Add(chip.ChoiceId);
-            _pendingSelections[group.Id] = current;
-        }
-
-        RebuildOptionChips();
-        ModifierSummary = BuildModifierSummary(SelectedItem, _pendingSelections);
-    }
-
-    [RelayCommand]
-    private void AddSelectedItem()
-    {
-        if (SelectedItem is null) return;
-        var err = LinePricing.ValidateSelections(SelectedItem, _pendingSelections);
-        if (err is not null)
-        {
-            PanelStatus = err;
+        if (item is null) return;
+        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "86 / sold out"))
             return;
-        }
-
-        var line = LinePricing.BuildMenuLine(SelectedItem, 1, _pendingSelections, LineNotesDraft);
-        Lines.Add(line);
-        SelectedLine = line;
-        LineNotesDraft = "";
-        PanelStatus = $"Added {line.Name} £{line.LineTotal:0.00}";
-        ShowModifierPanel = false;
-        SyncTicketTotals();
+        item.IsAvailable = false;
+        _app.Menu.SetItemAvailable(item.Id, false);
+        LoadItems();
+        PanelStatus = $"86 {item.MenuNumber} {item.Name}";
+        _setStatus(PanelStatus);
     }
 
     [RelayCommand]
@@ -885,9 +1032,9 @@ public partial class SellViewModel : ViewModelBase
         TicketStatusBadge = status;
         TicketHeader = $"{num} · {status}";
         if (Lines.Any(l => l.KitchenSent) && Lines.Any(l => !l.KitchenSent))
-            SendButtonText = zh ? "补打厨房" : "SEND NEW";
+            SendButtonText = zh ? "补打厨房" : "Send new";
         else
-            SendButtonText = zh ? "送厨" : "SEND";
+            SendButtonText = zh ? "送厨" : "Send kitchen";
     }
 
     partial void OnCustomerNameChanged(string value) => UpdateCustomerSummary();
@@ -917,25 +1064,6 @@ public partial class SellViewModel : ViewModelBase
         SyncTicketTotals();
     }
 
-    private void RebuildOptionChips()
-    {
-        OptionChips.Clear();
-        if (SelectedItem is null) return;
-        foreach (var g in LinePricing.GetVisibleOptionGroups(SelectedItem, _pendingSelections))
-        {
-            foreach (var c in g.Choices.Where(x => x.IsAvailable))
-            {
-                var selected = _pendingSelections.TryGetValue(g.Id, out var ids) && ids.Contains(c.Id);
-                var delta = c.PriceDelta == 0 ? "" : (c.PriceDelta > 0 ? $" +£{c.PriceDelta:0.00}" : $" £{c.PriceDelta:0.00}");
-                OptionChips.Add(new OptionChoiceChip(
-                    g.Id,
-                    c.Id,
-                    $"{g.Name}: {c.Label}{delta}",
-                    selected));
-            }
-        }
-    }
-
     private static string BuildModifierSummary(MenuItem item, Dictionary<string, IReadOnlyList<string>> map)
     {
         var parts = new List<string>();
@@ -957,7 +1085,31 @@ public sealed record QuickNoteItem(string En, string Zh)
     public string Display => $"{En} / {Zh}";
 }
 
-public sealed record OptionChoiceChip(string GroupId, string ChoiceId, string Label, bool IsSelected);
+public sealed class ModifierGroupVm
+{
+    public string GroupId { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string TypeLabel { get; set; } = "";
+    public string Hint { get; set; } = "";
+    public bool IsRequired { get; set; }
+    public bool IsMulti { get; set; }
+    public bool IsConditional { get; set; }
+    public string ConditionalNote { get; set; } = "";
+    public ObservableCollection<ModifierChoiceVm> Choices { get; } = [];
+}
+
+public sealed class ModifierChoiceVm
+{
+    public string GroupId { get; set; } = "";
+    public string ChoiceId { get; set; } = "";
+    public string Label { get; set; } = "";
+    public string Translation { get; set; } = "";
+    public string PriceDeltaText { get; set; } = "";
+    public bool IsSelected { get; set; }
+    public bool IsEnabled { get; set; } = true;
+    public bool IsMulti { get; set; }
+    public string Glyph { get; set; } = "○";
+}
 
 public sealed record CategoryTile(Category Category, bool IsSelected)
 {

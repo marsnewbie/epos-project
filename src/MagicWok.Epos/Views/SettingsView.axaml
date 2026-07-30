@@ -21,7 +21,8 @@
     </Border>
 
     <ScrollViewer Grid.Column="1">
-      <StackPanel MaxWidth="820">
+      <Panel>
+      <StackPanel MaxWidth="820" IsVisible="{Binding !IsMenu}">
 
         <Border Background="#141210" CornerRadius="8" Padding="16" IsVisible="{Binding IsShop}">
           <StackPanel Spacing="4">
@@ -104,32 +105,6 @@
           </StackPanel>
         </Border>
 
-        <Border Background="#141210" CornerRadius="8" Padding="16" IsVisible="{Binding IsMenu}">
-          <StackPanel Spacing="8">
-            <TextBlock Text="Menu / 改价 / 86" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" />
-            <TextBlock Text="{Binding MenuInfo}" Foreground="#a8a29e" />
-            <TextBox Classes="pos-field" Watermark="Search # or name" Text="{Binding MenuSearch}" />
-            <Button Classes="pos-nav" Content="Re-import embedded seed menu"
-                    Command="{Binding ReimportMenuCommand}" HorizontalAlignment="Left" Width="280" Height="40" />
-            <ItemsControl ItemsSource="{Binding MenuRows}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate x:DataType="vm:MenuEditRow">
-                  <Grid ColumnDefinitions="*,90,70,80" Margin="0,4">
-                    <TextBlock Text="{Binding Label}" Foreground="#fafaf9" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-                    <TextBox Grid.Column="1" Classes="pos-field" Text="{Binding PriceText}" Margin="4,0" />
-                    <Button Grid.Column="2" Classes="pos-nav" Content="{Binding IsAvailable, StringFormat=86:{0}}"
-                            Command="{Binding DataContext.Toggle86Command, ElementName=Root}"
-                            CommandParameter="{Binding}" Height="40" Margin="2,0" FontSize="11" />
-                    <Button Grid.Column="3" Classes="pos-action pos-send" Content="Save"
-                            Command="{Binding DataContext.SaveMenuRowCommand, ElementName=Root}"
-                            CommandParameter="{Binding}" Height="40" />
-                  </Grid>
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-        </Border>
-
         <Border Background="#141210" CornerRadius="8" Padding="16" IsVisible="{Binding IsOnline}">
           <StackPanel Spacing="4">
             <TextBlock Text="Online (Advanced) / 线上" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" Margin="0,0,0,4" />
@@ -150,6 +125,102 @@
         </Border>
 
       </StackPanel>
+
+      <!-- Menu browser: full width -->
+      <Border Background="#141210" CornerRadius="8" Padding="12" IsVisible="{Binding IsMenu}">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,10">
+              <TextBlock Text="Menu catalogue" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" />
+              <TextBlock Text="{Binding MenuInfo}" Foreground="#a8a29e" FontSize="12" />
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBox Classes="pos-field" Watermark="Search # / name across all categories" Text="{Binding MenuSearch}" Margin="0,0,8,0" />
+                <Button Grid.Column="1" Classes="pos-nav" Content="Re-import seed"
+                        Command="{Binding ReimportMenuCommand}" Width="140" Height="40" />
+              </Grid>
+            </StackPanel>
+
+            <Grid ColumnDefinitions="180,240,*" MinHeight="460">
+              <Border Background="#0c0a09" CornerRadius="8" Padding="8" Margin="0,0,8,0">
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Top" Text="Categories" FontWeight="SemiBold" Foreground="#fdba74" Margin="0,0,0,8" />
+                  <ListBox Classes="pos-ticket" ItemsSource="{Binding MenuCategories}" SelectedItem="{Binding SelectedMenuCategory}">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:CategoryAdminRow">
+                        <Grid ColumnDefinitions="*,52" Margin="6,6">
+                          <StackPanel>
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="#fafaf9" TextWrapping="Wrap" FontSize="13" />
+                            <TextBlock Text="{Binding VisibilityText}" FontSize="11" Foreground="#a8a29e" />
+                          </StackPanel>
+                          <Button Grid.Column="1" Classes="pos-nav" Content="Show"
+                                  Command="{Binding DataContext.ToggleCategoryVisibleCommand, ElementName=Root}"
+                                  CommandParameter="{Binding}" Height="32" FontSize="11" Margin="0" />
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </DockPanel>
+              </Border>
+
+              <Border Grid.Column="1" Background="#0c0a09" CornerRadius="8" Padding="8" Margin="0,0,8,0">
+                <DockPanel>
+                  <TextBlock DockPanel.Dock="Top" Text="Dishes" FontWeight="SemiBold" Foreground="#fdba74" Margin="0,0,0,8" />
+                  <ListBox Classes="pos-ticket" ItemsSource="{Binding MenuRows}" SelectedItem="{Binding SelectedMenuItem}">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:MenuEditRow">
+                        <StackPanel Margin="6,6">
+                          <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Foreground="#fafaf9" TextWrapping="Wrap" FontSize="13" />
+                          <TextBlock FontSize="11" Foreground="#a8a29e">
+                            <Run Text="{Binding Item.BasePrice, StringFormat={}£{0:0.00}}" />
+                            <Run Text=" · " />
+                            <Run Text="{Binding StatusText}" />
+                            <Run Text=" " />
+                            <Run Text="{Binding OptionsBadge}" />
+                          </TextBlock>
+                        </StackPanel>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </DockPanel>
+              </Border>
+
+              <Border Grid.Column="2" Background="#0c0a09" CornerRadius="8" Padding="12">
+                <DockPanel>
+                  <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,10">
+                    <TextBlock Text="Dish detail" FontWeight="SemiBold" Foreground="#fdba74" />
+                    <TextBlock Text="{Binding ItemDetailText}" Foreground="#e7e5e4" FontSize="13" TextWrapping="Wrap" />
+                    <Grid ColumnDefinitions="70,*,Auto,Auto">
+                      <TextBlock Text="Price £" VerticalAlignment="Center" Foreground="#a8a29e" />
+                      <TextBox Grid.Column="1" Classes="pos-field" Text="{Binding SelectedMenuItem.PriceText}" Margin="0,0,6,0" />
+                      <Button Grid.Column="2" Classes="pos-nav" Content="86"
+                              Command="{Binding Toggle86Command}" CommandParameter="{Binding SelectedMenuItem}"
+                              Width="56" Height="40" Margin="0,0,6,0" />
+                      <Button Grid.Column="3" Classes="pos-action pos-send" Content="Save"
+                              Command="{Binding SaveMenuRowCommand}" CommandParameter="{Binding SelectedMenuItem}"
+                              Width="72" Height="40" />
+                    </Grid>
+                    <TextBlock Text="{Binding ItemOptionsSummary}" FontWeight="SemiBold" Foreground="#fdba74" Margin="0,8,0,0" />
+                  </StackPanel>
+                  <ScrollViewer>
+                    <ItemsControl ItemsSource="{Binding SelectedItemOptionGroups}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:OptionGroupAdminRow">
+                          <Border Background="#1c1917" CornerRadius="6" Padding="10" Margin="0,0,0,8">
+                            <StackPanel>
+                              <TextBlock Text="{Binding Title}" FontWeight="Bold" Foreground="#fafaf9" />
+                              <TextBlock Text="{Binding Meta}" FontSize="11" Foreground="#fdba74" Margin="0,2,0,6" TextWrapping="Wrap" />
+                              <TextBlock Text="{Binding ChoicesText}" FontSize="12" Foreground="#a8a29e" TextWrapping="Wrap" />
+                            </StackPanel>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </ScrollViewer>
+                </DockPanel>
+              </Border>
+            </Grid>
+          </DockPanel>
+      </Border>
+      </Panel>
     </ScrollViewer>
   </Grid>
 </UserControl>

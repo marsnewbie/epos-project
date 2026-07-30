@@ -99,6 +99,37 @@ public sealed class MenuRepository
         return list;
     }
 
+    public void UpsertCategory(Category c)
+    {
+        var conn = _db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            INSERT INTO categories(id,name,description,sort_order,is_visible)
+            VALUES($id,$n,$d,$s,$v)
+            ON CONFLICT(id) DO UPDATE SET
+              name=excluded.name,
+              description=excluded.description,
+              sort_order=excluded.sort_order,
+              is_visible=excluded.is_visible
+            """;
+        cmd.Parameters.AddWithValue("$id", c.Id);
+        cmd.Parameters.AddWithValue("$n", c.Name);
+        cmd.Parameters.AddWithValue("$d", (object?)c.Description ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$s", c.SortOrder);
+        cmd.Parameters.AddWithValue("$v", c.IsVisible ? 1 : 0);
+        cmd.ExecuteNonQuery();
+    }
+
+    public void SetCategoryVisible(string id, bool visible)
+    {
+        var conn = _db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "UPDATE categories SET is_visible=$v WHERE id=$id";
+        cmd.Parameters.AddWithValue("$v", visible ? 1 : 0);
+        cmd.Parameters.AddWithValue("$id", id);
+        cmd.ExecuteNonQuery();
+    }
+
     public List<MenuItem> GetItems(string? categoryId = null, bool availableOnly = true)
     {
         var conn = _db.Open();

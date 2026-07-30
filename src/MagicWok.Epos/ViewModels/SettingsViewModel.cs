@@ -22,6 +22,13 @@ public partial class SettingsViewModel : ViewModelBase
 
     public ObservableCollection<MenuEditRow> MenuRows { get; } = [];
     public ObservableCollection<QuickNoteEditRow> NoteRows { get; } = [];
+    public ObservableCollection<CategoryAdminRow> MenuCategories { get; } = [];
+    public ObservableCollection<OptionGroupAdminRow> SelectedItemOptionGroups { get; } = [];
+
+    [ObservableProperty] private CategoryAdminRow? _selectedMenuCategory;
+    [ObservableProperty] private MenuEditRow? _selectedMenuItem;
+    [ObservableProperty] private string _itemDetailText = "";
+    [ObservableProperty] private string _itemOptionsSummary = "";
 
     [ObservableProperty] private string _section = "Shop";
     [ObservableProperty] private bool _isShop = true;
@@ -79,7 +86,7 @@ public partial class SettingsViewModel : ViewModelBase
         IsStaff = Section == "Staff";
         IsOnline = Section == "Online";
         IsShift = Section == "Shift";
-        if (IsMenu) ReloadMenuRows();
+        if (IsMenu) ReloadMenuBrowser();
         if (IsNotes) ReloadNoteRows();
         if (IsShift) ReloadShift();
     }
@@ -116,28 +123,116 @@ public partial class SettingsViewModel : ViewModelBase
         CallerIdMode = s.CallerIdMode;
         CallerIdCom = s.CallerIdComPort;
         MenuInfo = $"Items: {_app.Menu.CountItems()} | Last import: {s.LastMenuImportAt ?? "n/a"}";
-        ReloadMenuRows();
+        ReloadMenuBrowser();
         ReloadNoteRows();
         ReloadShift();
         GoSection(Section);
     }
 
-    private void ReloadMenuRows()
+    private void ReloadMenuBrowser()
+    {
+        var prevCat = SelectedMenuCategory?.Id;
+        var prevItem = SelectedMenuItem?.Item.Id;
+        MenuCategories.Clear();
+        foreach (var c in _app.Menu.GetCategories(visibleOnly: false))
+            MenuCategories.Add(new CategoryAdminRow(c));
+
+        SelectedMenuCategory = MenuCategories.FirstOrDefault(c => c.Id == prevCat)
+                               ?? MenuCategories.FirstOrDefault();
+        ReloadMenuRows(preferItemId: prevItem);
+    }
+
+    private void ReloadMenuRows(string? preferItemId = null)
     {
         MenuRows.Clear();
-        IEnumerable<MenuItem> items = string.IsNullOrWhiteSpace(MenuSearch)
-            ? _app.Menu.GetItems(availableOnly: false)
-            : _app.Menu.Search(MenuSearch);
-        // Search only returns available — for admin show all when searching by number from full list
+        IEnumerable<MenuItem> items;
         if (!string.IsNullOrWhiteSpace(MenuSearch))
         {
             var q = MenuSearch.Trim();
             items = _app.Menu.GetItems(availableOnly: false).Where(i =>
                 (i.MenuNumber?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                i.Name.Contains(q, StringComparison.OrdinalIgnoreCase));
+                i.Name.Contains(q, StringComparison.OrdinalIgnoreCase) ||
+                (i.ItemTranslation?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false));
         }
-        foreach (var i in items.Take(200))
+        else if (SelectedMenuCategory is not null)
+        {
+            items = _app.Menu.GetItems(SelectedMenuCategory.Id, availableOnly: false);
+        }
+        else
+        {
+            items = _app.Menu.GetItems(availableOnly: false);
+        }
+
+        foreach (var i in items.Take(300))
             MenuRows.Add(new MenuEditRow(i));
+
+        SelectedMenuItem = preferItemId is not null
+            ? MenuRows.FirstOrDefault(r => r.Item.Id == preferItemId) ?? MenuRows.FirstOrDefault()
+            : MenuRows.FirstOrDefault();
+        RefreshItemDetail();
+    }
+
+    partial void OnSelectedMenuCategoryChanged(CategoryAdminRow? value)
+    {
+        if (!string.IsNullOrWhiteSpace(MenuSearch)) return;
+        ReloadMenuRows();
+    }
+
+    partial void OnSelectedMenuItemChanged(MenuEditRow? value) => RefreshItemDetail();
+
+    private void RefreshItemDetail()
+    {
+        SelectedItemOptionGroups.Clear();
+        if (SelectedMenuItem is null)
+        {
+            ItemDetailText = "";
+            ItemOptionsSummary = "Select a dish";
+            return;
+        }
+
+        var item = SelectedMenuItem.Item;
+        var cat = MenuCategories.FirstOrDefault(c => c.Id == item.CategoryId)?.Name ?? item.CategoryId;
+        ItemDetailText =
+            $"{item.MenuNumber}  {item.Name}\n" +
+            (string.IsNullOrWhiteSpace(item.ItemTranslation) ? "" : $"{item.ItemTranslation}\n") +
+            $"Category: {cat}\n" +
+            $"Base £{item.BasePrice:0.00} · {(item.IsAvailable ? "On sale" : "86 SOLD OUT")}\n" +
+            (string.IsNullOrWhiteSpace(item.Description) ? "" : $"{item.Description}\n");
+
+        if (item.OptionGroups.Count == 0)
+        {
+            ItemOptionsSummary = "No option groups — simple dish.";
+            return;
+        }
+
+        ItemOptionsSummary = $"{item.OptionGroups.Count} option group(s)";
+        foreach (var g in item.OptionGroups.OrderBy(x => x.SortOrder))
+        {
+            var type = g.Type switch
+            {
+                OptionGroupType.Checkbox => "Multi / checkbox",
+                OptionGroupType.Select => "Select (single)",
+                _ => "Single / radio",
+            };
+            var rules = g.Type == OptionGroupType.Checkbox
+                ? $"min {g.MinSelections ?? 0} · max {g.MaxSelections ?? g.Choices.Count}"
+                : (g.Required ? "required" : "optional");
+            var when = g.ShowWhen is null
+                ? ""
+                : $" · shows when parent choice selected";
+            var row = new OptionGroupAdminRow
+            {
+                Title = g.Name,
+                Meta = $"{type} · {rules}{(g.Required ? " · REQ" : "")}{when}",
+                ChoicesText = string.Join("\n", g.Choices.Select(c =>
+                {
+                    var p = c.PriceDelta == 0 ? "" : (c.PriceDelta > 0 ? $" +£{c.PriceDelta:0.00}" : $" £{c.PriceDelta:0.00}");
+                    var zh = string.IsNullOrWhiteSpace(c.OptionTranslation) ? "" : $" / {c.OptionTranslation}";
+                    return $"  • {c.Label}{zh}{p}";
+                })),
+            };
+            SelectedItemOptionGroups.Add(row);
+        }
     }
 
     private void ReloadNoteRows()
@@ -168,6 +263,17 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     partial void OnMenuSearchChanged(string value) => ReloadMenuRows();
+
+    [RelayCommand]
+    private void ToggleCategoryVisible(CategoryAdminRow? row)
+    {
+        if (row is null) return;
+        row.IsVisible = !row.IsVisible;
+        row.Category.IsVisible = row.IsVisible;
+        _app.Menu.SetCategoryVisible(row.Id, row.IsVisible);
+        _setStatus(row.IsVisible ? $"Category visible: {row.Name}" : $"Category hidden: {row.Name}");
+        ReloadMenuBrowser();
+    }
 
     [RelayCommand]
     private void Save()
@@ -244,7 +350,7 @@ public partial class SettingsViewModel : ViewModelBase
         row.Item.IsAvailable = row.IsAvailable;
         _app.Menu.UpsertItem(row.Item);
         _setStatus($"Saved {row.Item.MenuNumber} {row.Item.Name}");
-        ReloadMenuRows();
+        ReloadMenuRows(preferItemId: row.Item.Id);
     }
 
     [RelayCommand]
@@ -255,7 +361,7 @@ public partial class SettingsViewModel : ViewModelBase
         row.Item.IsAvailable = row.IsAvailable;
         _app.Menu.SetItemAvailable(row.Item.Id, row.IsAvailable);
         _setStatus(row.IsAvailable ? $"Available: {row.Item.Name}" : $"86: {row.Item.Name}");
-        ReloadMenuRows();
+        ReloadMenuRows(preferItemId: row.Item.Id);
     }
 
     [RelayCommand]
@@ -320,9 +426,38 @@ public partial class MenuEditRow : ObservableObject
     public string Label => string.IsNullOrWhiteSpace(Item.MenuNumber)
         ? Item.Name
         : $"{Item.MenuNumber}  {Item.Name}";
+    public string OptionsBadge => Item.OptionGroups.Count == 0
+        ? ""
+        : $"{Item.OptionGroups.Count} opt";
+    public string StatusText => IsAvailable ? "On" : "86";
 
     [ObservableProperty] private string _priceText;
     [ObservableProperty] private bool _isAvailable;
+}
+
+public partial class CategoryAdminRow : ObservableObject
+{
+    public CategoryAdminRow(Category category)
+    {
+        Category = category;
+        IsVisible = category.IsVisible;
+    }
+
+    public Category Category { get; }
+    public string Id => Category.Id;
+    public string Name => Category.Name;
+
+    [ObservableProperty] private bool _isVisible;
+    public string VisibilityText => IsVisible ? "Shown" : "Hidden";
+
+    partial void OnIsVisibleChanged(bool value) => OnPropertyChanged(nameof(VisibilityText));
+}
+
+public sealed class OptionGroupAdminRow
+{
+    public string Title { get; set; } = "";
+    public string Meta { get; set; } = "";
+    public string ChoicesText { get; set; } = "";
 }
 
 public partial class QuickNoteEditRow : ObservableObject
