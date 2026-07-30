@@ -22,7 +22,7 @@
 - Send kitchen **keeps ticket** (Draft → Sent); line-level KitchenSent + SEND NEW  
 - Hold / resume; Pay on unpaid Sent; Orders filters + open on Sell + Void(PIN)  
 - Sell: dish #, phone order, table #, cash tender/change, quick notes → last line  
-- Settings sections: Menu 86/price, notes, PIN, hardware labels, Shift summary  
+- Settings sections: Menu full CRUD (categories/dishes/option groups), notes, PIN, hardware labels, Shift summary  
 - Online staff switch; drawer PIN; EN/中文 on main actions  
 
 ## Slice 3 — Online polish

@@ -23,12 +23,17 @@ public partial class SettingsViewModel : ViewModelBase
     public ObservableCollection<MenuEditRow> MenuRows { get; } = [];
     public ObservableCollection<QuickNoteEditRow> NoteRows { get; } = [];
     public ObservableCollection<CategoryAdminRow> MenuCategories { get; } = [];
-    public ObservableCollection<OptionGroupAdminRow> SelectedItemOptionGroups { get; } = [];
+    public OptionTypeChoice[] OptionTypeChoices { get; } = OptionGroupEditorVm.TypeChoices;
 
     [ObservableProperty] private CategoryAdminRow? _selectedMenuCategory;
     [ObservableProperty] private MenuEditRow? _selectedMenuItem;
-    [ObservableProperty] private string _itemDetailText = "";
-    [ObservableProperty] private string _itemOptionsSummary = "";
+    [ObservableProperty] private DishEditorVm? _dishEditor;
+    [ObservableProperty] private bool _hasDishEditor;
+    [ObservableProperty] private bool _editingCategory;
+    [ObservableProperty] private bool _showEmptyEditorHint = true;
+    [ObservableProperty] private string _categoryEditName = "";
+    [ObservableProperty] private string _categoryEditSort = "0";
+    [ObservableProperty] private bool _categoryEditVisible = true;
 
     [ObservableProperty] private string _section = "Shop";
     [ObservableProperty] private bool _isShop = true;
@@ -133,13 +138,15 @@ public partial class SettingsViewModel : ViewModelBase
     {
         var prevCat = SelectedMenuCategory?.Id;
         var prevItem = SelectedMenuItem?.Item.Id;
+        var editingId = DishEditor?.ItemId;
         MenuCategories.Clear();
         foreach (var c in _app.Menu.GetCategories(visibleOnly: false))
             MenuCategories.Add(new CategoryAdminRow(c));
 
         SelectedMenuCategory = MenuCategories.FirstOrDefault(c => c.Id == prevCat)
                                ?? MenuCategories.FirstOrDefault();
-        ReloadMenuRows(preferItemId: prevItem);
+        ReloadMenuRows(preferItemId: editingId ?? prevItem);
+        MenuInfo = $"Categories: {MenuCategories.Count} · Dishes: {_app.Menu.CountItems()} · Last import: {_app.GetSettings().LastMenuImportAt ?? "n/a"}";
     }
 
     private void ReloadMenuRows(string? preferItemId = null)
@@ -163,76 +170,89 @@ public partial class SettingsViewModel : ViewModelBase
             items = _app.Menu.GetItems(availableOnly: false);
         }
 
-        foreach (var i in items.Take(300))
+        foreach (var i in items.Take(400))
             MenuRows.Add(new MenuEditRow(i));
 
-        SelectedMenuItem = preferItemId is not null
+        var pick = preferItemId is not null
             ? MenuRows.FirstOrDefault(r => r.Item.Id == preferItemId) ?? MenuRows.FirstOrDefault()
             : MenuRows.FirstOrDefault();
-        RefreshItemDetail();
+        SelectedMenuItem = pick;
+        if (pick is not null)
+            OpenDishEditor(pick.Item);
+        else
+            ClearDishEditor();
     }
 
     partial void OnSelectedMenuCategoryChanged(CategoryAdminRow? value)
     {
+        EditingCategory = false;
+        if (value is not null)
+        {
+            CategoryEditName = value.Name;
+            CategoryEditSort = value.SortOrderText;
+            CategoryEditVisible = value.IsVisible;
+        }
         if (!string.IsNullOrWhiteSpace(MenuSearch)) return;
+        _ = ChangeCategorySelectionAsync(value);
+    }
+
+    private async Task ChangeCategorySelectionAsync(CategoryAdminRow? value)
+    {
+        if (!await ConfirmDiscardDishEditsAsync())
+        {
+            var keepCat = DishEditor is null
+                ? null
+                : MenuCategories.FirstOrDefault(c => c.Id == (_app.Menu.GetItem(DishEditor.ItemId)?.CategoryId ?? DishEditor.CategoryId));
+            if (keepCat is not null && !ReferenceEquals(SelectedMenuCategory, keepCat))
+                SelectedMenuCategory = keepCat;
+            return;
+        }
         ReloadMenuRows();
     }
 
-    partial void OnSelectedMenuItemChanged(MenuEditRow? value) => RefreshItemDetail();
-
-    private void RefreshItemDetail()
+    partial void OnSelectedMenuItemChanged(MenuEditRow? value)
     {
-        SelectedItemOptionGroups.Clear();
-        if (SelectedMenuItem is null)
+        if (value is null) return;
+        if (DishEditor?.ItemId == value.Item.Id) return;
+        _ = SwitchDishSelectionAsync(value);
+    }
+
+    private async Task SwitchDishSelectionAsync(MenuEditRow value)
+    {
+        if (!await ConfirmDiscardDishEditsAsync())
         {
-            ItemDetailText = "";
-            ItemOptionsSummary = "Select a dish";
+            // Revert list selection to the dish still being edited
+            var keepId = DishEditor?.ItemId;
+            SelectedMenuItem = keepId is null
+                ? null
+                : MenuRows.FirstOrDefault(r => r.Item.Id == keepId);
             return;
         }
+        OpenDishEditor(value.Item);
+    }
 
-        var item = SelectedMenuItem.Item;
-        var cat = MenuCategories.FirstOrDefault(c => c.Id == item.CategoryId)?.Name ?? item.CategoryId;
-        ItemDetailText =
-            $"{item.MenuNumber}  {item.Name}\n" +
-            (string.IsNullOrWhiteSpace(item.ItemTranslation) ? "" : $"{item.ItemTranslation}\n") +
-            $"Category: {cat}\n" +
-            $"Base £{item.BasePrice:0.00} · {(item.IsAvailable ? "On sale" : "86 SOLD OUT")}\n" +
-            (string.IsNullOrWhiteSpace(item.Description) ? "" : $"{item.Description}\n");
+    private async Task<bool> ConfirmDiscardDishEditsAsync()
+    {
+        if (DishEditor is null || !DishEditor.IsDirty) return true;
+        return await UiPrompt.ConfirmAsync(
+            "Unsaved dish changes",
+            "Discard edits to this dish? Save dish first to keep option groups and prices.");
+    }
 
-        if (item.OptionGroups.Count == 0)
-        {
-            ItemOptionsSummary = "No option groups — simple dish.";
-            return;
-        }
+    private void OpenDishEditor(MenuItem item)
+    {
+        EditingCategory = false;
+        var fresh = _app.Menu.GetItem(item.Id) ?? item;
+        DishEditor = new DishEditorVm(fresh, MenuCategories.ToList());
+        HasDishEditor = true;
+        ShowEmptyEditorHint = false;
+    }
 
-        ItemOptionsSummary = $"{item.OptionGroups.Count} option group(s)";
-        foreach (var g in item.OptionGroups.OrderBy(x => x.SortOrder))
-        {
-            var type = g.Type switch
-            {
-                OptionGroupType.Checkbox => "Multi / checkbox",
-                OptionGroupType.Select => "Select (single)",
-                _ => "Single / radio",
-            };
-            var rules = g.Type == OptionGroupType.Checkbox
-                ? $"min {g.MinSelections ?? 0} · max {g.MaxSelections ?? g.Choices.Count}"
-                : (g.Required ? "required" : "optional");
-            var when = g.ShowWhen is null
-                ? ""
-                : $" · shows when parent choice selected";
-            var row = new OptionGroupAdminRow
-            {
-                Title = g.Name,
-                Meta = $"{type} · {rules}{(g.Required ? " · REQ" : "")}{when}",
-                ChoicesText = string.Join("\n", g.Choices.Select(c =>
-                {
-                    var p = c.PriceDelta == 0 ? "" : (c.PriceDelta > 0 ? $" +£{c.PriceDelta:0.00}" : $" £{c.PriceDelta:0.00}");
-                    var zh = string.IsNullOrWhiteSpace(c.OptionTranslation) ? "" : $" / {c.OptionTranslation}";
-                    return $"  • {c.Label}{zh}{p}";
-                })),
-            };
-            SelectedItemOptionGroups.Add(row);
-        }
+    private void ClearDishEditor()
+    {
+        DishEditor = null;
+        HasDishEditor = false;
+        ShowEmptyEditorHint = !EditingCategory;
     }
 
     private void ReloadNoteRows()
@@ -264,6 +284,61 @@ public partial class SettingsViewModel : ViewModelBase
 
     partial void OnMenuSearchChanged(string value) => ReloadMenuRows();
 
+    // ── Category CRUD ──────────────────────────────────────────────
+
+    [RelayCommand]
+    private async Task AddCategoryAsync()
+    {
+        var name = await UiPrompt.PromptTextAsync("New category", "Category name", initial: "New category");
+        if (string.IsNullOrWhiteSpace(name)) return;
+        var cat = new Category
+        {
+            Id = "cat-" + Guid.NewGuid().ToString("N")[..8],
+            Name = name.Trim(),
+            IsVisible = true,
+            SortOrder = MenuCategories.Count + 1,
+        };
+        _app.Menu.UpsertCategory(cat);
+        ReloadMenuBrowser();
+        SelectedMenuCategory = MenuCategories.FirstOrDefault(c => c.Id == cat.Id);
+        _setStatus($"Created category {cat.Name}");
+        _onSaved?.Invoke();
+    }
+
+    [RelayCommand]
+    private async Task BeginEditCategoryAsync()
+    {
+        if (SelectedMenuCategory is null) return;
+        if (!await ConfirmDiscardDishEditsAsync()) return;
+        EditingCategory = true;
+        HasDishEditor = false;
+        ShowEmptyEditorHint = false;
+        DishEditor = null;
+        CategoryEditName = SelectedMenuCategory.Name;
+        CategoryEditSort = SelectedMenuCategory.SortOrderText;
+        CategoryEditVisible = SelectedMenuCategory.IsVisible;
+    }
+
+    [RelayCommand]
+    private void SaveCategory()
+    {
+        if (SelectedMenuCategory is null) return;
+        if (string.IsNullOrWhiteSpace(CategoryEditName))
+        {
+            _setStatus("Category name required");
+            return;
+        }
+        SelectedMenuCategory.Name = CategoryEditName.Trim();
+        SelectedMenuCategory.SortOrderText = CategoryEditSort;
+        SelectedMenuCategory.IsVisible = CategoryEditVisible;
+        SelectedMenuCategory.ApplyToDomain();
+        _app.Menu.UpsertCategory(SelectedMenuCategory.Category);
+        EditingCategory = false;
+        ReloadMenuBrowser();
+        _setStatus($"Saved category {CategoryEditName}");
+        _onSaved?.Invoke();
+    }
+
     [RelayCommand]
     private void ToggleCategoryVisible(CategoryAdminRow? row)
     {
@@ -271,8 +346,254 @@ public partial class SettingsViewModel : ViewModelBase
         row.IsVisible = !row.IsVisible;
         row.Category.IsVisible = row.IsVisible;
         _app.Menu.SetCategoryVisible(row.Id, row.IsVisible);
-        _setStatus(row.IsVisible ? $"Category visible: {row.Name}" : $"Category hidden: {row.Name}");
+        _setStatus(row.IsVisible ? $"Category shown: {row.Name}" : $"Category hidden: {row.Name}");
         ReloadMenuBrowser();
+        _onSaved?.Invoke();
+    }
+
+    [RelayCommand]
+    private async Task DeleteCategoryAsync()
+    {
+        if (SelectedMenuCategory is null) return;
+        var count = _app.Menu.CountItemsInCategory(SelectedMenuCategory.Id);
+        if (count > 0)
+        {
+            _setStatus($"Cannot delete — {count} dishes still in this category. Move or delete dishes first.");
+            return;
+        }
+        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "Delete category"))
+            return;
+        if (!await UiPrompt.ConfirmAsync("Delete category?", $"Delete “{SelectedMenuCategory.Name}”? This cannot be undone."))
+            return;
+        _app.Menu.DeleteCategory(SelectedMenuCategory.Id);
+        ClearDishEditor();
+        ReloadMenuBrowser();
+        _setStatus("Category deleted");
+        _onSaved?.Invoke();
+    }
+
+    // ── Dish CRUD ──────────────────────────────────────────────────
+
+    [RelayCommand]
+    private async Task AddDishAsync()
+    {
+        var catId = SelectedMenuCategory?.Id ?? MenuCategories.FirstOrDefault()?.Id;
+        if (catId is null)
+        {
+            _setStatus("Create a category first");
+            return;
+        }
+        if (!await ConfirmDiscardDishEditsAsync()) return;
+        EditingCategory = false;
+        DishEditor = DishEditorVm.CreateNew(catId, MenuCategories.ToList());
+        HasDishEditor = true;
+        ShowEmptyEditorHint = false;
+        SelectedMenuItem = null;
+        _setStatus("New dish — fill details, add option groups, then Save dish");
+    }
+
+    [RelayCommand]
+    private async Task DuplicateDishAsync()
+    {
+        if (DishEditor is null) return;
+        if (DishEditor.IsDirty)
+        {
+            var ok = await UiPrompt.ConfirmAsync(
+                "Duplicate from current editor?",
+                "Uses the values on screen (including unsaved). Continue?");
+            if (!ok) return;
+        }
+
+        var src = DishEditor.ToDomain();
+        var copy = new MenuItem
+        {
+            Id = "item-" + Guid.NewGuid().ToString("N")[..10],
+            CategoryId = src.CategoryId,
+            MenuNumber = null,
+            Name = src.Name.EndsWith(" (copy)", StringComparison.Ordinal) ? src.Name : src.Name + " (copy)",
+            ItemTranslation = src.ItemTranslation,
+            Description = src.Description,
+            BasePrice = src.BasePrice,
+            IsAvailable = src.IsAvailable,
+            SortOrder = src.SortOrder,
+            OptionGroups = CloneGroupsRemapped(src.OptionGroups),
+        };
+        EditingCategory = false;
+        DishEditor = new DishEditorVm(copy, MenuCategories.ToList()) { IsNew = true };
+        DishEditor.CaptureBaseline();
+        HasDishEditor = true;
+        ShowEmptyEditorHint = false;
+        SelectedMenuItem = null;
+        _setStatus("Duplicated dish — set a new menu # then Save dish");
+    }
+
+    private static List<OptionGroup> CloneGroupsRemapped(IReadOnlyList<OptionGroup> source)
+    {
+        var groupMap = new Dictionary<string, string>();
+        var choiceMap = new Dictionary<string, string>();
+        foreach (var g in source)
+        {
+            groupMap[g.Id] = "og-" + Guid.NewGuid().ToString("N")[..10];
+            foreach (var c in g.Choices)
+                choiceMap[c.Id] = "oc-" + Guid.NewGuid().ToString("N")[..10];
+        }
+
+        return source.Select(g =>
+        {
+            OptionShowWhen? showWhen = null;
+            if (g.ShowWhen is not null && groupMap.ContainsKey(g.ShowWhen.GroupId))
+            {
+                var ids = g.ShowWhen.ChoiceIds.Where(choiceMap.ContainsKey).Select(id => choiceMap[id]).ToList();
+                if (ids.Count > 0)
+                    showWhen = new OptionShowWhen { GroupId = groupMap[g.ShowWhen.GroupId], ChoiceIds = ids };
+            }
+
+            return new OptionGroup
+            {
+                Id = groupMap[g.Id],
+                Name = g.Name,
+                Type = g.Type,
+                Required = g.Required,
+                MinSelections = g.MinSelections,
+                MaxSelections = g.MaxSelections,
+                SortOrder = g.SortOrder,
+                ShowWhen = showWhen,
+                Choices = g.Choices.Select(c => new OptionChoice
+                {
+                    Id = choiceMap[c.Id],
+                    Label = c.Label,
+                    OptionTranslation = c.OptionTranslation,
+                    PriceDelta = c.PriceDelta,
+                    IsDefault = c.IsDefault,
+                    IsAvailable = c.IsAvailable,
+                }).ToList(),
+            };
+        }).ToList();
+    }
+
+    [RelayCommand]
+    private void SaveDish()
+    {
+        if (DishEditor is null) return;
+        var err = DishEditor.Validate();
+        if (err is not null)
+        {
+            DishEditor.ValidationMessage = err;
+            _setStatus(err);
+            return;
+        }
+
+        // Unique menu number check
+        var domain = DishEditor.ToDomain();
+        if (!string.IsNullOrWhiteSpace(domain.MenuNumber))
+        {
+            var clash = _app.Menu.FindByMenuNumber(domain.MenuNumber!);
+            if (clash is not null && clash.Id != domain.Id)
+            {
+                DishEditor.ValidationMessage = $"Menu number {domain.MenuNumber} already used by {clash.Name}";
+                _setStatus(DishEditor.ValidationMessage);
+                return;
+            }
+        }
+
+        _app.Menu.UpsertItem(domain);
+        DishEditor.ValidationMessage = "";
+        var id = domain.Id;
+        ReloadMenuBrowser();
+        SelectedMenuItem = MenuRows.FirstOrDefault(r => r.Item.Id == id);
+        if (SelectedMenuItem is not null)
+            OpenDishEditor(SelectedMenuItem.Item);
+        _setStatus($"Saved dish {domain.MenuNumber} {domain.Name}".Trim());
+        _onSaved?.Invoke();
+    }
+
+    [RelayCommand]
+    private async Task DeleteDishAsync()
+    {
+        if (DishEditor is null) return;
+        if (DishEditor.IsNew)
+        {
+            ClearDishEditor();
+            return;
+        }
+        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "Delete dish"))
+            return;
+        if (!await UiPrompt.ConfirmAsync("Delete dish?", $"Delete “{DishEditor.Name}”? Orders history keeps past lines; Sell will no longer offer this dish."))
+            return;
+        _app.Menu.DeleteItem(DishEditor.ItemId);
+        ClearDishEditor();
+        ReloadMenuBrowser();
+        _setStatus("Dish deleted");
+        _onSaved?.Invoke();
+    }
+
+    [RelayCommand]
+    private void Toggle86Current()
+    {
+        if (DishEditor is null || DishEditor.IsNew) return;
+        DishEditor.IsAvailable = !DishEditor.IsAvailable;
+        _app.Menu.SetItemAvailable(DishEditor.ItemId, DishEditor.IsAvailable);
+        _setStatus(DishEditor.IsAvailable ? "Back on sale" : "86 — sold out today");
+        ReloadMenuRows(preferItemId: DishEditor.ItemId);
+        _onSaved?.Invoke();
+    }
+
+    // ── Option group / choice CRUD (in-memory until Save dish) ─────
+
+    [RelayCommand]
+    private void AddOptionGroup()
+    {
+        if (DishEditor is null) return;
+        var g = new OptionGroupEditorVm
+        {
+            Name = "New options",
+            TypeKey = "radio",
+            SelectedType = OptionGroupEditorVm.TypeChoices[0],
+            Required = true,
+            MinText = "1",
+            MaxText = "1",
+        };
+        g.Choices.Add(new OptionChoiceEditorVm { Label = "Option A", PriceDeltaText = "0", IsDefault = true });
+        g.Choices.Add(new OptionChoiceEditorVm { Label = "Option B", PriceDeltaText = "0" });
+        DishEditor.Groups.Add(g);
+        DishEditor.SelectedGroup = g;
+        DishEditor.RefreshShowWhenTargets();
+    }
+
+    [RelayCommand]
+    private void RemoveOptionGroup(OptionGroupEditorVm? group)
+    {
+        if (DishEditor is null || group is null) return;
+        DishEditor.Groups.Remove(group);
+        DishEditor.RefreshShowWhenTargets();
+    }
+
+    [RelayCommand]
+    private void AddChoice(OptionGroupEditorVm? group)
+    {
+        if (group is null) return;
+        group.Choices.Add(new OptionChoiceEditorVm { Label = "New choice", PriceDeltaText = "0" });
+        DishEditor?.RefreshShowWhenTargets();
+    }
+
+    [RelayCommand]
+    private void RemoveChoice(OptionChoiceEditorVm? choice)
+    {
+        if (DishEditor is null || choice is null) return;
+        foreach (var g in DishEditor.Groups)
+        {
+            if (g.Choices.Remove(choice))
+            {
+                DishEditor.RefreshShowWhenTargets();
+                return;
+            }
+        }
+    }
+
+    [RelayCommand]
+    private void RefreshShowWhen()
+    {
+        DishEditor?.RefreshShowWhenTargets();
     }
 
     [RelayCommand]
@@ -330,38 +651,19 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ReimportMenu()
+    private async Task ReimportMenuAsync()
     {
+        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "Re-import seed menu"))
+            return;
+        if (!await UiPrompt.ConfirmAsync(
+                "Re-import seed menu?",
+                "This replaces categories/dishes with the embedded seed. Custom dishes you created may be overwritten or removed. Continue?"))
+            return;
         var (cats, items) = _app.MenuSeeder.ImportEmbedded();
+        ClearDishEditor();
         Reload();
         _setStatus($"Re-imported menu: {cats} categories, {items} items");
-    }
-
-    [RelayCommand]
-    private void SaveMenuRow(MenuEditRow? row)
-    {
-        if (row is null) return;
-        if (!decimal.TryParse(row.PriceText, out var price))
-        {
-            _setStatus("Invalid price");
-            return;
-        }
-        row.Item.BasePrice = price;
-        row.Item.IsAvailable = row.IsAvailable;
-        _app.Menu.UpsertItem(row.Item);
-        _setStatus($"Saved {row.Item.MenuNumber} {row.Item.Name}");
-        ReloadMenuRows(preferItemId: row.Item.Id);
-    }
-
-    [RelayCommand]
-    private void Toggle86(MenuEditRow? row)
-    {
-        if (row is null) return;
-        row.IsAvailable = !row.IsAvailable;
-        row.Item.IsAvailable = row.IsAvailable;
-        _app.Menu.SetItemAvailable(row.Item.Id, row.IsAvailable);
-        _setStatus(row.IsAvailable ? $"Available: {row.Item.Name}" : $"86: {row.Item.Name}");
-        ReloadMenuRows(preferItemId: row.Item.Id);
+        _onSaved?.Invoke();
     }
 
     [RelayCommand]
@@ -411,63 +713,4 @@ public partial class SettingsViewModel : ViewModelBase
             _setStatus($"Drawer failed: {ex.Message}");
         }
     }
-}
-
-public partial class MenuEditRow : ObservableObject
-{
-    public MenuEditRow(MenuItem item)
-    {
-        Item = item;
-        PriceText = item.BasePrice.ToString("0.00");
-        IsAvailable = item.IsAvailable;
-    }
-
-    public MenuItem Item { get; }
-    public string Label => string.IsNullOrWhiteSpace(Item.MenuNumber)
-        ? Item.Name
-        : $"{Item.MenuNumber}  {Item.Name}";
-    public string OptionsBadge => Item.OptionGroups.Count == 0
-        ? ""
-        : $"{Item.OptionGroups.Count} opt";
-    public string StatusText => IsAvailable ? "On" : "86";
-
-    [ObservableProperty] private string _priceText;
-    [ObservableProperty] private bool _isAvailable;
-}
-
-public partial class CategoryAdminRow : ObservableObject
-{
-    public CategoryAdminRow(Category category)
-    {
-        Category = category;
-        IsVisible = category.IsVisible;
-    }
-
-    public Category Category { get; }
-    public string Id => Category.Id;
-    public string Name => Category.Name;
-
-    [ObservableProperty] private bool _isVisible;
-    public string VisibilityText => IsVisible ? "Shown" : "Hidden";
-
-    partial void OnIsVisibleChanged(bool value) => OnPropertyChanged(nameof(VisibilityText));
-}
-
-public sealed class OptionGroupAdminRow
-{
-    public string Title { get; set; } = "";
-    public string Meta { get; set; } = "";
-    public string ChoicesText { get; set; } = "";
-}
-
-public partial class QuickNoteEditRow : ObservableObject
-{
-    public QuickNoteEditRow(string en, string zh)
-    {
-        En = en;
-        Zh = zh;
-    }
-
-    [ObservableProperty] private string _en;
-    [ObservableProperty] private string _zh;
 }

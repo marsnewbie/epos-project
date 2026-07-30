@@ -278,6 +278,39 @@ public sealed class MenuRepository
         cmd.ExecuteNonQuery();
     }
 
+    public void DeleteItem(string id)
+    {
+        var conn = _db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "DELETE FROM menu_items WHERE id=$id";
+        cmd.Parameters.AddWithValue("$id", id);
+        cmd.ExecuteNonQuery();
+    }
+
+    public void DeleteCategory(string id)
+    {
+        var conn = _db.Open();
+        using var tx = conn.BeginTransaction();
+        using (var move = conn.CreateCommand())
+        {
+            move.Transaction = tx;
+            // Block delete if items remain — caller should check CountItemsInCategory
+            move.CommandText = "DELETE FROM categories WHERE id=$id";
+            move.Parameters.AddWithValue("$id", id);
+            move.ExecuteNonQuery();
+        }
+        tx.Commit();
+    }
+
+    public int CountItemsInCategory(string categoryId)
+    {
+        var conn = _db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM menu_items WHERE category_id=$c";
+        cmd.Parameters.AddWithValue("$c", categoryId);
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
     public MenuItem? FindByMenuNumber(string menuNumber)
     {
         var q = menuNumber.Trim();
@@ -297,7 +330,7 @@ public sealed class MenuRepository
         BasePrice = Convert.ToDecimal(r.GetDouble(6)),
         IsAvailable = r.GetInt32(7) == 1,
         IsBundle = r.GetInt32(8) == 1,
-        OptionGroups = JsonUtil.Deserialize<List<OptionGroup>>(r.GetString(9)),
+        OptionGroups = JsonUtil.Deserialize<List<OptionGroup>>(r.GetString(9)) ?? [],
         SortOrder = r.GetInt32(10),
     };
 }

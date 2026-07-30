@@ -33,7 +33,14 @@ dotnet run --project src/MagicWok.Epos
 ## P2 — Settings
 
 1. Left sections: Shop / Menu / Notes / Delivery / Hardware / Staff / Shift / Online  
-2. **Menu**: search → edit price → Save; **86** toggles availability (Sell hides 86 items)  
+2. **Menu operations**  
+   - **+ Category** → rename (Edit) → Hide/Show → Sell category strip updates  
+   - **+ Dish** → set # / name / price → **Save dish** → appears on Sell  
+   - **+ Group** (Single or Multi with min/max) → **+ Choice** with +£ or 0 → Save dish  
+   - Conditional: second group **Show when** = first group choice (e.g. Curry → spice) → Sell reveals after pick  
+   - Multi max: select up to max on Sell; cannot exceed (SMP-4 style)  
+   - **86** hides from Sell; **Duplicate** copies groups with remapped ids  
+   - Delete dish/category requires Manager PIN; category delete blocked if dishes remain  
 3. **Quick notes**: add/edit → Save → appears on Sell  
 4. **Hardware**: “Also print kitchen on Pay if not yet sent” matches Pay behaviour (Send always prints)  
 5. **Staff**: change Manager PIN → Void/Drawer require new PIN  

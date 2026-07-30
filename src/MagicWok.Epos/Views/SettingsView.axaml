@@ -126,44 +126,55 @@
 
       </StackPanel>
 
-      <!-- Menu browser: full width -->
+      <!-- Menu operations: categories · dishes · full editor -->
       <Border Background="#141210" CornerRadius="8" Padding="12" IsVisible="{Binding IsMenu}">
           <DockPanel>
             <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,10">
-              <TextBlock Text="Menu catalogue" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" />
-              <TextBlock Text="{Binding MenuInfo}" Foreground="#a8a29e" FontSize="12" />
+              <TextBlock Text="Menu operations" FontWeight="Bold" FontSize="18" Foreground="#fafaf9" />
+              <TextBlock Text="Full catalogue: categories → dishes → option groups (single/multi) → choices with optional +£. Conditional groups via Show when. Save dish applies to Sell immediately."
+                         Foreground="#a8a29e" FontSize="12" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding MenuInfo}" Foreground="#78716c" FontSize="11" />
               <Grid ColumnDefinitions="*,Auto">
-                <TextBox Classes="pos-field" Watermark="Search # / name across all categories" Text="{Binding MenuSearch}" Margin="0,0,8,0" />
+                <TextBox Classes="pos-field" Watermark="Search # / name" Text="{Binding MenuSearch}" Margin="0,0,8,0" />
                 <Button Grid.Column="1" Classes="pos-nav" Content="Re-import seed"
                         Command="{Binding ReimportMenuCommand}" Width="140" Height="40" />
               </Grid>
             </StackPanel>
 
-            <Grid ColumnDefinitions="180,240,*" MinHeight="460">
+            <Grid ColumnDefinitions="170,210,*" MinHeight="520">
+              <!-- Categories -->
               <Border Background="#0c0a09" CornerRadius="8" Padding="8" Margin="0,0,8,0">
                 <DockPanel>
-                  <TextBlock DockPanel.Dock="Top" Text="Categories" FontWeight="SemiBold" Foreground="#fdba74" Margin="0,0,0,8" />
+                  <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,8">
+                    <TextBlock Text="Categories" FontWeight="SemiBold" Foreground="#fdba74" />
+                    <Button Classes="pos-action pos-send" Content="+ Category" Command="{Binding AddCategoryCommand}" Height="40" />
+                    <Grid ColumnDefinitions="*,*,*" >
+                      <Button Classes="pos-nav" Content="Edit" Command="{Binding BeginEditCategoryCommand}" Height="36" Margin="0,0,4,0" />
+                      <Button Grid.Column="1" Classes="pos-nav" Content="Hide/Show" Command="{Binding ToggleCategoryVisibleCommand}"
+                              CommandParameter="{Binding SelectedMenuCategory}" Height="36" Margin="0,0,4,0" />
+                      <Button Grid.Column="2" Classes="pos-nav" Content="Del" Command="{Binding DeleteCategoryCommand}" Height="36" />
+                    </Grid>
+                  </StackPanel>
                   <ListBox Classes="pos-ticket" ItemsSource="{Binding MenuCategories}" SelectedItem="{Binding SelectedMenuCategory}">
                     <ListBox.ItemTemplate>
                       <DataTemplate x:DataType="vm:CategoryAdminRow">
-                        <Grid ColumnDefinitions="*,52" Margin="6,6">
-                          <StackPanel>
-                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="#fafaf9" TextWrapping="Wrap" FontSize="13" />
-                            <TextBlock Text="{Binding VisibilityText}" FontSize="11" Foreground="#a8a29e" />
-                          </StackPanel>
-                          <Button Grid.Column="1" Classes="pos-nav" Content="Show"
-                                  Command="{Binding DataContext.ToggleCategoryVisibleCommand, ElementName=Root}"
-                                  CommandParameter="{Binding}" Height="32" FontSize="11" Margin="0" />
-                        </Grid>
+                        <StackPanel Margin="6,6">
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="#fafaf9" TextWrapping="Wrap" FontSize="13" />
+                          <TextBlock Text="{Binding VisibilityText}" FontSize="11" Foreground="#a8a29e" />
+                        </StackPanel>
                       </DataTemplate>
                     </ListBox.ItemTemplate>
                   </ListBox>
                 </DockPanel>
               </Border>
 
+              <!-- Dishes -->
               <Border Grid.Column="1" Background="#0c0a09" CornerRadius="8" Padding="8" Margin="0,0,8,0">
                 <DockPanel>
-                  <TextBlock DockPanel.Dock="Top" Text="Dishes" FontWeight="SemiBold" Foreground="#fdba74" Margin="0,0,0,8" />
+                  <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,8">
+                    <TextBlock Text="Dishes" FontWeight="SemiBold" Foreground="#fdba74" />
+                    <Button Classes="pos-action pos-cash" Content="+ Dish" Command="{Binding AddDishCommand}" Height="40" />
+                  </StackPanel>
                   <ListBox Classes="pos-ticket" ItemsSource="{Binding MenuRows}" SelectedItem="{Binding SelectedMenuItem}">
                     <ListBox.ItemTemplate>
                       <DataTemplate x:DataType="vm:MenuEditRow">
@@ -173,7 +184,7 @@
                             <Run Text="{Binding Item.BasePrice, StringFormat={}£{0:0.00}}" />
                             <Run Text=" · " />
                             <Run Text="{Binding StatusText}" />
-                            <Run Text=" " />
+                            <Run Text=" · " />
                             <Run Text="{Binding OptionsBadge}" />
                           </TextBlock>
                         </StackPanel>
@@ -183,39 +194,122 @@
                 </DockPanel>
               </Border>
 
+              <!-- Editor pane -->
               <Border Grid.Column="2" Background="#0c0a09" CornerRadius="8" Padding="12">
-                <DockPanel>
-                  <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,10">
-                    <TextBlock Text="Dish detail" FontWeight="SemiBold" Foreground="#fdba74" />
-                    <TextBlock Text="{Binding ItemDetailText}" Foreground="#e7e5e4" FontSize="13" TextWrapping="Wrap" />
-                    <Grid ColumnDefinitions="70,*,Auto,Auto">
-                      <TextBlock Text="Price £" VerticalAlignment="Center" Foreground="#a8a29e" />
-                      <TextBox Grid.Column="1" Classes="pos-field" Text="{Binding SelectedMenuItem.PriceText}" Margin="0,0,6,0" />
-                      <Button Grid.Column="2" Classes="pos-nav" Content="86"
-                              Command="{Binding Toggle86Command}" CommandParameter="{Binding SelectedMenuItem}"
-                              Width="56" Height="40" Margin="0,0,6,0" />
-                      <Button Grid.Column="3" Classes="pos-action pos-send" Content="Save"
-                              Command="{Binding SaveMenuRowCommand}" CommandParameter="{Binding SelectedMenuItem}"
-                              Width="72" Height="40" />
-                    </Grid>
-                    <TextBlock Text="{Binding ItemOptionsSummary}" FontWeight="SemiBold" Foreground="#fdba74" Margin="0,8,0,0" />
+                <Panel>
+                  <!-- Category editor -->
+                  <StackPanel IsVisible="{Binding EditingCategory}" Spacing="8" MaxWidth="420">
+                    <TextBlock Text="Edit category" FontWeight="Bold" FontSize="16" Foreground="#fafaf9" />
+                    <TextBox Classes="pos-field" Watermark="Name" Text="{Binding CategoryEditName}" />
+                    <TextBox Classes="pos-field" Watermark="Sort order" Text="{Binding CategoryEditSort}" />
+                    <CheckBox IsChecked="{Binding CategoryEditVisible}" Content="Visible on Sell screen" Foreground="#e7e5e4" />
+                    <Button Classes="pos-action pos-cash" Content="Save category" Command="{Binding SaveCategoryCommand}" Width="180" />
                   </StackPanel>
-                  <ScrollViewer>
-                    <ItemsControl ItemsSource="{Binding SelectedItemOptionGroups}">
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:OptionGroupAdminRow">
-                          <Border Background="#1c1917" CornerRadius="6" Padding="10" Margin="0,0,0,8">
-                            <StackPanel>
-                              <TextBlock Text="{Binding Title}" FontWeight="Bold" Foreground="#fafaf9" />
-                              <TextBlock Text="{Binding Meta}" FontSize="11" Foreground="#fdba74" Margin="0,2,0,6" TextWrapping="Wrap" />
-                              <TextBlock Text="{Binding ChoicesText}" FontSize="12" Foreground="#a8a29e" TextWrapping="Wrap" />
-                            </StackPanel>
-                          </Border>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                  </ScrollViewer>
-                </DockPanel>
+
+                  <!-- Dish editor -->
+                  <DockPanel IsVisible="{Binding HasDishEditor}">
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
+                      <Button Classes="pos-action pos-cash" Content="Save dish" Command="{Binding SaveDishCommand}" Width="130" Height="48" />
+                      <Button Classes="pos-nav" Content="Duplicate" Command="{Binding DuplicateDishCommand}" Width="100" Height="48" />
+                      <Button Classes="pos-nav" Content="86" Command="{Binding Toggle86CurrentCommand}" Width="64" Height="48" />
+                      <Button Classes="pos-action pos-danger" Content="Delete" Command="{Binding DeleteDishCommand}" Width="90" Height="48" />
+                    </StackPanel>
+                    <ScrollViewer>
+                      <StackPanel Spacing="8" Margin="0,0,8,0">
+                        <TextBlock Text="Dish editor" FontWeight="Bold" FontSize="16" Foreground="#fafaf9" />
+                        <TextBlock Text="{Binding DishEditor.ValidationMessage}" Foreground="#fca5a5" TextWrapping="Wrap" />
+                        <Grid ColumnDefinitions="*,*">
+                          <TextBox Classes="pos-field-sm" Watermark="Menu # (e.g. 54)" Text="{Binding DishEditor.MenuNumber}" Margin="0,0,6,0" />
+                          <ComboBox Grid.Column="1" ItemsSource="{Binding DishEditor.Categories}"
+                                    SelectedItem="{Binding DishEditor.SelectedCategory}"
+                                    PlaceholderText="Category" Height="34" />
+                        </Grid>
+                        <TextBox Classes="pos-field-sm" Watermark="Name (English)" Text="{Binding DishEditor.Name}" />
+                        <TextBox Classes="pos-field-sm" Watermark="Kitchen name (中文)" Text="{Binding DishEditor.KitchenName}" />
+                        <Grid ColumnDefinitions="*,80">
+                          <TextBox Classes="pos-field-sm" Watermark="Price £" Text="{Binding DishEditor.PriceText}" Margin="0,0,6,0" />
+                          <TextBox Grid.Column="1" Classes="pos-field-sm" Watermark="Sort" Text="{Binding DishEditor.SortOrderText}" />
+                        </Grid>
+                        <CheckBox IsChecked="{Binding DishEditor.IsAvailable}" Content="On sale (uncheck = 86)" Foreground="#e7e5e4" />
+                        <TextBox Classes="pos-field-sm" Watermark="Description / staff hint" Text="{Binding DishEditor.Description}" />
+
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,12,0,4">
+                          <TextBlock Text="Option groups" FontWeight="Bold" Foreground="#fdba74" VerticalAlignment="Center" />
+                          <Button Grid.Column="1" Classes="pos-nav" Content="+ Group" Command="{Binding AddOptionGroupCommand}"
+                                  Width="90" Height="36" />
+                        </Grid>
+                        <TextBlock Text="Single = pick one · Multi = checkbox with min/max · Conditional = show when another choice picked"
+                                   Foreground="#78716c" FontSize="11" TextWrapping="Wrap" />
+
+                        <ItemsControl ItemsSource="{Binding DishEditor.Groups}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:OptionGroupEditorVm">
+                              <Border Background="#1c1917" CornerRadius="8" Padding="10" Margin="0,0,0,10"
+                                      BorderBrush="#292524" BorderThickness="1">
+                                <StackPanel Spacing="6">
+                                  <Grid ColumnDefinitions="*,Auto">
+                                    <TextBox Classes="pos-field-sm" Text="{Binding Name}" Watermark="Group name" Margin="0,0,6,0" />
+                                    <Button Grid.Column="1" Classes="pos-nav" Content="Remove"
+                                            Command="{Binding DataContext.RemoveOptionGroupCommand, ElementName=Root}"
+                                            CommandParameter="{Binding}" Width="80" Height="34" FontSize="11" Margin="0" />
+                                  </Grid>
+                                  <Grid ColumnDefinitions="*,Auto,70,70">
+                                    <ComboBox ItemsSource="{Binding DataContext.OptionTypeChoices, ElementName=Root}"
+                                              SelectedItem="{Binding SelectedType}" Height="34" Margin="0,0,6,0" />
+                                    <CheckBox Grid.Column="1" IsChecked="{Binding Required}" Content="Req"
+                                              Foreground="#e7e5e4" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <TextBox Grid.Column="2" Classes="pos-field-sm" Text="{Binding MinText}" Watermark="Min"
+                                             IsVisible="{Binding IsMulti}" Margin="0,0,4,0" />
+                                    <TextBox Grid.Column="3" Classes="pos-field-sm" Text="{Binding MaxText}" Watermark="Max"
+                                             IsVisible="{Binding IsMulti}" />
+                                  </Grid>
+                                  <TextBlock Text="Show when (conditional)" FontSize="11" Foreground="#a8a29e" />
+                                  <ComboBox ItemsSource="{Binding ParentGroupOptions}" SelectedItem="{Binding SelectedShowWhen}"
+                                            Height="34" />
+                                  <Button Classes="pos-nav" Content="Refresh conditional list" Command="{Binding DataContext.RefreshShowWhenCommand, ElementName=Root}"
+                                          Height="32" HorizontalAlignment="Left" Width="180" FontSize="11" />
+
+                                  <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                                    <TextBlock Text="Choices" FontWeight="SemiBold" Foreground="#fdba74" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Classes="pos-nav" Content="+ Choice"
+                                            Command="{Binding DataContext.AddChoiceCommand, ElementName=Root}"
+                                            CommandParameter="{Binding}" Width="90" Height="32" FontSize="11" />
+                                  </Grid>
+                                  <ItemsControl ItemsSource="{Binding Choices}">
+                                    <ItemsControl.ItemTemplate>
+                                      <DataTemplate x:DataType="vm:OptionChoiceEditorVm">
+                                        <Border Background="#141210" CornerRadius="4" Padding="8" Margin="0,0,0,6">
+                                          <StackPanel Spacing="4">
+                                            <Grid ColumnDefinitions="*,*,56,Auto">
+                                              <TextBox Classes="pos-field-sm" Text="{Binding Label}" Watermark="Label" Margin="0,0,4,0" />
+                                              <TextBox Grid.Column="1" Classes="pos-field-sm" Text="{Binding KitchenName}" Watermark="中文" Margin="0,0,4,0" />
+                                              <TextBox Grid.Column="2" Classes="pos-field-sm" Text="{Binding PriceDeltaText}" Watermark="+£ / 0" Margin="0,0,4,0" />
+                                              <Button Grid.Column="3" Classes="pos-nav" Content="×"
+                                                      Command="{Binding DataContext.RemoveChoiceCommand, ElementName=Root}"
+                                                      CommandParameter="{Binding}" Width="36" Height="32" Margin="0" />
+                                            </Grid>
+                                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                              <CheckBox IsChecked="{Binding IsDefault}" Content="Default" Foreground="#a8a29e" />
+                                              <CheckBox IsChecked="{Binding IsAvailable}" Content="Available" Foreground="#a8a29e" />
+                                            </StackPanel>
+                                          </StackPanel>
+                                        </Border>
+                                      </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                  </ItemsControl>
+                                </StackPanel>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </StackPanel>
+                    </ScrollViewer>
+                  </DockPanel>
+
+                  <TextBlock Text="Select a category/dish, or create new." Foreground="#78716c"
+                             HorizontalAlignment="Center" VerticalAlignment="Center"
+                             IsVisible="{Binding ShowEmptyEditorHint}" />
+                </Panel>
               </Border>
             </Grid>
           </DockPanel>

@@ -38,7 +38,7 @@ Remote: https://github.com/marsnewbie/magicwoksite
 1. Prefer pull from live `GET /api/menu` (or admin export JSON) into local SQLite.  
 2. Store option groups as-is where possible.  
 3. Map website dietary icons optionally (display only).  
-4. Keep a **Menu import** screen + last-import timestamp in Settings.
+4. Keep a **Menu operations** screen (Settings → Menu) for full CRUD + last-import timestamp; re-import seed is PIN-gated.
 
 ## Pricing rule
 
