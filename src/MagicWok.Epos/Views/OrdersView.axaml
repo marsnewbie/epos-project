@@ -40,8 +40,16 @@
                   <TextBlock FontSize="12" Foreground="#5b6472" Text="{Binding CustomerName}" />
                   <TextBlock FontSize="11" Foreground="#9aa3b2" Text="{Binding HoldLabel}" />
                 </StackPanel>
-                <TextBlock Grid.Column="1" FontSize="18" FontWeight="Bold" Foreground="#1c1917"
-                           Text="{Binding Total, StringFormat={}£{0:0.00}}" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                  <TextBlock FontSize="18" FontWeight="Bold" Foreground="#1c1917"
+                             Text="{Binding Total, StringFormat={}£{0:0.00}}" HorizontalAlignment="Right" />
+                  <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#b45309" HorizontalAlignment="Right"
+                             IsVisible="{Binding IsUnpaid}"
+                             Text="{Binding BalanceDue, StringFormat=Due £{0:0.00}}" />
+                  <TextBlock FontSize="11" Foreground="#15803d" HorizontalAlignment="Right"
+                             IsVisible="{Binding HasPayments}"
+                             Text="{Binding AmountPaid, StringFormat=Paid £{0:0.00}}" />
+                </StackPanel>
               </Grid>
             </DataTemplate>
           </ListBox.ItemTemplate>

@@ -17,13 +17,14 @@ dotnet run --project src/MagicWok.Epos
    - Lines show **SENT** badge (dimmed)  
 2. Add another dish → button becomes **SEND NEW / 补打** → only new lines print (**ADDITIONS**)  
 3. **HOLD** → enter name/phone → ticket clears; Held chip appears → tap to resume  
-4. **CASH** keypad: Exact fills balance; ⌫ deletes digits; CLR clears; type after Exact overwrites (not append)  
-5. **Partial cash**: tender less than total → ticket stays, badge **DUE**, Paid/Due shown → **Card** or more Cash finishes → then clears  
-6. **Split**: cash partial then Card (balance) → SPLIT on kitchen/front  
-7. Full pay → front print (if enabled), cash opens drawer → blank ticket  
-8. **Orders** → **Unpaid** → **Open on Sell** → continue pay  
-9. **Orders** → paid → **Reopen (PIN)** → add dish → collect new Due  
-10. **Orders** → **VOID (PIN)** (default `1234`) → reason → optional VOID kitchen ticket  
+4. **CASH** keypad: Exact fills balance; ⌫ deletes; CLR clears; digit after Exact overwrites  
+5. **Partial cash**: no final receipt; badge DUE; Paid/Due on ticket; optional **Interim receipt**; kitchen only if new unsent lines  
+6. Kitchen ticket Payment line must say **PART PAID DUE £x** (not CASH as if settled)  
+7. **Split**: partial cash then Card (balance) → final receipt on full pay  
+8. Full pay → change/paid overlay → **Next order**; Shift includes partial cash taken  
+9. **Orders** list shows Due/Paid; Unpaid filter excludes fully-paid reopen leftovers  
+10. **Reopen (PIN)** then add dish → new Due; **Void** warns if money already taken  
+11. Held reprint kitchen must **not** un-hold the ticket  
 
 ## P1 — Sell speed
 

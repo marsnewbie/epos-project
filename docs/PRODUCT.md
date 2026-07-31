@@ -42,12 +42,16 @@ Tap notes → bind to **selected or last line**. Editable in Settings → Quick 
 
 ## Pay flow
 
-1. Review totals — footer shows **Paid / Due** when any tender exists  
-2. **Cash** — keypad with ⌫ / CLR / Exact (fills **balance due**); next digit overwrites Exact/£10/20/50  
-3. Cash confirm: amount ≥ due → full pay + change + clear ticket; amount &lt; due → **partial pay**, ticket stays with remaining Due  
-4. **Card** — settles remaining balance (use after partial cash for split tender)  
-5. **Orders → Reopen (PIN)** — reopen a paid ticket to add dishes; previous payments kept; collect new balance  
-6. Settings: kitchen-on-pay · front-on-pay · open drawer on cash
+1. Footer shows **Paid / Due** whenever any tender exists; badge **DUE** while balance remains  
+2. **Cash** keypad: Exact = balance due; ⌫ / CLR; overwrite after Exact/quick amounts  
+3. Cash &lt; due → **partial** — ticket stays; **no final receipt**; kitchen only if new unsent lines; optional **Interim receipt**  
+4. Cash ≥ due → final receipt (if enabled) + **change overlay** until staff taps Next  
+5. **Card** settles remaining balance (split after partial cash)  
+6. Kitchen `Payment:` shows `PART PAID DUE £x` until fully paid, then CASH/CARD/SPLIT  
+7. **Orders → Reopen (PIN)** for paid tickets; unpaid uses Open on Sell  
+8. Shift totals include **partial cash already taken** + open due  
+
+See [TESTING.md](TESTING.md) payment cases.
 
 ## Language (industry standard)
 

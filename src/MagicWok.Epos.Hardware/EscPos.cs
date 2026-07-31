@@ -332,6 +332,12 @@ public static class TicketRenderer
                 b.Normal().ColumnsAscii("Delivery", EscPos.Money(order.DeliveryFee));
 
             b.Large().Bold(true).ColumnsAscii("Total", EscPos.Money(order.Total), cols: 24).Bold(false).Normal();
+            if (order.AmountPaid > 0)
+            {
+                b.Normal().ColumnsAscii("Paid", EscPos.Money(order.AmountPaid));
+                if (!order.IsFullyPaid)
+                    b.Normal().ColumnsAscii("DUE", EscPos.Money(order.BalanceDue));
+            }
             b.Separator('-');
         }
 
@@ -391,10 +397,11 @@ public static class TicketRenderer
     {
         var enc = string.IsNullOrWhiteSpace(settings.PrintEncoding) ? "gbk" : settings.PrintEncoding;
         var b = new EscPosTicketBuilder(enc, rasterCjk: settings.PrintChineseAsRaster);
+        var interim = !order.IsFullyPaid;
         b.Center().KitchenLine(settings.ShopName, large: true);
         b.Normal().Line(settings.ShopAddress);
         b.Line($"{settings.ShopPostcode}  {settings.ShopPhone}");
-        b.Line("RECEIPT").Left().Separator('=');
+        b.Line(interim ? "*** INTERIM / NOT PAID IN FULL ***" : "RECEIPT").Left().Separator('=');
         b.Line($"Order {order.OrderNumber}");
         b.Line(order.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"));
         b.Line(OrderTypeEnglish(order.OrderType));
@@ -411,26 +418,36 @@ public static class TicketRenderer
         if (order.DeliveryFee > 0) b.ColumnsAscii("Delivery", EscPos.Money(order.DeliveryFee));
         if (order.DiscountTotal > 0) b.ColumnsAscii("Discount", "-" + EscPos.Money(order.DiscountTotal));
         b.Large().Bold(true).ColumnsAscii("TOTAL", EscPos.Money(order.Total), cols: 24).Bold(false).Normal();
-        foreach (var t in order.Tenders)
+        b.Separator('-');
+        if (order.Tenders.Count == 0)
         {
-            var label = t.Type switch
-            {
-                TenderType.Cash => "Cash",
-                TenderType.CardManual => "Card",
-                TenderType.OnlinePaid => "Online",
-                _ => t.Type.ToString(),
-            };
-            b.ColumnsAscii(label, EscPos.Money(t.Amount));
-            if (t.CashReceived is > 0)
-                b.ColumnsAscii("  Tendered", EscPos.Money(t.CashReceived.Value));
-            if (t.ChangeGiven is > 0)
-                b.ColumnsAscii("  Change", EscPos.Money(t.ChangeGiven.Value));
+            b.ColumnsAscii("Paid", EscPos.Money(0));
+            b.Large().Bold(true).ColumnsAscii("BALANCE DUE", EscPos.Money(order.BalanceDue), cols: 24).Bold(false).Normal();
         }
-        if (order.AmountPaid > 0 && !order.IsFullyPaid)
-            b.ColumnsAscii("BALANCE DUE", EscPos.Money(order.BalanceDue));
-        else if (order.IsFullyPaid && order.Tenders.Count > 0)
-            b.ColumnsAscii("PAID", EscPos.Money(order.AmountPaid));
-        b.Center().Line("Thank you").FeedAndCut();
+        else
+        {
+            foreach (var t in order.Tenders)
+            {
+                var label = t.Type switch
+                {
+                    TenderType.Cash => "Cash",
+                    TenderType.CardManual => "Card",
+                    TenderType.OnlinePaid => "Online",
+                    _ => t.Type.ToString(),
+                };
+                b.ColumnsAscii(label, EscPos.Money(t.Amount));
+                if (t.CashReceived is > 0)
+                    b.ColumnsAscii("  Tendered", EscPos.Money(t.CashReceived.Value));
+                if (t.ChangeGiven is > 0)
+                    b.ColumnsAscii("  Change", EscPos.Money(t.ChangeGiven.Value));
+            }
+            b.ColumnsAscii("Total paid", EscPos.Money(order.AmountPaid));
+            if (interim)
+                b.Large().Bold(true).ColumnsAscii("BALANCE DUE", EscPos.Money(order.BalanceDue), cols: 24).Bold(false).Normal();
+            else
+                b.Large().Bold(true).ColumnsAscii("PAID IN FULL", EscPos.Money(order.AmountPaid), cols: 24).Bold(false).Normal();
+        }
+        b.Center().Line(interim ? "Not a final receipt" : "Thank you").FeedAndCut();
         return b.Build();
     }
 
@@ -486,21 +503,38 @@ public static class TicketRenderer
 
     private static string? ResolvePayment(PosOrder order)
     {
-        if (!string.IsNullOrWhiteSpace(order.PaymentLabel))
-            return order.PaymentLabel;
-        if (order.Tenders.Count > 1)
-            return "SPLIT";
-        if (order.Tenders.Count > 0)
+        // Prefer live balance over stale PaymentLabel when partially paid
+        if (order.HasPayments && !order.IsFullyPaid)
+            return $"PART PAID DUE {EscPos.Money(order.BalanceDue)}";
+
+        if (order.IsFullyPaid)
         {
-            return order.Tenders[0].Type switch
+            if (!string.IsNullOrWhiteSpace(order.PaymentLabel) &&
+                !order.PaymentLabel.Contains("PART", StringComparison.OrdinalIgnoreCase) &&
+                !order.PaymentLabel.Contains("DUE", StringComparison.OrdinalIgnoreCase))
+                return order.PaymentLabel;
+
+            if (order.Tenders.Count > 1)
+                return "SPLIT";
+            if (order.Tenders.Count > 0)
             {
-                TenderType.Cash => "CASH",
-                TenderType.CardManual => "CARD",
-                TenderType.OnlinePaid => order.Tenders[0].Reference ?? "PAID",
-                _ => order.Tenders[0].Type.ToString(),
-            };
+                return order.Tenders[0].Type switch
+                {
+                    TenderType.Cash => "CASH",
+                    TenderType.CardManual => "CARD",
+                    TenderType.OnlinePaid => order.Tenders[0].Reference ?? "PAID",
+                    _ => order.Tenders[0].Type.ToString(),
+                };
+            }
+            return order.PaymentLabel;
         }
-        return order.Source == PosOrderSource.Online ? "Order Not Paid" : null;
+
+        // Unpaid kitchen ticket — do not imply paid
+        if (!string.IsNullOrWhiteSpace(order.PaymentLabel) &&
+            order.PaymentLabel.Contains("PART", StringComparison.OrdinalIgnoreCase))
+            return order.PaymentLabel;
+
+        return order.Source == PosOrderSource.Online ? "Order Not Paid" : "UNPAID";
     }
 
     private static string? FirstNonEmpty(params string?[] values) =>

@@ -115,7 +115,8 @@ public sealed class PrintService
                     line.KitchenSentAt ??= now;
                 }
                 order.KitchenPrinted = true;
-                if (order.Status is PosOrderStatus.Draft or PosOrderStatus.Open or PosOrderStatus.Held)
+                // Never change business status on reprint; never un-hold via print
+                if (!isReprint && order.Status is PosOrderStatus.Draft or PosOrderStatus.Open)
                     order.Status = PosOrderStatus.Sent;
             }
 
@@ -138,6 +139,11 @@ public sealed class PrintService
         order.Status = PosOrderStatus.Voided;
         order.VoidReason = reason;
         order.UpdatedAt = DateTimeOffset.Now;
+        // Keep tenders for audit; AmountPaid remains visible on voided order detail
+        if (order.AmountPaid > 0)
+            order.Notes = string.IsNullOrWhiteSpace(order.Notes)
+                ? $"VOID after paid £{order.AmountPaid:0.00} — refund manually if needed"
+                : $"{order.Notes}\nVOID after paid £{order.AmountPaid:0.00} — refund manually if needed";
         _app.Orders.Upsert(order);
         if (printKitchen && order.KitchenPrinted)
             await PrintKitchenAsync(order, isVoid: true);

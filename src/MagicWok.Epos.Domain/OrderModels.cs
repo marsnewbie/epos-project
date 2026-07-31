@@ -129,8 +129,16 @@ public sealed class PosOrder
     public bool IsFullyPaid => BalanceDue <= 0.001m;
     public bool HasPayments => Tenders.Count > 0;
 
-    public bool IsUnpaid => Status is PosOrderStatus.Draft or PosOrderStatus.Open
-        or PosOrderStatus.Sent or PosOrderStatus.Held;
+    /// <summary>Open for work and still owes money (excludes paid-in-full and voided).</summary>
+    public bool IsUnpaid
+    {
+        get
+        {
+            var open = Status is PosOrderStatus.Draft or PosOrderStatus.Open
+                or PosOrderStatus.Sent or PosOrderStatus.Held;
+            return open && !IsFullyPaid;
+        }
+    }
     public int UnsentLineCount => Lines.Count(l => !l.KitchenSent);
     public bool HasUnsentLines => UnsentLineCount > 0;
 }

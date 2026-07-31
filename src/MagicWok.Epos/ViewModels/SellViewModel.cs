@@ -124,6 +124,11 @@ public partial class SellViewModel : ViewModelBase
     [ObservableProperty] private string _dueLabel = "Due";
     [ObservableProperty] private string _paidLabel = "Paid";
     [ObservableProperty] private string _lblPayCardOnPad = "Card (balance)";
+    [ObservableProperty] private string _lblPrintInterim = "Interim receipt";
+    [ObservableProperty] private string _lblNextTicket = "Next";
+    [ObservableProperty] private bool _showChangeOverlay;
+    [ObservableProperty] private string _changeOverlayText = "";
+    [ObservableProperty] private string _changeOverlaySub = "";
     private bool _cashOverwriteNext;
 
     public void RefreshUiLabels()
@@ -165,6 +170,8 @@ public partial class SellViewModel : ViewModelBase
         DueLabel = UiText.BalanceDue;
         PaidLabel = UiText.AmountPaid;
         LblPayCardOnPad = UiText.PayCardBalance;
+        LblPrintInterim = UiText.Pick("Interim receipt", "中途收据");
+        LblNextTicket = UiText.Pick("Next order", "下一单");
         ItemsCountText = UiText.ItemsCount(LineCount);
         ReloadQuickNotes();
         RefreshHeldList();
@@ -765,27 +772,47 @@ public partial class SellViewModel : ViewModelBase
     {
         if (Lines.Count > 0 || !string.IsNullOrWhiteSpace(_ticket.OrderNumber))
         {
-            if (!await UiPrompt.ConfirmAsync("Clear ticket?", "Clear current ticket? Unsaved unpaid lines will be lost."))
+            RefreshPaymentSummary();
+            string msg;
+            if (_ticket.Status == PosOrderStatus.Draft)
+                msg = UiText.Pick("Draft not sent — clearing will lose these dishes.", "草稿未送厨 — 清空会丢失这些菜。");
+            else if (HasPayments && BalanceDue > 0.001m)
+                msg = UiText.Pick(
+                    $"Still due £{BalanceDue:0.00}. Ticket stays in Orders for continue pay.",
+                    $"仍待收 £{BalanceDue:0.00}。订单保留在订单列表可续收。");
+            else if (_ticket.Status is PosOrderStatus.Sent or PosOrderStatus.Held)
+                msg = UiText.Pick("Sent/held ticket stays in Orders. Clear the Sell screen?", "已送厨/挂单保留在订单。清空点单屏？");
+            else
+                msg = UiText.Pick("Clear current ticket?", "清空当前订单？");
+
+            if (!await UiPrompt.ConfirmAsync(UiText.Pick("Clear ticket?", "清空订单？"), msg))
                 return;
         }
         NewTicket(force: true);
-        PanelStatus = "Ticket cleared";
+        PanelStatus = UiText.Pick("Ticket cleared", "已清空");
     }
 
     [RelayCommand]
     private async Task NewTicketAsync()
     {
-        if (Lines.Count > 0 && _ticket.Status is PosOrderStatus.Draft or PosOrderStatus.Sent)
+        RefreshPaymentSummary();
+        if (Lines.Count > 0 || HasPayments)
         {
-            if (!await UiPrompt.ConfirmAsync("New ticket?", "Current ticket stays in Orders if already sent. Start a blank ticket?"))
+            string msg;
+            if (_ticket.Status == PosOrderStatus.Draft)
+                msg = UiText.Pick("Unsent draft will be lost. Start blank ticket?", "未送厨草稿会丢失。开新单？");
+            else if (HasPayments && BalanceDue > 0.001m)
+                msg = UiText.Pick(
+                    $"Still due £{BalanceDue:0.00} — find it under Orders → Unpaid. Start blank?",
+                    $"仍待收 £{BalanceDue:0.00} — 在订单→未付中续收。开新单？");
+            else
+                msg = UiText.Pick("Current ticket stays in Orders if already sent. Start blank?", "已送厨单保留在订单。开新单？");
+
+            if (!await UiPrompt.ConfirmAsync(UiText.Pick("New ticket?", "新单？"), msg))
                 return;
-            if (_ticket.Status == PosOrderStatus.Draft && Lines.Count > 0)
-            {
-                // leave draft unsaved unless already persisted
-            }
         }
         NewTicket(force: true);
-        PanelStatus = "New ticket";
+        PanelStatus = UiText.Pick("New ticket", "新单");
     }
 
     [RelayCommand]
@@ -802,6 +829,8 @@ public partial class SellViewModel : ViewModelBase
             }
 
             var order = PersistTicket(PosOrderStatus.Sent);
+            UpdatePaymentLabel(order);
+            _app.Orders.Upsert(order);
             await _app.Print.PrintKitchenAsync(order, unsentOnly: unsentOnly);
             LoadTicket(order);
             PanelStatus = unsentOnly
@@ -901,41 +930,57 @@ public partial class SellViewModel : ViewModelBase
                 Amount = applied,
                 CashReceived = received,
                 ChangeGiven = change > 0 ? change : null,
-                Reference = change > 0 ? $"change:{change:0.00}" : (applied + 0.001m < order.Total ? "partial" : "exact"),
+                Reference = change > 0 ? $"change:{change:0.00}" : "tender",
             });
-            UpdatePaymentLabel(order);
-
             var fullyPaid = order.IsFullyPaid;
             order.Status = fullyPaid ? PosOrderStatus.Paid : PosOrderStatus.Sent;
+            UpdatePaymentLabel(order);
             _app.Orders.Upsert(order);
             _ticket = order;
 
-            if (settings.SendKitchenOnPay && order.HasUnsentLines)
-                await _app.Print.PrintKitchenAsync(order, unsentOnly: order.Lines.Any(l => l.KitchenSent));
-            else if (settings.SendKitchenOnPay && !order.KitchenPrinted)
-                await _app.Print.PrintKitchenAsync(order);
+            try { await MaybePrintKitchenOnPayAsync(order, fullyPaid); }
+            catch (Exception printEx)
+            {
+                _setStatus(UiText.Pick($"Paid OK — kitchen print failed: {printEx.Message}",
+                    $"已收款 — 厨房打印失败: {printEx.Message}"));
+            }
 
             if (settings.OpenDrawerOnCash)
-                await _app.CashDrawer.OpenAsync();
+            {
+                try { await _app.CashDrawer.OpenAsync(); }
+                catch { /* optional */ }
+            }
 
             if (fullyPaid)
             {
-                if (settings.PrintFrontOnPay)
-                    await _app.Print.PrintFrontAsync(order);
-                ChangeText = change > 0 ? $"{UiText.Change} £{change:0.00}" : UiText.Pick("Exact", "刚好");
-                PanelStatus = UiText.Pick(
-                    $"Paid {order.OrderNumber} £{order.Total:0.00}  {ChangeText}",
-                    $"已付清 {order.OrderNumber} £{order.Total:0.00}  {ChangeText}");
-                _setStatus(PanelStatus);
+                try
+                {
+                    if (settings.PrintFrontOnPay)
+                        await _app.Print.PrintFrontAsync(order);
+                }
+                catch (Exception printEx)
+                {
+                    _setStatus(UiText.Pick($"Paid OK — receipt failed: {printEx.Message}",
+                        $"已付清 — 小票失败: {printEx.Message}"));
+                }
+
                 ShowCashPanel = false;
+                ChangeOverlayText = change > 0
+                    ? $"{UiText.Change}\n£{change:0.00}"
+                    : UiText.Pick("Exact — no change", "刚好 — 无找零");
+                ChangeOverlaySub = UiText.Pick(
+                    $"Paid {order.OrderNumber} · £{order.Total:0.00}",
+                    $"已付清 {order.OrderNumber} · £{order.Total:0.00}");
+                ShowChangeOverlay = true;
+                PanelStatus = ChangeOverlaySub;
+                _setStatus(PanelStatus);
                 NewTicket(force: true);
             }
             else
             {
-                // Partial — keep ticket open for more cash / card / add items
                 PanelStatus = UiText.Pick(
-                    $"Partial cash £{applied:0.00} · still due £{order.BalanceDue:0.00}",
-                    $"已收现金 £{applied:0.00} · 还需 £{order.BalanceDue:0.00}");
+                    $"Partial £{applied:0.00} · due £{order.BalanceDue:0.00} — no final receipt",
+                    $"已收 £{applied:0.00} · 待收 £{order.BalanceDue:0.00} — 未打最终小票");
                 _setStatus(PanelStatus);
                 LoadTicket(order);
                 ShowCashPanel = true;
@@ -967,42 +1012,59 @@ public partial class SellViewModel : ViewModelBase
             var order = PersistTicket(keepStatus);
 
             var result = await _app.CardTerminal.StartSaleAsync(payAmount);
+            if (!result.Success)
+                throw new InvalidOperationException(result.Message ?? UiText.Pick("Card declined", "刷卡失败"));
+
             order.Tenders.Add(new OrderTender
             {
                 Type = TenderType.CardManual,
                 Amount = payAmount,
-                Reference = result.Message,
+                Reference = result.Message ?? "card",
             });
-            UpdatePaymentLabel(order);
-
             var fullyPaid = order.IsFullyPaid;
             order.Status = fullyPaid ? PosOrderStatus.Paid : PosOrderStatus.Sent;
+            UpdatePaymentLabel(order);
             _app.Orders.Upsert(order);
             _ticket = order;
 
-            if (settings.SendKitchenOnPay && order.HasUnsentLines)
-                await _app.Print.PrintKitchenAsync(order, unsentOnly: order.Lines.Any(l => l.KitchenSent));
-            else if (settings.SendKitchenOnPay && !order.KitchenPrinted)
-                await _app.Print.PrintKitchenAsync(order);
+            try { await MaybePrintKitchenOnPayAsync(order, fullyPaid); }
+            catch (Exception printEx)
+            {
+                _setStatus(UiText.Pick($"Card OK — kitchen print failed: {printEx.Message}",
+                    $"刷卡成功 — 厨房打印失败: {printEx.Message}"));
+            }
 
             if (fullyPaid)
             {
-                if (settings.PrintFrontOnPay)
-                    await _app.Print.PrintFrontAsync(order);
+                try
+                {
+                    if (settings.PrintFrontOnPay)
+                        await _app.Print.PrintFrontAsync(order);
+                }
+                catch (Exception printEx)
+                {
+                    _setStatus(UiText.Pick($"Card OK — receipt failed: {printEx.Message}",
+                        $"刷卡成功 — 小票失败: {printEx.Message}"));
+                }
+
                 PanelStatus = UiText.Pick(
                     $"Card paid {order.OrderNumber} £{payAmount:0.00}",
-                    $"刷卡 {order.OrderNumber} £{payAmount:0.00}");
+                    $"刷卡付清 {order.OrderNumber} £{payAmount:0.00}");
                 _setStatus(PanelStatus);
                 ShowCashPanel = false;
+                ChangeOverlayText = UiText.Pick("CARD PAID", "刷卡已付");
+                ChangeOverlaySub = PanelStatus;
+                ShowChangeOverlay = true;
                 NewTicket(force: true);
             }
             else
             {
                 PanelStatus = UiText.Pick(
-                    $"Card £{payAmount:0.00} · still due £{order.BalanceDue:0.00}",
-                    $"刷卡 £{payAmount:0.00} · 还需 £{order.BalanceDue:0.00}");
+                    $"Card £{payAmount:0.00} · due £{order.BalanceDue:0.00} — no final receipt",
+                    $"刷卡 £{payAmount:0.00} · 待收 £{order.BalanceDue:0.00} — 未打最终小票");
                 _setStatus(PanelStatus);
                 LoadTicket(order);
+                ShowCashPanel = false;
             }
         }
         catch (Exception ex)
@@ -1014,23 +1076,87 @@ public partial class SellViewModel : ViewModelBase
 
     private static void UpdatePaymentLabel(PosOrder order)
     {
+        if (!order.IsFullyPaid)
+        {
+            order.PaymentLabel = order.HasPayments
+                ? $"PART PAID DUE £{order.BalanceDue:0.00}"
+                : "UNPAID";
+            return;
+        }
+
         var types = order.Tenders.Select(t => t.Type).Distinct().ToList();
-        if (types.Count == 0) return;
         if (types.Count > 1)
             order.PaymentLabel = "SPLIT";
-        else if (types[0] == TenderType.Cash)
+        else if (types.Count == 1 && types[0] == TenderType.Cash)
             order.PaymentLabel = "CASH";
-        else if (types[0] == TenderType.CardManual)
+        else if (types.Count == 1 && types[0] == TenderType.CardManual)
             order.PaymentLabel = "CARD";
-        else
+        else if (types.Count == 1)
             order.PaymentLabel = types[0].ToString().ToUpperInvariant();
+    }
+
+    /// <summary>
+    /// Kitchen on pay: only new unsent lines, or full pay of a never-printed ticket.
+    /// Partial pay on an already-sent ticket must not reprint kitchen.
+    /// </summary>
+    private async Task MaybePrintKitchenOnPayAsync(PosOrder order, bool fullyPaid)
+    {
+        var settings = _app.GetSettings();
+        if (!settings.SendKitchenOnPay) return;
+
+        if (order.HasUnsentLines)
+        {
+            var unsentOnly = order.Lines.Any(l => l.KitchenSent);
+            await _app.Print.PrintKitchenAsync(order, unsentOnly: unsentOnly);
+            return;
+        }
+
+        if (fullyPaid && !order.KitchenPrinted)
+            await _app.Print.PrintKitchenAsync(order);
+    }
+
+    [RelayCommand]
+    private async Task PrintInterimReceiptAsync()
+    {
+        try
+        {
+            RefreshPaymentSummary();
+            if (!HasPayments || BalanceDue <= 0.001m)
+            {
+                PanelStatus = UiText.Pick("Interim receipt only after partial payment", "仅部分付款后可打中途收据");
+                return;
+            }
+            var order = PersistTicket(_ticket.Status is PosOrderStatus.Sent ? PosOrderStatus.Sent : PosOrderStatus.Open);
+            UpdatePaymentLabel(order);
+            _app.Orders.Upsert(order);
+            await _app.Print.PrintFrontAsync(order);
+            PanelStatus = UiText.Pick(
+                $"Interim receipt · due £{order.BalanceDue:0.00}",
+                $"中途收据 · 待收 £{order.BalanceDue:0.00}");
+            _setStatus(PanelStatus);
+        }
+        catch (Exception ex)
+        {
+            PanelStatus = UiText.Pick($"Print failed: {ex.Message}", $"打印失败: {ex.Message}");
+            _setStatus(PanelStatus);
+        }
+    }
+
+    [RelayCommand]
+    private void DismissChangeOverlay()
+    {
+        ShowChangeOverlay = false;
+        ChangeOverlayText = "";
+        ChangeOverlaySub = "";
     }
 
     /// <summary>Open an unpaid / held order from Orders into Sell for continue-pay.</summary>
     public void LoadOrderForContinue(PosOrder order)
     {
         LoadTicket(order);
-        PanelStatus = $"Opened {order.OrderNumber} · {order.Status} — continue pay or add items";
+        PanelStatus = UiText.Pick(
+            $"Opened {order.OrderNumber} · due £{order.BalanceDue:0.00}",
+            $"已打开 {order.OrderNumber} · 待收 £{order.BalanceDue:0.00}");
         _setStatus(PanelStatus);
     }
 

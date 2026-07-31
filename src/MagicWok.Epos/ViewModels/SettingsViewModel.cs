@@ -335,19 +335,22 @@ public partial class SettingsViewModel : ViewModelBase
     private void ReloadShift()
     {
         var all = _app.Orders.GetToday();
-        var paid = all.Where(o => o.Status is PosOrderStatus.Paid or PosOrderStatus.Completed).ToList();
-        var cash = paid.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.Cash).Sum(t => t.Amount);
-        var card = paid.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.CardManual).Sum(t => t.Amount);
-        var online = paid.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.OnlinePaid).Sum(t => t.Amount);
+        var active = all.Where(o => o.Status is not (PosOrderStatus.Voided or PosOrderStatus.Cancelled)).ToList();
+        var paidDone = active.Where(o => o.Status is PosOrderStatus.Paid or PosOrderStatus.Completed).ToList();
+        var cash = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.Cash).Sum(t => t.Amount);
+        var card = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.CardManual).Sum(t => t.Amount);
+        var online = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.OnlinePaid).Sum(t => t.Amount);
+        var dueOpen = active.Where(o => o.IsUnpaid).Sum(o => o.BalanceDue);
         var voided = all.Count(o => o.Status == PosOrderStatus.Voided);
         ShiftSummary =
-            $"Paid orders: {paid.Count}\n" +
-            $"Cash tendered: £{cash:0.00}\n" +
-            $"Card (manual): £{card:0.00}\n" +
+            $"Cash taken (incl. partial): £{cash:0.00}\n" +
+            $"Card taken (incl. partial): £{card:0.00}\n" +
             $"Online paid: £{online:0.00}\n" +
-            $"Gross (order totals): £{paid.Sum(o => o.Total):0.00}\n" +
+            $"Open balance due: £{dueOpen:0.00}\n" +
+            $"Paid-in-full tickets: {paidDone.Count}\n" +
+            $"Gross of paid tickets: £{paidDone.Sum(o => o.Total):0.00}\n" +
             $"Voided: {voided}\n" +
-            $"Unpaid open: {all.Count(o => o.IsUnpaid)}";
+            $"Unpaid (still due): {active.Count(o => o.IsUnpaid)}";
     }
 
     partial void OnMenuSearchChanged(string value) => ReloadMenuRows();

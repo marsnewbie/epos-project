@@ -69,15 +69,18 @@ public partial class OrdersViewModel : ViewModelBase
             SelectedOrder = Orders.FirstOrDefault(o => o.Id == SelectedOrder.Id);
 
         var all = _app.Orders.GetToday();
-        var paid = all.Where(o => o.Status is PosOrderStatus.Paid or PosOrderStatus.Completed).ToList();
-        var cash = paid.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.Cash).Sum(t => t.Amount);
-        var card = paid.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.CardManual).Sum(t => t.Amount);
-        var online = paid.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.OnlinePaid).Sum(t => t.Amount);
-        var unpaid = all.Count(o => o.IsUnpaid);
-        var held = all.Count(o => o.Status == PosOrderStatus.Held);
+        var active = all.Where(o => o.Status is not (PosOrderStatus.Voided or PosOrderStatus.Cancelled)).ToList();
+        var paidDone = active.Where(o => o.Status is PosOrderStatus.Paid or PosOrderStatus.Completed).ToList();
+        // Include partial tenders on Sent/Held (cash already in drawer)
+        var cash = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.Cash).Sum(t => t.Amount);
+        var card = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.CardManual).Sum(t => t.Amount);
+        var online = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.OnlinePaid).Sum(t => t.Amount);
+        var dueOpen = active.Where(o => o.IsUnpaid).Sum(o => o.BalanceDue);
+        var unpaid = active.Count(o => o.IsUnpaid && o.Status != PosOrderStatus.Held);
+        var held = active.Count(o => o.Status == PosOrderStatus.Held);
         TodaySummary = UiText.Pick(
-            $"Today: {paid.Count} paid · Cash £{cash:0.00} · Card £{card:0.00} · Online £{online:0.00} · Unpaid {unpaid} · Held {held}",
-            $"今日：已付 {paid.Count} · 现金 £{cash:0.00} · 刷卡 £{card:0.00} · 线上 £{online:0.00} · 未付 {unpaid} · 挂单 {held}");
+            $"Taken: Cash £{cash:0.00} · Card £{card:0.00} · Online £{online:0.00} · Open due £{dueOpen:0.00} · Paid tickets {paidDone.Count} · Unpaid {unpaid} · Held {held}",
+            $"已收：现金 £{cash:0.00} · 刷卡 £{card:0.00} · 线上 £{online:0.00} · 未结待收 £{dueOpen:0.00} · 付清单 {paidDone.Count} · 未付 {unpaid} · 挂单 {held}");
     }
 
     [RelayCommand]
@@ -168,6 +171,7 @@ public partial class OrdersViewModel : ViewModelBase
 
         SelectedOrder.Status = PosOrderStatus.Sent;
         SelectedOrder.UpdatedAt = DateTimeOffset.Now;
+        // Keep tenders; if still fully paid until dishes added, IsUnpaid stays false
         _app.Orders.Upsert(SelectedOrder);
         _setStatus(UiText.Pick(
             $"Reopened {SelectedOrder.OrderNumber} — add items, then collect balance",
@@ -187,7 +191,15 @@ public partial class OrdersViewModel : ViewModelBase
         }
         if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "Void order"))
             return;
-        var reason = await UiPrompt.PromptTextAsync("Void reason", "Reason / 原因", initial: "Staff error");
+        var paidNote = SelectedOrder.AmountPaid > 0
+            ? UiText.Pick(
+                $" WARNING: £{SelectedOrder.AmountPaid:0.00} already taken — refund customer manually if needed.",
+                $" 注意：已收 £{SelectedOrder.AmountPaid:0.00} — 如需退款请人工处理。")
+            : "";
+        var reason = await UiPrompt.PromptTextAsync(
+            UiText.Pick("Void reason", "作废原因") + paidNote,
+            UiText.Pick("Reason", "原因"),
+            initial: "Staff error");
         if (reason is null) return;
         try
         {
