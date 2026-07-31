@@ -109,12 +109,22 @@ public partial class SellViewModel : ViewModelBase
     [ObservableProperty] private string _wmTable = "Table / pager #";
     [ObservableProperty] private string _lblNotes = "Notes";
     [ObservableProperty] private string _wmOrderNotes = "Order notes";
-    [ObservableProperty] private string _lblCashTender = "Cash tender";
+    [ObservableProperty] private string _lblCashTender = "Cash tendered";
     [ObservableProperty] private string _lblExact = "Exact";
     [ObservableProperty] private string _lblTicket = "TICKET";
     [ObservableProperty] private string _lblLineSent = "SENT";
     [ObservableProperty] private string _lblRequired = "REQ";
     [ObservableProperty] private string _itemsCountText = "0 items";
+    [ObservableProperty] private string _lblClearCash = "CLR";
+    [ObservableProperty] private decimal _amountPaid;
+    [ObservableProperty] private decimal _balanceDue;
+    [ObservableProperty] private bool _hasPayments;
+    [ObservableProperty] private string _paymentSummaryText = "";
+    [ObservableProperty] private string _balanceDueText = "";
+    [ObservableProperty] private string _dueLabel = "Due";
+    [ObservableProperty] private string _paidLabel = "Paid";
+    [ObservableProperty] private string _lblPayCardOnPad = "Card (balance)";
+    private bool _cashOverwriteNext;
 
     public void RefreshUiLabels()
     {
@@ -151,10 +161,16 @@ public partial class SellViewModel : ViewModelBase
         LblTicket = UiText.TicketLabel;
         LblLineSent = UiText.LineSent;
         LblRequired = UiText.Pick("REQ", "必选");
+        LblClearCash = UiText.ClearCash;
+        DueLabel = UiText.BalanceDue;
+        PaidLabel = UiText.AmountPaid;
+        LblPayCardOnPad = UiText.PayCardBalance;
         ItemsCountText = UiText.ItemsCount(LineCount);
         ReloadQuickNotes();
         RefreshHeldList();
         UpdateTicketChrome();
+        RefreshPaymentSummary();
+        UpdateCashConfirmLabel();
         if (ShowModifierPanel) RebuildModifierPanel();
     }
 
@@ -200,14 +216,17 @@ public partial class SellViewModel : ViewModelBase
     {
         if (Lines.Count == 0)
         {
-            PanelStatus = "Ticket is empty";
+            PanelStatus = UiText.Pick("Ticket is empty", "订单是空的");
+            return;
+        }
+        RefreshPaymentSummary();
+        if (BalanceDue <= 0.001m)
+        {
+            PanelStatus = UiText.Pick("Already fully paid", "已付清");
             return;
         }
         ShowCashPanel = true;
-        if (string.IsNullOrWhiteSpace(CashTenderedText))
-            CashExact();
-        else
-            UpdateChangePreview();
+        CashExact(); // start at remaining balance; next digit overwrites
     }
 
     [RelayCommand]
@@ -216,6 +235,8 @@ public partial class SellViewModel : ViewModelBase
         ShowCashPanel = false;
         CashTenderedText = "";
         ChangeText = "";
+        _cashOverwriteNext = false;
+        UpdateCashConfirmLabel();
     }
 
     public void RefreshMenu()
@@ -534,8 +555,30 @@ public partial class SellViewModel : ViewModelBase
     private void CashDigit(string? digit)
     {
         if (string.IsNullOrEmpty(digit)) return;
+        if (_cashOverwriteNext)
+        {
+            CashTenderedText = digit == "." ? "0." : digit;
+            _cashOverwriteNext = false;
+            UpdateChangePreview();
+            return;
+        }
         if (digit == "." && CashTenderedText.Contains('.')) return;
+        // Avoid leading junk like "12.501" after Exact — cap decimals at 2
+        if (CashTenderedText.Contains('.'))
+        {
+            var dec = CashTenderedText.Split('.')[1];
+            if (digit != "." && dec.Length >= 2) return;
+        }
         CashTenderedText += digit;
+        UpdateChangePreview();
+    }
+
+    [RelayCommand]
+    private void CashBackspace()
+    {
+        _cashOverwriteNext = false;
+        if (string.IsNullOrEmpty(CashTenderedText)) return;
+        CashTenderedText = CashTenderedText[..^1];
         UpdateChangePreview();
     }
 
@@ -544,13 +587,18 @@ public partial class SellViewModel : ViewModelBase
     {
         CashTenderedText = "";
         ChangeText = "";
+        _cashOverwriteNext = true;
+        UpdateCashConfirmLabel();
     }
 
     [RelayCommand]
     private void CashExact()
     {
-        CashTenderedText = Total.ToString("0.00");
-        ChangeText = "Exact";
+        RefreshPaymentSummary();
+        CashTenderedText = BalanceDue.ToString("0.00");
+        _cashOverwriteNext = true;
+        ChangeText = UiText.Pick("Exact", "刚好");
+        UpdateCashConfirmLabel();
     }
 
     [RelayCommand]
@@ -558,15 +606,53 @@ public partial class SellViewModel : ViewModelBase
     {
         if (amount is null) return;
         CashTenderedText = amount;
+        _cashOverwriteNext = true;
         UpdateChangePreview();
     }
 
     private void UpdateChangePreview()
     {
-        if (decimal.TryParse(CashTenderedText, out var tendered) && tendered >= Total && Total > 0)
-            ChangeText = $"Change £{tendered - Total:0.00}";
+        RefreshPaymentSummary();
+        if (!decimal.TryParse(CashTenderedText, out var tendered) || tendered <= 0)
+        {
+            ChangeText = "";
+            UpdateCashConfirmLabel();
+            return;
+        }
+
+        if (tendered >= BalanceDue && BalanceDue > 0)
+            ChangeText = tendered > BalanceDue
+                ? $"{UiText.Change} £{tendered - BalanceDue:0.00}"
+                : UiText.Pick("Exact", "刚好");
+        else if (tendered > 0 && tendered < BalanceDue)
+            ChangeText = UiText.Pick($"Then due £{BalanceDue - tendered:0.00}", $"还需 £{BalanceDue - tendered:0.00}");
         else
             ChangeText = "";
+        UpdateCashConfirmLabel();
+    }
+
+    private void UpdateCashConfirmLabel()
+    {
+        if (!decimal.TryParse(CashTenderedText, out var tendered) || tendered <= 0)
+        {
+            LblConfirmCash = UiText.TakeCashFull;
+            return;
+        }
+        LblConfirmCash = tendered + 0.001m < BalanceDue
+            ? $"{UiText.PayPartial} £{tendered:0.00}"
+            : UiText.TakeCashFull;
+    }
+
+    private void RefreshPaymentSummary()
+    {
+        // Keep tenders on live ticket; totals from current lines
+        AmountPaid = _ticket.Tenders.Sum(t => t.Amount);
+        BalanceDue = Math.Max(0, Math.Round(Total - AmountPaid, 2));
+        HasPayments = AmountPaid > 0;
+        BalanceDueText = $"£{BalanceDue:0.00}";
+        PaymentSummaryText = HasPayments
+            ? $"{UiText.AmountPaid} £{AmountPaid:0.00} · {UiText.BalanceDue} £{BalanceDue:0.00}"
+            : $"{UiText.BalanceDue} £{BalanceDue:0.00}";
     }
 
     [RelayCommand]
@@ -792,47 +878,73 @@ public partial class SellViewModel : ViewModelBase
         try
         {
             ValidateForSendOrPay(requireAddress: true);
-            var settings = _app.GetSettings();
-            var order = PersistTicket(PosOrderStatus.Paid);
+            RefreshPaymentSummary();
+            if (BalanceDue <= 0.001m)
+                throw new InvalidOperationException(UiText.Pick("Already fully paid", "已付清"));
 
-            decimal tendered = order.Total;
-            if (decimal.TryParse(CashTenderedText, out var t) && t > 0)
-                tendered = t;
-            if (tendered < order.Total)
-                throw new InvalidOperationException($"Cash tendered £{tendered:0.00} < total £{order.Total:0.00}");
+            if (!decimal.TryParse(CashTenderedText, out var received) || received <= 0)
+                throw new InvalidOperationException(UiText.Pick("Enter cash amount", "请输入现金金额"));
+
+            var applied = Math.Min(received, BalanceDue);
+            var change = Math.Max(0, Math.Round(received - BalanceDue, 2));
+            var settings = _app.GetSettings();
+
+            // Persist lines first (keep open until fully paid)
+            var keepStatus = _ticket.Status is PosOrderStatus.Sent or PosOrderStatus.Held
+                ? PosOrderStatus.Sent
+                : PosOrderStatus.Open;
+            var order = PersistTicket(keepStatus);
 
             order.Tenders.Add(new OrderTender
             {
                 Type = TenderType.Cash,
-                Amount = tendered,
-                Reference = tendered > order.Total ? $"change:{(tendered - order.Total):0.00}" : "exact",
+                Amount = applied,
+                CashReceived = received,
+                ChangeGiven = change > 0 ? change : null,
+                Reference = change > 0 ? $"change:{change:0.00}" : (applied + 0.001m < order.Total ? "partial" : "exact"),
             });
-            order.PaymentLabel = "CASH";
-            order.Status = PosOrderStatus.Paid;
+            UpdatePaymentLabel(order);
+
+            var fullyPaid = order.IsFullyPaid;
+            order.Status = fullyPaid ? PosOrderStatus.Paid : PosOrderStatus.Sent;
             _app.Orders.Upsert(order);
+            _ticket = order;
 
             if (settings.SendKitchenOnPay && order.HasUnsentLines)
                 await _app.Print.PrintKitchenAsync(order, unsentOnly: order.Lines.Any(l => l.KitchenSent));
             else if (settings.SendKitchenOnPay && !order.KitchenPrinted)
                 await _app.Print.PrintKitchenAsync(order);
 
-            if (settings.PrintFrontOnPay)
-                await _app.Print.PrintFrontAsync(order);
             if (settings.OpenDrawerOnCash)
                 await _app.CashDrawer.OpenAsync();
 
-            ChangeText = tendered > order.Total
-                ? $"Change £{tendered - order.Total:0.00}"
-                : "Exact";
-
-            PanelStatus = $"Cash paid {order.OrderNumber} £{order.Total:0.00}  {ChangeText}";
-            _setStatus(PanelStatus);
-            ShowCashPanel = false;
-            NewTicket(force: true);
+            if (fullyPaid)
+            {
+                if (settings.PrintFrontOnPay)
+                    await _app.Print.PrintFrontAsync(order);
+                ChangeText = change > 0 ? $"{UiText.Change} £{change:0.00}" : UiText.Pick("Exact", "刚好");
+                PanelStatus = UiText.Pick(
+                    $"Paid {order.OrderNumber} £{order.Total:0.00}  {ChangeText}",
+                    $"已付清 {order.OrderNumber} £{order.Total:0.00}  {ChangeText}");
+                _setStatus(PanelStatus);
+                ShowCashPanel = false;
+                NewTicket(force: true);
+            }
+            else
+            {
+                // Partial — keep ticket open for more cash / card / add items
+                PanelStatus = UiText.Pick(
+                    $"Partial cash £{applied:0.00} · still due £{order.BalanceDue:0.00}",
+                    $"已收现金 £{applied:0.00} · 还需 £{order.BalanceDue:0.00}");
+                _setStatus(PanelStatus);
+                LoadTicket(order);
+                ShowCashPanel = true;
+                CashExact();
+            }
         }
         catch (Exception ex)
         {
-            PanelStatus = $"Cash pay failed: {ex.Message}";
+            PanelStatus = UiText.Pick($"Cash pay failed: {ex.Message}", $"现金收款失败: {ex.Message}");
             _setStatus(PanelStatus);
         }
     }
@@ -843,36 +955,75 @@ public partial class SellViewModel : ViewModelBase
         try
         {
             ValidateForSendOrPay(requireAddress: true);
+            RefreshPaymentSummary();
+            if (BalanceDue <= 0.001m)
+                throw new InvalidOperationException(UiText.Pick("Already fully paid", "已付清"));
+
             var settings = _app.GetSettings();
-            var order = PersistTicket(PosOrderStatus.Paid);
-            var result = await _app.CardTerminal.StartSaleAsync(order.Total);
+            var payAmount = BalanceDue; // card settles remaining balance (split: cash first, then card)
+            var keepStatus = _ticket.Status is PosOrderStatus.Sent or PosOrderStatus.Held
+                ? PosOrderStatus.Sent
+                : PosOrderStatus.Open;
+            var order = PersistTicket(keepStatus);
+
+            var result = await _app.CardTerminal.StartSaleAsync(payAmount);
             order.Tenders.Add(new OrderTender
             {
                 Type = TenderType.CardManual,
-                Amount = order.Total,
+                Amount = payAmount,
                 Reference = result.Message,
             });
-            order.PaymentLabel = "CARD";
-            order.Status = PosOrderStatus.Paid;
+            UpdatePaymentLabel(order);
+
+            var fullyPaid = order.IsFullyPaid;
+            order.Status = fullyPaid ? PosOrderStatus.Paid : PosOrderStatus.Sent;
             _app.Orders.Upsert(order);
+            _ticket = order;
 
             if (settings.SendKitchenOnPay && order.HasUnsentLines)
                 await _app.Print.PrintKitchenAsync(order, unsentOnly: order.Lines.Any(l => l.KitchenSent));
             else if (settings.SendKitchenOnPay && !order.KitchenPrinted)
                 await _app.Print.PrintKitchenAsync(order);
 
-            if (settings.PrintFrontOnPay)
-                await _app.Print.PrintFrontAsync(order);
-
-            PanelStatus = $"Card (manual) {order.OrderNumber} £{order.Total:0.00}";
-            _setStatus(PanelStatus);
-            NewTicket(force: true);
+            if (fullyPaid)
+            {
+                if (settings.PrintFrontOnPay)
+                    await _app.Print.PrintFrontAsync(order);
+                PanelStatus = UiText.Pick(
+                    $"Card paid {order.OrderNumber} £{payAmount:0.00}",
+                    $"刷卡 {order.OrderNumber} £{payAmount:0.00}");
+                _setStatus(PanelStatus);
+                ShowCashPanel = false;
+                NewTicket(force: true);
+            }
+            else
+            {
+                PanelStatus = UiText.Pick(
+                    $"Card £{payAmount:0.00} · still due £{order.BalanceDue:0.00}",
+                    $"刷卡 £{payAmount:0.00} · 还需 £{order.BalanceDue:0.00}");
+                _setStatus(PanelStatus);
+                LoadTicket(order);
+            }
         }
         catch (Exception ex)
         {
-            PanelStatus = $"Card pay failed: {ex.Message}";
+            PanelStatus = UiText.Pick($"Card pay failed: {ex.Message}", $"刷卡失败: {ex.Message}");
             _setStatus(PanelStatus);
         }
+    }
+
+    private static void UpdatePaymentLabel(PosOrder order)
+    {
+        var types = order.Tenders.Select(t => t.Type).Distinct().ToList();
+        if (types.Count == 0) return;
+        if (types.Count > 1)
+            order.PaymentLabel = "SPLIT";
+        else if (types[0] == TenderType.Cash)
+            order.PaymentLabel = "CASH";
+        else if (types[0] == TenderType.CardManual)
+            order.PaymentLabel = "CARD";
+        else
+            order.PaymentLabel = types[0].ToString().ToUpperInvariant();
     }
 
     /// <summary>Open an unpaid / held order from Orders into Sell for continue-pay.</summary>
@@ -960,9 +1111,11 @@ public partial class SellViewModel : ViewModelBase
         OrderNotes = order.Notes ?? "";
         CashTenderedText = "";
         ChangeText = "";
+        ShowCashPanel = false;
         SelectedLine = Lines.LastOrDefault(l => !l.KitchenSent) ?? Lines.LastOrDefault();
         SyncTicketTotals();
         RefreshHeldList();
+        RefreshPaymentSummary();
     }
 
     private void ValidateForSendOrPay(bool requireAddress)
@@ -983,13 +1136,21 @@ public partial class SellViewModel : ViewModelBase
             : _ticket.OrderNumber;
         _ticket.OrderType = Enum.Parse<PosOrderType>(OrderType);
         _ticket.Source = PosOrderSource.Pos;
-        // Don't downgrade Sent → Draft when only adding items
-        if (status == PosOrderStatus.Sent || _ticket.Status is PosOrderStatus.Draft or PosOrderStatus.Open or PosOrderStatus.Held)
-            _ticket.Status = status;
-        else if (status == PosOrderStatus.Paid)
+        // Status transitions — never silently wipe Paid→Draft; never downgrade Sent→Draft/Open
+        if (status == PosOrderStatus.Paid)
             _ticket.Status = PosOrderStatus.Paid;
         else if (status == PosOrderStatus.Held)
             _ticket.Status = PosOrderStatus.Held;
+        else if (status == PosOrderStatus.Sent)
+            _ticket.Status = PosOrderStatus.Sent;
+        else if (status == PosOrderStatus.Open)
+        {
+            if (_ticket.Status is PosOrderStatus.Draft or PosOrderStatus.Open or PosOrderStatus.Held)
+                _ticket.Status = PosOrderStatus.Open;
+            // keep Sent if already sent
+        }
+        else if (_ticket.Status is PosOrderStatus.Draft or PosOrderStatus.Open or PosOrderStatus.Held)
+            _ticket.Status = status;
 
         _ticket.CustomerName = NullIfEmpty(CustomerName);
         _ticket.CustomerPhone = NullIfEmpty(CustomerPhone);
@@ -1048,8 +1209,9 @@ public partial class SellViewModel : ViewModelBase
         HasUnsentLines = Lines.Any(l => !l.KitchenSent);
         TicketIsSent = Lines.Any(l => l.KitchenSent) || _ticket.Status == PosOrderStatus.Sent;
         RefreshLines();
-        UpdateChangePreview();
+        RefreshPaymentSummary();
         UpdateTicketChrome();
+        if (ShowCashPanel) UpdateChangePreview();
         UpdateCustomerSummary();
     }
 
@@ -1071,14 +1233,13 @@ public partial class SellViewModel : ViewModelBase
     private void UpdateTicketChrome()
     {
         var num = string.IsNullOrWhiteSpace(_ticket.OrderNumber) ? UiText.NewTicket : _ticket.OrderNumber;
-        var status = _ticket.Status switch
-        {
-            PosOrderStatus.Sent => UiText.StatusSent,
-            PosOrderStatus.Held => UiText.StatusHeld,
-            PosOrderStatus.Paid => UiText.StatusPaid,
-            PosOrderStatus.Voided => UiText.StatusVoid,
-            _ => Lines.Any(l => l.KitchenSent) ? UiText.StatusSent : UiText.StatusDraft,
-        };
+        string status;
+        if (_ticket.Status == PosOrderStatus.Paid) status = UiText.StatusPaid;
+        else if (_ticket.Status == PosOrderStatus.Held) status = UiText.StatusHeld;
+        else if (_ticket.Status == PosOrderStatus.Voided) status = UiText.StatusVoid;
+        else if (HasPayments && BalanceDue > 0.001m) status = UiText.Pick("DUE", "待收");
+        else if (_ticket.Status == PosOrderStatus.Sent || Lines.Any(l => l.KitchenSent)) status = UiText.StatusSent;
+        else status = UiText.StatusDraft;
         TicketNumberText = num;
         TicketStatusBadge = status;
         TicketHeader = $"{num} · {status}";

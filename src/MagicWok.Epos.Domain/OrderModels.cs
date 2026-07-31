@@ -71,7 +71,12 @@ public sealed class CartLine
 public sealed class OrderTender
 {
     public TenderType Type { get; set; }
+    /// <summary>Amount applied to the bill (never includes cash change).</summary>
     public decimal Amount { get; set; }
+    /// <summary>Cash handed over by customer (cash tenders only).</summary>
+    public decimal? CashReceived { get; set; }
+    /// <summary>Change returned (cash tenders only).</summary>
+    public decimal? ChangeGiven { get; set; }
     public string? Reference { get; set; }
     public DateTimeOffset At { get; set; } = DateTimeOffset.Now;
 }
@@ -114,6 +119,15 @@ public sealed class PosOrder
     public List<OrderTender> Tenders { get; set; } = [];
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.Now;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.Now;
+
+    /// <summary>Sum of tender amounts applied to the bill.</summary>
+    public decimal AmountPaid => Tenders.Sum(t => t.Amount);
+
+    /// <summary>Remaining to collect. Grows again if items are added after a partial/full pay reopen.</summary>
+    public decimal BalanceDue => Math.Max(0, Math.Round(Total - AmountPaid, 2));
+
+    public bool IsFullyPaid => BalanceDue <= 0.001m;
+    public bool HasPayments => Tenders.Count > 0;
 
     public bool IsUnpaid => Status is PosOrderStatus.Draft or PosOrderStatus.Open
         or PosOrderStatus.Sent or PosOrderStatus.Held;

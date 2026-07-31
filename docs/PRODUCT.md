@@ -42,9 +42,12 @@ Tap notes → bind to **selected or last line**. Editable in Settings → Quick 
 
 ## Pay flow
 
-1. Review totals  
-2. Cash (tendered + change / Exact) or Card (manual)  
-3. Settings: **Also print kitchen on Pay if not yet sent** · **Print front on pay** · **Open drawer on cash**
+1. Review totals — footer shows **Paid / Due** when any tender exists  
+2. **Cash** — keypad with ⌫ / CLR / Exact (fills **balance due**); next digit overwrites Exact/£10/20/50  
+3. Cash confirm: amount ≥ due → full pay + change + clear ticket; amount &lt; due → **partial pay**, ticket stays with remaining Due  
+4. **Card** — settles remaining balance (use after partial cash for split tender)  
+5. **Orders → Reopen (PIN)** — reopen a paid ticket to add dishes; previous payments kept; collect new balance  
+6. Settings: kitchen-on-pay · front-on-pay · open drawer on cash
 
 ## Language (industry standard)
 

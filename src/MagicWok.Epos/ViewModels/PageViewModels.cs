@@ -41,6 +41,7 @@ public partial class OrdersViewModel : ViewModelBase
     [ObservableProperty] private string _lblReprintKitchen = "Reprint kitchen";
     [ObservableProperty] private string _lblReprintFront = "Reprint receipt";
     [ObservableProperty] private string _lblVoid = "Void (PIN)";
+    [ObservableProperty] private string _lblReopen = "Reopen (PIN)";
 
     public void RefreshUiLabels()
     {
@@ -55,6 +56,7 @@ public partial class OrdersViewModel : ViewModelBase
         LblReprintKitchen = UiText.ReprintKitchen;
         LblReprintFront = UiText.ReprintFront;
         LblVoid = UiText.VoidOrder;
+        LblReopen = UiText.ReopenOrder;
         Refresh();
     }
 
@@ -101,6 +103,12 @@ public partial class OrdersViewModel : ViewModelBase
             $"{l.Quantity}x {l.Name} £{l.LineTotal:0.00}" +
             (l.KitchenSent ? " [SENT]" : " [NEW]") +
             (string.IsNullOrWhiteSpace(l.Notes) ? "" : $" ({l.Notes})")));
+        var tenders = value.Tenders.Count == 0
+            ? UiText.Pick("No payments yet", "尚未收款")
+            : string.Join("\n", value.Tenders.Select(t =>
+                $"  {t.Type} £{t.Amount:0.00}" +
+                (t.CashReceived is > 0 ? $" (tendered £{t.CashReceived:0.00})" : "") +
+                (t.ChangeGiven is > 0 ? $" change £{t.ChangeGiven:0.00}" : "")));
         DetailText =
             $"{value.OrderNumber}  {value.OrderType}  {value.Source}  {value.Status}\n" +
             (string.IsNullOrWhiteSpace(value.HoldLabel) ? "" : $"Hold: {value.HoldLabel}\n") +
@@ -109,6 +117,8 @@ public partial class OrdersViewModel : ViewModelBase
             $"{value.DeliveryAddress} {value.DeliveryPostcode}\n" +
             $"{lines}\n" +
             $"Subtotal £{value.Subtotal:0.00}  Delivery £{value.DeliveryFee:0.00}  Total £{value.Total:0.00}\n" +
+            $"Paid £{value.AmountPaid:0.00}  Due £{value.BalanceDue:0.00}\n" +
+            $"{tenders}\n" +
             $"Kitchen={(value.KitchenPrinted ? "Y" : "N")} Front={(value.FrontPrinted ? "Y" : "N")}\n" +
             $"Notes: {value.Notes}" +
             (string.IsNullOrWhiteSpace(value.VoidReason) ? "" : $"\nVoid: {value.VoidReason}");
@@ -118,12 +128,52 @@ public partial class OrdersViewModel : ViewModelBase
     private void OpenOnSell()
     {
         if (SelectedOrder is null) return;
-        if (SelectedOrder.Status is PosOrderStatus.Paid or PosOrderStatus.Completed or PosOrderStatus.Voided)
+        if (SelectedOrder.Status is PosOrderStatus.Voided)
         {
-            _setStatus("Paid/voided — use Reprint only");
+            _setStatus(UiText.Pick("Voided — cannot open", "已作废，无法打开"));
+            return;
+        }
+        if (SelectedOrder.Status is PosOrderStatus.Paid or PosOrderStatus.Completed)
+        {
+            _setStatus(UiText.Pick("Fully paid — use Reopen (PIN) to add items", "已付清 — 用「重开加菜」继续"));
             return;
         }
         _openOnSell?.Invoke(SelectedOrder);
+    }
+
+    /// <summary>Industry: reopen a paid ticket (manager PIN) to add items and collect the new balance.</summary>
+    [RelayCommand]
+    private async Task ReopenOrderAsync()
+    {
+        if (SelectedOrder is null) return;
+        if (SelectedOrder.Status is PosOrderStatus.Voided)
+        {
+            _setStatus(UiText.Pick("Voided — cannot reopen", "已作废，无法重开"));
+            return;
+        }
+        if (SelectedOrder.Status is not (PosOrderStatus.Paid or PosOrderStatus.Completed))
+        {
+            // Unpaid — just open
+            _openOnSell?.Invoke(SelectedOrder);
+            return;
+        }
+        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), UiText.Pick("Reopen order", "重开订单")))
+            return;
+        if (!await UiPrompt.ConfirmAsync(
+                UiText.Pick("Reopen paid order?", "重开已付订单？"),
+                UiText.Pick(
+                    $"Reopen {SelectedOrder.OrderNumber}? Previous payments £{SelectedOrder.AmountPaid:0.00} stay on the ticket. New dishes create a balance due.",
+                    $"重开 {SelectedOrder.OrderNumber}？已付 £{SelectedOrder.AmountPaid:0.00} 保留，新加菜产生待收款。")))
+            return;
+
+        SelectedOrder.Status = PosOrderStatus.Sent;
+        SelectedOrder.UpdatedAt = DateTimeOffset.Now;
+        _app.Orders.Upsert(SelectedOrder);
+        _setStatus(UiText.Pick(
+            $"Reopened {SelectedOrder.OrderNumber} — add items, then collect balance",
+            $"已重开 {SelectedOrder.OrderNumber} — 可加菜，再收尾款"));
+        _openOnSell?.Invoke(SelectedOrder);
+        Refresh();
     }
 
     [RelayCommand]

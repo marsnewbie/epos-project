@@ -289,14 +289,23 @@
                   <Button Classes="pos-key-sm" Content="+" Command="{Binding QtyPlusCommand}" Width="44" Margin="0,0,4,0" />
                   <Button Classes="pos-key-sm" Content="⌫" Command="{Binding RemoveLineCommand}" Width="44" Margin="0" />
                 </StackPanel>
-                <TextBlock Grid.Column="1" Text="{Binding ItemsCountText}"
-                           Classes="pos-muted" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0" />
+                <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding ItemsCountText}" Classes="pos-muted" FontSize="12" />
+                  <TextBlock Text="{Binding PaymentSummaryText}" FontSize="11" Foreground="#c2410c"
+                             IsVisible="{Binding HasPayments}" TextWrapping="Wrap" />
+                </StackPanel>
                 <StackPanel Grid.Column="2" HorizontalAlignment="Right">
                   <TextBlock Text="{Binding Total, StringFormat={}£{0:0.00}}"
                              FontSize="26" FontWeight="Bold" Foreground="#1c1917" HorizontalAlignment="Right" />
                   <TextBlock Text="{Binding DeliveryFee, StringFormat=+ £{0:0.00}}"
                              Classes="pos-muted" FontSize="11" HorizontalAlignment="Right"
                              IsVisible="{Binding IsDelivery}" />
+                  <TextBlock HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold" Foreground="#b45309"
+                             IsVisible="{Binding HasPayments}">
+                    <Run Text="{Binding DueLabel}" />
+                    <Run Text=" " />
+                    <Run Text="{Binding BalanceDueText}" />
+                  </TextBlock>
                 </StackPanel>
               </Grid>
 
@@ -318,15 +327,25 @@
             <StackPanel Spacing="6">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel>
-                  <TextBlock Text="{Binding LblCashTender}" Classes="pos-muted" FontSize="11" />
-                  <TextBlock Text="{Binding CashTenderedText, StringFormat={}£{0}}" FontSize="22"
+                  <TextBlock Classes="pos-muted" FontSize="11">
+                    <Run Text="{Binding DueLabel}" />
+                    <Run Text=" " />
+                    <Run Text="{Binding BalanceDueText}" FontWeight="Bold" />
+                  </TextBlock>
+                  <TextBlock Text="{Binding LblCashTender}" Classes="pos-muted" FontSize="11" Margin="0,4,0,0" />
+                  <TextBlock Text="{Binding CashTenderedText, StringFormat={}£{0}}" FontSize="26"
                              FontWeight="Bold" Foreground="#15803d" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" HorizontalAlignment="Right">
                   <TextBlock Text="{Binding Total, StringFormat={}£{0:0.00}}" Foreground="#1c1917"
                              FontWeight="SemiBold" HorizontalAlignment="Right" />
+                  <TextBlock IsVisible="{Binding HasPayments}" HorizontalAlignment="Right" FontSize="11" Foreground="#5b6472">
+                    <Run Text="{Binding PaidLabel}" />
+                    <Run Text=" £" />
+                    <Run Text="{Binding AmountPaid, StringFormat={}{0:0.00}}" />
+                  </TextBlock>
                   <TextBlock Text="{Binding ChangeText}" Foreground="#b45309" FontWeight="Bold"
-                             FontSize="16" HorizontalAlignment="Right" />
+                             FontSize="15" HorizontalAlignment="Right" Margin="0,4,0,0" />
                 </StackPanel>
               </Grid>
               <UniformGrid Columns="4">
@@ -341,18 +360,22 @@
                 <Button Classes="pos-key" Content="7" Command="{Binding CashDigitCommand}" CommandParameter="7" />
                 <Button Classes="pos-key" Content="8" Command="{Binding CashDigitCommand}" CommandParameter="8" />
                 <Button Classes="pos-key" Content="9" Command="{Binding CashDigitCommand}" CommandParameter="9" />
-                <Button Classes="pos-key" Content="{Binding LblExact}" Command="{Binding CashExactCommand}" />
-                <Button Classes="pos-key" Content="C" Command="{Binding CashClearCommand}" />
+                <Button Classes="pos-key" Content="£50" Command="{Binding CashQuickCommand}" CommandParameter="50" />
+                <Button Classes="pos-key" Content="⌫" Command="{Binding CashBackspaceCommand}" FontSize="20" />
                 <Button Classes="pos-key" Content="0" Command="{Binding CashDigitCommand}" CommandParameter="0" />
                 <Button Classes="pos-key" Content="." Command="{Binding CashDigitCommand}" CommandParameter="." />
-                <Button Classes="pos-key" Content="£50" Command="{Binding CashQuickCommand}" CommandParameter="50" />
+                <Button Classes="pos-key" Content="{Binding LblExact}" Command="{Binding CashExactCommand}" />
               </UniformGrid>
-              <Grid ColumnDefinitions="*,2*">
+              <Grid ColumnDefinitions="*,*,2*">
                 <Button Grid.Column="0" Classes="pos-nav" Content="{Binding LblBack}"
-                        Command="{Binding CancelCashPayCommand}" Height="52" Margin="0,0,6,0" />
-                <Button Grid.Column="1" Classes="pos-action pos-cash" Content="{Binding LblConfirmCash}"
+                        Command="{Binding CancelCashPayCommand}" Height="52" Margin="0,0,4,0" />
+                <Button Grid.Column="1" Classes="pos-nav" Content="{Binding LblClearCash}"
+                        Command="{Binding CashClearCommand}" Height="52" Margin="0,0,4,0" />
+                <Button Grid.Column="2" Classes="pos-action pos-cash" Content="{Binding LblConfirmCash}"
                         Command="{Binding PayCashCommand}" Height="52" />
               </Grid>
+              <Button Classes="pos-action pos-card" Content="{Binding LblPayCardOnPad}"
+                      Command="{Binding PayCardCommand}" Height="44" />
             </StackPanel>
           </Border>
 

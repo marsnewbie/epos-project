@@ -412,7 +412,24 @@ public static class TicketRenderer
         if (order.DiscountTotal > 0) b.ColumnsAscii("Discount", "-" + EscPos.Money(order.DiscountTotal));
         b.Large().Bold(true).ColumnsAscii("TOTAL", EscPos.Money(order.Total), cols: 24).Bold(false).Normal();
         foreach (var t in order.Tenders)
-            b.ColumnsAscii(t.Type.ToString(), EscPos.Money(t.Amount));
+        {
+            var label = t.Type switch
+            {
+                TenderType.Cash => "Cash",
+                TenderType.CardManual => "Card",
+                TenderType.OnlinePaid => "Online",
+                _ => t.Type.ToString(),
+            };
+            b.ColumnsAscii(label, EscPos.Money(t.Amount));
+            if (t.CashReceived is > 0)
+                b.ColumnsAscii("  Tendered", EscPos.Money(t.CashReceived.Value));
+            if (t.ChangeGiven is > 0)
+                b.ColumnsAscii("  Change", EscPos.Money(t.ChangeGiven.Value));
+        }
+        if (order.AmountPaid > 0 && !order.IsFullyPaid)
+            b.ColumnsAscii("BALANCE DUE", EscPos.Money(order.BalanceDue));
+        else if (order.IsFullyPaid && order.Tenders.Count > 0)
+            b.ColumnsAscii("PAID", EscPos.Money(order.AmountPaid));
         b.Center().Line("Thank you").FeedAndCut();
         return b.Build();
     }
@@ -471,6 +488,8 @@ public static class TicketRenderer
     {
         if (!string.IsNullOrWhiteSpace(order.PaymentLabel))
             return order.PaymentLabel;
+        if (order.Tenders.Count > 1)
+            return "SPLIT";
         if (order.Tenders.Count > 0)
         {
             return order.Tenders[0].Type switch
