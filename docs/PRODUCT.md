@@ -45,10 +45,10 @@ Tap notes → bind to **selected or last line**. Editable in Settings → Quick 
 1. Footer shows **Paid / Due** whenever any tender exists; badge **DUE** while balance remains  
 2. **Cash** keypad: Exact = balance due; ⌫ / CLR; overwrite after Exact/quick amounts  
 3. Cash &lt; due → **partial** — ticket stays; **no final receipt**; kitchen only if new unsent lines; optional **Interim receipt**  
-4. Cash ≥ due → final receipt (if enabled) + **change overlay** until staff taps Next  
+4. Cash ≥ due → final receipt (if enabled) + **settlement overlay** (locks Sell) until **Next order**; leaving Sell also finishes settlement  
 5. **Card** settles remaining balance (split after partial cash)  
 6. Kitchen `Payment:` shows `PART PAID DUE £x` until fully paid, then CASH/CARD/SPLIT  
-7. **Orders → Reopen (PIN)** for paid tickets; unpaid uses Open on Sell  
+7. **Orders → Reopen (PIN)** clears any Paid overlay, shows lines (REOPEN/DUE); unpaid uses Open on Sell  
 8. Shift totals include **partial cash already taken** + open due  
 
 See [TESTING.md](TESTING.md) payment cases.

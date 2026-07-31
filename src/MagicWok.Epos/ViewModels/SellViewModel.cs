@@ -130,6 +130,8 @@ public partial class SellViewModel : ViewModelBase
     [ObservableProperty] private string _changeOverlayText = "";
     [ObservableProperty] private string _changeOverlaySub = "";
     private bool _cashOverwriteNext;
+    /// <summary>After full pay, dismiss settlement overlay starts a blank ticket.</summary>
+    private bool _blankAfterSettlementDismiss;
 
     public void RefreshUiLabels()
     {
@@ -884,6 +886,7 @@ public partial class SellViewModel : ViewModelBase
     private void ResumeHeld(PosOrder? order)
     {
         if (order is null) return;
+        HideSettlementUi();
         if (Lines.Count > 0)
         {
             PanelStatus = "Clear or pay current ticket before resuming Held";
@@ -965,16 +968,18 @@ public partial class SellViewModel : ViewModelBase
                 }
 
                 ShowCashPanel = false;
-                ChangeOverlayText = change > 0
-                    ? $"{UiText.Change}\n£{change:0.00}"
-                    : UiText.Pick("Exact — no change", "刚好 — 无找零");
-                ChangeOverlaySub = UiText.Pick(
-                    $"Paid {order.OrderNumber} · £{order.Total:0.00}",
-                    $"已付清 {order.OrderNumber} · £{order.Total:0.00}");
-                ShowChangeOverlay = true;
+                // Keep paid ticket visible under overlay; blank only on "Next order"
+                LoadTicket(order);
+                PresentSettlementOverlay(
+                    change > 0
+                        ? $"{UiText.Change}\n£{change:0.00}"
+                        : UiText.Pick("Exact — no change", "刚好 — 无找零"),
+                    UiText.Pick(
+                        $"Paid {order.OrderNumber} · £{order.Total:0.00}",
+                        $"已付清 {order.OrderNumber} · £{order.Total:0.00}"),
+                    startBlankOnDismiss: true);
                 PanelStatus = ChangeOverlaySub;
                 _setStatus(PanelStatus);
-                NewTicket(force: true);
             }
             else
             {
@@ -1052,10 +1057,11 @@ public partial class SellViewModel : ViewModelBase
                     $"刷卡付清 {order.OrderNumber} £{payAmount:0.00}");
                 _setStatus(PanelStatus);
                 ShowCashPanel = false;
-                ChangeOverlayText = UiText.Pick("CARD PAID", "刷卡已付");
-                ChangeOverlaySub = PanelStatus;
-                ShowChangeOverlay = true;
-                NewTicket(force: true);
+                LoadTicket(order);
+                PresentSettlementOverlay(
+                    UiText.Pick("CARD PAID", "刷卡已付"),
+                    PanelStatus,
+                    startBlankOnDismiss: true);
             }
             else
             {
@@ -1145,18 +1151,53 @@ public partial class SellViewModel : ViewModelBase
     [RelayCommand]
     private void DismissChangeOverlay()
     {
+        var startBlank = _blankAfterSettlementDismiss;
+        HideSettlementUi();
+        if (startBlank)
+            NewTicket(force: true);
+    }
+
+    /// <summary>
+    /// If staff leave Sell while the paid/change screen is up, finish settlement
+    /// so they never return to a stuck Paid overlay.
+    /// </summary>
+    public void CompletePendingSettlement()
+    {
+        if (!ShowChangeOverlay) return;
+        var startBlank = _blankAfterSettlementDismiss;
+        HideSettlementUi();
+        if (startBlank)
+            NewTicket(force: true);
+    }
+
+    private void PresentSettlementOverlay(string title, string subtitle, bool startBlankOnDismiss)
+    {
+        ChangeOverlayText = title;
+        ChangeOverlaySub = subtitle;
+        _blankAfterSettlementDismiss = startBlankOnDismiss;
+        ShowChangeOverlay = true;
+    }
+
+    private void HideSettlementUi()
+    {
         ShowChangeOverlay = false;
         ChangeOverlayText = "";
         ChangeOverlaySub = "";
+        _blankAfterSettlementDismiss = false;
     }
 
-    /// <summary>Open an unpaid / held order from Orders into Sell for continue-pay.</summary>
+    /// <summary>Open an unpaid / held / reopened order from Orders into Sell.</summary>
     public void LoadOrderForContinue(PosOrder order)
     {
+        // Switching tickets ends any settlement overlay without wiping this order
+        HideSettlementUi();
         LoadTicket(order);
+        var dueNote = order.BalanceDue > 0.001m
+            ? UiText.Pick($" · due £{order.BalanceDue:0.00}", $" · 待收 £{order.BalanceDue:0.00}")
+            : UiText.Pick(" · fully paid — add dishes for new balance", " · 已付清 — 加菜后产生新待收");
         PanelStatus = UiText.Pick(
-            $"Opened {order.OrderNumber} · due £{order.BalanceDue:0.00}",
-            $"已打开 {order.OrderNumber} · 待收 £{order.BalanceDue:0.00}");
+            $"Opened {order.OrderNumber}{dueNote}",
+            $"已打开 {order.OrderNumber}{dueNote}");
         _setStatus(PanelStatus);
     }
 
@@ -1204,6 +1245,7 @@ public partial class SellViewModel : ViewModelBase
 
     private void NewTicket(bool force = false)
     {
+        HideSettlementUi();
         _ticket = new PosOrder();
         Lines.Clear();
         SelectedLine = null;
@@ -1225,6 +1267,8 @@ public partial class SellViewModel : ViewModelBase
 
     private void LoadTicket(PosOrder order)
     {
+        // Do not call HideSettlementUi here — full-pay uses LoadTicket under the overlay.
+        // Callers that switch context (Orders open / New / Clear / Resume) hide first.
         _ticket = order;
         Lines.Clear();
         foreach (var l in order.Lines) Lines.Add(l);
@@ -1364,6 +1408,8 @@ public partial class SellViewModel : ViewModelBase
         else if (_ticket.Status == PosOrderStatus.Held) status = UiText.StatusHeld;
         else if (_ticket.Status == PosOrderStatus.Voided) status = UiText.StatusVoid;
         else if (HasPayments && BalanceDue > 0.001m) status = UiText.Pick("DUE", "待收");
+        else if (HasPayments && BalanceDue <= 0.001m && _ticket.Status == PosOrderStatus.Sent)
+            status = UiText.Pick("REOPEN", "重开");
         else if (_ticket.Status == PosOrderStatus.Sent || Lines.Any(l => l.KitchenSent)) status = UiText.StatusSent;
         else status = UiText.StatusDraft;
         TicketNumberText = num;

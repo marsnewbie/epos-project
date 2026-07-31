@@ -8,7 +8,9 @@
              x:DataType="vm:SellViewModel"
              Background="#e8eaed">
 
-  <Grid ColumnDefinitions="148,*,420">
+  <Grid>
+  <Grid ColumnDefinitions="148,*,420"
+        IsEnabled="{Binding !ShowChangeOverlay}">
 
     <!-- Categories -->
     <Border Grid.Column="0" Classes="pos-panel" Padding="8" Margin="0,0,8,0">
@@ -383,23 +385,6 @@
           </Border>
 
           <Grid>
-            <!-- Change / paid overlay (blocks until staff dismisses) -->
-            <Border IsVisible="{Binding ShowChangeOverlay}" Background="#E0000000" ZIndex="20"
-                    CornerRadius="8">
-              <Border Background="#ffffff" CornerRadius="12" Padding="28" Margin="24"
-                      HorizontalAlignment="Center" VerticalAlignment="Center"
-                      BorderBrush="#15803d" BorderThickness="3" MinWidth="280">
-                <StackPanel Spacing="12">
-                  <TextBlock Text="{Binding ChangeOverlayText}" FontSize="32" FontWeight="Bold"
-                             Foreground="#15803d" TextAlignment="Center" TextWrapping="Wrap" />
-                  <TextBlock Text="{Binding ChangeOverlaySub}" FontSize="14" Foreground="#5b6472"
-                             TextAlignment="Center" TextWrapping="Wrap" />
-                  <Button Classes="pos-action pos-cash" Content="{Binding LblNextTicket}"
-                          Command="{Binding DismissChangeOverlayCommand}" Height="52" Margin="0,8,0,0" />
-                </StackPanel>
-              </Border>
-            </Border>
-
             <ListBox Classes="pos-ticket" ItemsSource="{Binding Lines}" SelectedItem="{Binding SelectedLine}"
                      IsVisible="{Binding !IsTicketEmpty}">
               <ListBox.ItemTemplate>
@@ -448,5 +433,22 @@
         </DockPanel>
       </Grid>
     </Border>
+  </Grid>
+
+  <!-- Full-screen settlement: must acknowledge before any Sell work continues -->
+  <Border IsVisible="{Binding ShowChangeOverlay}" Background="#E0000000" ZIndex="100">
+    <Border Background="#ffffff" CornerRadius="12" Padding="28" Margin="24"
+            HorizontalAlignment="Center" VerticalAlignment="Center"
+            BorderBrush="#15803d" BorderThickness="3" MinWidth="300" MaxWidth="420">
+      <StackPanel Spacing="12">
+        <TextBlock Text="{Binding ChangeOverlayText}" FontSize="32" FontWeight="Bold"
+                   Foreground="#15803d" TextAlignment="Center" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding ChangeOverlaySub}" FontSize="14" Foreground="#5b6472"
+                   TextAlignment="Center" TextWrapping="Wrap" />
+        <Button Classes="pos-action pos-cash" Content="{Binding LblNextTicket}"
+                Command="{Binding DismissChangeOverlayCommand}" Height="52" Margin="0,8,0,0" />
+      </StackPanel>
+    </Border>
+  </Border>
   </Grid>
 </UserControl>

@@ -162,6 +162,9 @@ public partial class MainViewModel : ViewModelBase
 
     private void Navigate(string key, ViewModelBase page, string title, Action? onEnter = null)
     {
+        if (NavKey == "sell" && key != "sell")
+            Sell.CompletePendingSettlement();
+
         NavKey = key;
         IsSellNav = key == "sell";
         IsOrdersNav = key == "orders";

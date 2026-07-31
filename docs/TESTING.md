@@ -21,10 +21,11 @@ dotnet run --project src/MagicWok.Epos
 5. **Partial cash**: no final receipt; badge DUE; Paid/Due on ticket; optional **Interim receipt**; kitchen only if new unsent lines  
 6. Kitchen ticket Payment line must say **PART PAID DUE £x** (not CASH as if settled)  
 7. **Split**: partial cash then Card (balance) → final receipt on full pay  
-8. Full pay → change/paid overlay → **Next order**; Shift includes partial cash taken  
+8. Full pay → settlement overlay covers whole Sell (menu locked) → ticket stays visible → **Next order** blanks; leaving Sell also finishes settlement  
 9. **Orders** list shows Due/Paid; Unpaid filter excludes fully-paid reopen leftovers  
-10. **Reopen (PIN)** then add dish → new Due; **Void** warns if money already taken  
+10. **Reopen (PIN)** while Paid overlay was up → overlay clears, ticket + lines visible, badge REOPEN; add dish → Due; send/pay balance  
 11. Held reprint kitchen must **not** un-hold the ticket  
+12. After pay, **New/Clear** must never leave a stuck Paid screen (overlay gone; blank ticket usable)
 
 ## P1 — Sell speed
 
