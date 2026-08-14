@@ -1,4 +1,4 @@
-using RingOrder.Epos.Data;
+﻿using RingOrder.Epos.Data;
 using RingOrder.Epos.Domain;
 using Xunit;
 
@@ -129,17 +129,13 @@ public class BundleImportTests : IDisposable
     }
 
     [Fact]
-    public void Tax_classes_and_price_tiers_are_stored_with_exact_rates()
+    public void Tax_classes_are_stored_with_exact_rates()
     {
         var taxClasses = _menu.GetTaxClasses();
         Assert.Equal(_bundle.Tax.Classes.Count, taxClasses.Count);
 
         var standard = taxClasses.First(t => t.RateBasisPoints == 2000);
         Assert.Equal(0.20m, standard.Rate);   // basis points, so never 0.19999999
-
-        var tiers = _menu.GetPriceTiers();
-        Assert.Equal(_bundle.PriceTiers.Count, tiers.Count);
-        Assert.Single(tiers, t => t.IsDefault);
     }
 
     [Fact]

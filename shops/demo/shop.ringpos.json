@@ -41,33 +41,15 @@
     {
       "id": "collection",
       "name": "Collection",
-      "isDefault": true,
-      "priceTierId": "standard"
+      "isDefault": true
     },
     {
       "id": "delivery",
-      "name": "Delivery",
-      "priceTierId": "standard"
-    },
-    {
-      "id": "eat-in",
-      "name": "Eat in",
-      "priceTierId": "eat-in"
-    }
-  ],
-  "priceTiers": [
-    {
-      "id": "standard",
-      "name": "Takeaway / delivery",
-      "isDefault": true
+      "name": "Delivery"
     },
     {
       "id": "eat-in",
       "name": "Eat in"
-    },
-    {
-      "id": "platform",
-      "name": "Third-party platform"
     }
   ],
   "menu": {

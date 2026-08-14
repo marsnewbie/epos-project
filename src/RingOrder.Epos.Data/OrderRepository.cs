@@ -1,4 +1,4 @@
-using RingOrder.Epos.Domain;
+﻿using RingOrder.Epos.Domain;
 using Microsoft.Data.Sqlite;
 
 namespace RingOrder.Epos.Data;
@@ -27,7 +27,7 @@ public sealed class OrderRepository
             cmd.CommandText = """
                 INSERT INTO orders(
                   id,order_number,service_type,channel,platform_name,customer_waiting,status,
-                  terminal_id,staff_id,shift_id,price_tier_id,
+                  terminal_id,staff_id,shift_id,
                   customer_id,customer_name,customer_phone,delivery_address,delivery_postcode,
                   table_number,hold_label,void_reason,
                   subtotal_pence,delivery_fee_pence,discount_total_pence,below_minimum_pence,total_pence,
@@ -35,7 +35,7 @@ public sealed class OrderRepository
                   online_external_id,online_payload,kitchen_printed,front_printed,online_acked,
                   created_at,updated_at)
                 VALUES(
-                  $id,$on,$svc,$ch,$pn,$cw,$st,$term,$staff,$shift,$tier,
+                  $id,$on,$svc,$ch,$pn,$cw,$st,$term,$staff,$shift,
                   $cid,$cn,$cp,$da,$dp,$tn,$hl,$vr,
                   $sub,$df,$disc,$bms,$tot,
                   $notes,$rf,$fl,$pl,$tf,$oe,$op,$kp,$fp,$oa,$ca,$ua)
@@ -49,7 +49,6 @@ public sealed class OrderRepository
                   terminal_id=excluded.terminal_id,
                   staff_id=excluded.staff_id,
                   shift_id=excluded.shift_id,
-                  price_tier_id=excluded.price_tier_id,
                   customer_id=excluded.customer_id,
                   customer_name=excluded.customer_name,
                   customer_phone=excluded.customer_phone,
@@ -311,7 +310,6 @@ public sealed class OrderRepository
         cmd.Parameters.AddWithValue("$term", (object?)o.TerminalId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$staff", (object?)o.StaffId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$shift", (object?)o.ShiftId ?? DBNull.Value);
-        cmd.Parameters.AddWithValue("$tier", o.PriceTierId);
         cmd.Parameters.AddWithValue("$cid", (object?)o.CustomerId ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$cn", (object?)o.CustomerName ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$cp", (object?)o.CustomerPhone ?? DBNull.Value);
@@ -358,7 +356,6 @@ public sealed class OrderRepository
             TerminalId = SN("terminal_id"),
             StaffId = SN("staff_id"),
             ShiftId = SN("shift_id"),
-            PriceTierId = S("price_tier_id"),
             CustomerId = SN("customer_id"),
             CustomerName = SN("customer_name"),
             CustomerPhone = SN("customer_phone"),

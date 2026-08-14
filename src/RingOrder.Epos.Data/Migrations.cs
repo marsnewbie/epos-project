@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 
 namespace RingOrder.Epos.Data;
 
@@ -94,12 +94,6 @@ public static class SchemaMigrations
           rate_basis_points INTEGER NOT NULL
         );
 
-        CREATE TABLE price_tiers (
-          id         TEXT PRIMARY KEY,
-          name       TEXT NOT NULL,
-          is_default INTEGER NOT NULL DEFAULT 0
-        );
-
         CREATE TABLE categories (
           id           TEXT PRIMARY KEY,
           name         TEXT NOT NULL,
@@ -128,13 +122,6 @@ public static class SchemaMigrations
 
         CREATE INDEX idx_menu_items_category ON menu_items(category_id);
         CREATE INDEX idx_menu_items_number ON menu_items(menu_number);
-
-        CREATE TABLE menu_item_tier_prices (
-          item_id     TEXT NOT NULL,
-          tier_id     TEXT NOT NULL,
-          price_pence INTEGER NOT NULL,
-          PRIMARY KEY (item_id, tier_id)
-        );
 
         CREATE TABLE option_groups (
           id             TEXT PRIMARY KEY,
@@ -193,7 +180,6 @@ public static class SchemaMigrations
           terminal_id           TEXT,
           staff_id              TEXT,
           shift_id              TEXT,
-          price_tier_id         TEXT NOT NULL DEFAULT 'standard',
           customer_id           TEXT,
           customer_name         TEXT,
           customer_phone        TEXT,

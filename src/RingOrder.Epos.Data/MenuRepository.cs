@@ -1,4 +1,4 @@
-using RingOrder.Epos.Domain;
+﻿using RingOrder.Epos.Domain;
 using Microsoft.Data.Sqlite;
 
 namespace RingOrder.Epos.Data;
@@ -51,7 +51,7 @@ public sealed class MenuRepository
 
     public MenuRepository(EposDb db) => _db = db;
 
-    // ── Tax classes and price tiers ─────────────────────────────────────────
+    // ── Tax classes ─────────────────────────────────────────────────────────
 
     public List<TaxClass> GetTaxClasses()
     {
@@ -62,18 +62,6 @@ public sealed class MenuRepository
         using var r = cmd.ExecuteReader();
         while (r.Read())
             list.Add(new TaxClass { Id = r.GetString(0), Name = r.GetString(1), RateBasisPoints = r.GetInt32(2) });
-        return list;
-    }
-
-    public List<PriceTier> GetPriceTiers()
-    {
-        var conn = _db.Open();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT id,name,is_default FROM price_tiers ORDER BY is_default DESC,name";
-        var list = new List<PriceTier>();
-        using var r = cmd.ExecuteReader();
-        while (r.Read())
-            list.Add(new PriceTier { Id = r.GetString(0), Name = r.GetString(1), IsDefault = r.GetInt32(2) == 1 });
         return list;
     }
 
@@ -95,29 +83,6 @@ public sealed class MenuRepository
             cmd.Parameters.AddWithValue("$id", c.Id);
             cmd.Parameters.AddWithValue("$n", c.Name);
             cmd.Parameters.AddWithValue("$r", c.RateBasisPoints);
-            cmd.ExecuteNonQuery();
-        }
-        tx.Commit();
-    }
-
-    public void ReplacePriceTiers(IEnumerable<PriceTier> tiers)
-    {
-        var conn = _db.Open();
-        using var tx = conn.BeginTransaction();
-        using (var clear = conn.CreateCommand())
-        {
-            clear.Transaction = tx;
-            clear.CommandText = "DELETE FROM price_tiers";
-            clear.ExecuteNonQuery();
-        }
-        foreach (var t in tiers)
-        {
-            using var cmd = conn.CreateCommand();
-            cmd.Transaction = tx;
-            cmd.CommandText = "INSERT INTO price_tiers(id,name,is_default) VALUES($id,$n,$d)";
-            cmd.Parameters.AddWithValue("$id", t.Id);
-            cmd.Parameters.AddWithValue("$n", t.Name);
-            cmd.Parameters.AddWithValue("$d", t.IsDefault ? 1 : 0);
             cmd.ExecuteNonQuery();
         }
         tx.Commit();
@@ -416,7 +381,6 @@ public sealed class MenuRepository
         foreach (var sql in new[]
                  {
                      "DELETE FROM menu_item_option_groups WHERE item_id=$id",
-                     "DELETE FROM menu_item_tier_prices WHERE item_id=$id",
                      "DELETE FROM menu_items WHERE id=$id",
                  })
         {
@@ -443,7 +407,6 @@ public sealed class MenuRepository
             clear.Transaction = tx;
             clear.CommandText = """
                 DELETE FROM menu_item_option_groups;
-                DELETE FROM menu_item_tier_prices;
                 DELETE FROM option_choices;
                 DELETE FROM option_groups;
                 DELETE FROM menu_items;
@@ -531,28 +494,6 @@ public sealed class MenuRepository
             if (catalogue.TryGetValue(r.GetString(1), out var group))
                 item.OptionGroups.Add(group.ForItem(r.GetInt32(2), showWhen));
         }
-
-        foreach (var tierPrices in ReadTierPrices(items.Select(i => i.Id)))
-            byId[tierPrices.Key].TierPrices = tierPrices.Value;
-    }
-
-    private Dictionary<string, Dictionary<string, decimal>> ReadTierPrices(IEnumerable<string> itemIds)
-    {
-        var wanted = itemIds.ToHashSet(StringComparer.Ordinal);
-        var result = new Dictionary<string, Dictionary<string, decimal>>(StringComparer.Ordinal);
-        var conn = _db.Open();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = "SELECT item_id,tier_id,price_pence FROM menu_item_tier_prices";
-        using var r = cmd.ExecuteReader();
-        while (r.Read())
-        {
-            var itemId = r.GetString(0);
-            if (!wanted.Contains(itemId)) continue;
-            if (!result.TryGetValue(itemId, out var map))
-                result[itemId] = map = new Dictionary<string, decimal>(StringComparer.Ordinal);
-            map[r.GetString(1)] = Money.FromPence(r.GetInt64(2));
-        }
-        return result;
     }
 
     private static void WriteOptionGroup(SqliteConnection conn, SqliteTransaction tx, OptionGroup group)
@@ -650,7 +591,6 @@ public sealed class MenuRepository
         foreach (var sql in new[]
                  {
                      "DELETE FROM menu_item_option_groups WHERE item_id=$id",
-                     "DELETE FROM menu_item_tier_prices WHERE item_id=$id",
                  })
         {
             using var wipe = conn.CreateCommand();
@@ -690,18 +630,5 @@ public sealed class MenuRepository
             cmd.ExecuteNonQuery();
         }
 
-        foreach (var (tierId, price) in item.TierPrices)
-        {
-            using var cmd = conn.CreateCommand();
-            cmd.Transaction = tx;
-            cmd.CommandText = """
-                INSERT INTO menu_item_tier_prices(item_id,tier_id,price_pence) VALUES($i,$t,$p)
-                ON CONFLICT(item_id,tier_id) DO UPDATE SET price_pence=excluded.price_pence
-                """;
-            cmd.Parameters.AddWithValue("$i", item.Id);
-            cmd.Parameters.AddWithValue("$t", tierId);
-            cmd.Parameters.AddWithValue("$p", Money.ToPence(price));
-            cmd.ExecuteNonQuery();
-        }
     }
 }

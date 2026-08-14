@@ -1,4 +1,4 @@
-namespace RingOrder.Epos.Domain;
+﻿namespace RingOrder.Epos.Domain;
 
 /// <summary>
 /// Everything that makes one till belong to one shop: identity, tax, menu,
@@ -20,7 +20,6 @@ public sealed class ShopBundle
     public ShopIdentity Shop { get; set; } = new();
     public LocaleSettings Locale { get; set; } = new();
     public TaxSettings Tax { get; set; } = new();
-    public List<PriceTierDef> PriceTiers { get; set; } = [];
     public List<ServiceTypeDef> ServiceTypes { get; set; } = [];
     public MenuBundle Menu { get; set; } = new();
     public List<QuickNoteDef> QuickNotes { get; set; } = [];
@@ -70,13 +69,6 @@ public sealed class TaxClassDef
     public int RateBasisPoints { get; set; }
 }
 
-public sealed class PriceTierDef
-{
-    public string Id { get; set; } = "";
-    public string Name { get; set; } = "";
-    public bool IsDefault { get; set; }
-}
-
 /// <summary>Which service types this shop offers, and how each is priced.</summary>
 public sealed class ServiceTypeDef
 {
@@ -84,7 +76,6 @@ public sealed class ServiceTypeDef
     public string Id { get; set; } = "";
     public string Name { get; set; } = "";
     public bool IsDefault { get; set; }
-    public string PriceTierId { get; set; } = "standard";
 }
 
 public sealed class MenuBundle
@@ -139,7 +130,6 @@ public sealed class MenuItemDef
     public string? Translation { get; set; }
     public string? Description { get; set; }
     public int PricePence { get; set; }
-    public Dictionary<string, int> TierPricesPence { get; set; } = new(StringComparer.Ordinal);
     public string? TaxClassId { get; set; }
     public string? PrintClass { get; set; }
     public bool IsAvailable { get; set; } = true;

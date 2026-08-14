@@ -1,4 +1,4 @@
-namespace RingOrder.Epos.Domain;
+﻿namespace RingOrder.Epos.Domain;
 
 public sealed class SelectedChoice
 {
@@ -128,8 +128,6 @@ public sealed class PosOrder
     /// <summary>Trading session this order belongs to, for X/Z reporting.</summary>
     public string? ShiftId { get; set; }
 
-    /// <summary>Price tier the lines were priced at (takeaway, eat-in, platform).</summary>
-    public string PriceTierId { get; set; } = "standard";
     public string? CustomerId { get; set; }
     public string? CustomerName { get; set; }
     public string? CustomerPhone { get; set; }

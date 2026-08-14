@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using RingOrder.Epos.Domain;
 
 namespace RingOrder.Epos.Data;
@@ -76,18 +76,7 @@ public sealed class BundleImporter
             warnings.Add("bundle defines no tax classes; VAT will read as zero on every line");
         _menu.ReplaceTaxClasses(taxClasses);
 
-        var tiers = bundle.PriceTiers
-            .Select(t => new PriceTier { Id = t.Id, Name = t.Name, IsDefault = t.IsDefault })
-            .ToList();
-        if (tiers.Count > 0 && tiers.All(t => !t.IsDefault))
-        {
-            tiers[0].IsDefault = true;
-            warnings.Add($"no default price tier in the bundle; '{tiers[0].Id}' was made the default");
-        }
-        _menu.ReplacePriceTiers(tiers);
-
         var taxClassIds = taxClasses.Select(t => t.Id).ToHashSet(StringComparer.Ordinal);
-        var tierIds = tiers.Select(t => t.Id).ToHashSet(StringComparer.Ordinal);
 
         var categories = bundle.Menu.Categories.Select(c => new Category
         {
@@ -138,9 +127,6 @@ public sealed class BundleImporter
             if (def.TaxClassId is { } taxClassId && !taxClassIds.Contains(taxClassId))
                 warnings.Add($"{def.Name}: tax class '{taxClassId}' is not in the bundle");
 
-            foreach (var tierId in def.TierPricesPence.Keys.Where(t => !tierIds.Contains(t)))
-                warnings.Add($"{def.Name}: price tier '{tierId}' is not in the bundle");
-
             var links = new List<MenuItemOptionLink>();
             foreach (var link in def.OptionGroups)
             {
@@ -183,8 +169,6 @@ public sealed class BundleImporter
                 ItemTranslation = def.Translation,
                 Description = def.Description,
                 BasePrice = Money.FromPence(def.PricePence),
-                TierPrices = def.TierPricesPence.ToDictionary(
-                    p => p.Key, p => Money.FromPence(p.Value), StringComparer.Ordinal),
                 PrintClass = def.PrintClass,
                 TaxClassId = def.TaxClassId,
                 IsAvailable = def.IsAvailable,

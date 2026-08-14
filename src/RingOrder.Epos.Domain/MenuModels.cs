@@ -1,4 +1,4 @@
-namespace RingOrder.Epos.Domain;
+﻿namespace RingOrder.Epos.Domain;
 
 public sealed class Category
 {
@@ -97,14 +97,12 @@ public sealed class MenuItem
     public string? ItemTranslation { get; set; }
     public string? Description { get; set; }
 
-    /// <summary>Price on the default tier.</summary>
-    public decimal BasePrice { get; set; }
-
     /// <summary>
-    /// Overrides per price tier (eat-in, marketplace). Absent means the tier uses
-    /// <see cref="BasePrice"/> — most dishes never need an entry here.
+    /// The counter price. There is exactly one price list: web and marketplace
+    /// orders arrive priced by whoever took them and are only printed and
+    /// recorded here, so a second list would be a copy nobody maintains.
     /// </summary>
-    public Dictionary<string, decimal> TierPrices { get; set; } = new(StringComparer.Ordinal);
+    public decimal BasePrice { get; set; }
 
     /// <summary>Station that cooks it; falls back to the category's class.</summary>
     public string? PrintClass { get; set; }
@@ -124,9 +122,6 @@ public sealed class MenuItem
     /// repository has attached the shared catalogue.
     /// </summary>
     public List<OptionGroup> OptionGroups { get; set; } = [];
-
-    public decimal PriceForTier(string? tierId) =>
-        tierId is not null && TierPrices.TryGetValue(tierId, out var price) ? price : BasePrice;
 }
 
 /// <summary>A VAT band. Rates are basis points so 20% is 2000 and never 0.199999.</summary>
@@ -139,14 +134,3 @@ public sealed class TaxClass
     public decimal Rate => RateBasisPoints / 10_000m;
 }
 
-/// <summary>
-/// A named price list. UK takeaways routinely charge differently for eat-in
-/// (VAT) and for marketplace orders (commission), and a shop that cannot express
-/// that asks for a second copy of its menu.
-/// </summary>
-public sealed class PriceTier
-{
-    public string Id { get; set; } = "";
-    public string Name { get; set; } = "";
-    public bool IsDefault { get; set; }
-}
