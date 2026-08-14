@@ -165,6 +165,53 @@ public class PrintRoutingTests
     }
 
     [Fact]
+    public void A_dish_that_follows_its_category_still_routes()
+    {
+        // Blank on the dish means "wherever the category goes". If that reaches
+        // an order line as null, every station rule stops matching and the
+        // kitchen gets nothing — which is exactly what happened once.
+        var starters = new Category { Id = "starters", Name = "Starters", PrintClass = "fryer" };
+        var dish = new MenuItem
+        {
+            Id = "spring-rolls",
+            CategoryId = starters.Id,
+            Name = "Spring rolls",
+            PrintClass = null,
+            CategoryPrintClass = starters.PrintClass,
+        };
+
+        Assert.Equal("fryer", dish.EffectivePrintClass);
+
+        var fryer = Device("fryer", "Fryer");
+        var routes = new List<PrintRoute>
+        {
+            new() { Document = PrintDocument.Kitchen, PrintClass = "fryer", DeviceId = fryer.Id },
+        };
+
+        var line = Line(dish.Name, dish.EffectivePrintClass);
+        Assert.Single(PrintRouting.RouteKitchen(Order(), [line], routes, Map(fryer)));
+    }
+
+    [Fact]
+    public void A_dish_may_override_its_category()
+    {
+        var dish = new MenuItem
+        {
+            Name = "Salt and chilli squid",
+            PrintClass = "fryer",
+            CategoryPrintClass = "kitchen",
+        };
+
+        Assert.Equal("fryer", dish.EffectivePrintClass);
+    }
+
+    [Fact]
+    public void With_nothing_set_anywhere_a_dish_still_reaches_the_kitchen()
+    {
+        Assert.Equal("kitchen", new MenuItem { Name = "Unclassified" }.EffectivePrintClass);
+    }
+
+    [Fact]
     public void Defaults_put_the_drawer_printer_on_receipts_and_the_other_on_the_kitchen()
     {
         var front = Device("front", "Counter", drawer: true);

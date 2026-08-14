@@ -83,18 +83,71 @@ public partial class PrinterRow : ObservableObject
     }
 }
 
-/// <summary>One routing rule in Settings.</summary>
+/// <summary>
+/// One routing rule in Settings, editable in place.
+/// <para>
+/// Every dropdown offers "any" as its first entry, because most rules are broad
+/// — "kitchen dishes go to the kitchen printer" — and only a few need narrowing
+/// to one service type or channel.
+/// </para>
+/// </summary>
 public partial class RouteRow : ObservableObject
 {
-    public RouteRow(PrintRoute route, IReadOnlyDictionary<string, PrintDevice> devices)
+    /// <summary>Shown as the first option wherever a filter is optional.</summary>
+    public const string Any = "(any)";
+
+    public RouteRow(PrintRoute route, IReadOnlyList<PrintDevice> devices)
     {
         Route = route;
-        _summary = route.Describe(devices);
+        Devices = devices;
+        DeviceChoices = devices.Select(d => d.Name).ToArray();
+        FallbackChoices = ["(none)", .. DeviceChoices];
+
         _isEnabled = route.IsEnabled;
+        _document = route.Document;
+        _printClass = route.PrintClass ?? Any;
+        _serviceType = route.ServiceType?.ToString() ?? Any;
+        _channel = route.Channel?.ToString() ?? Any;
+        _deviceName = devices.FirstOrDefault(d => d.Id == route.DeviceId)?.Name ?? "";
+        _copies = Math.Clamp(route.Copies, 1, 9);
+        _fallbackName = devices.FirstOrDefault(d => d.Id == route.FallbackDeviceId)?.Name ?? "(none)";
     }
 
     public PrintRoute Route { get; }
+    public IReadOnlyList<PrintDevice> Devices { get; }
 
-    [ObservableProperty] private string _summary;
+    public string[] DeviceChoices { get; }
+    public string[] FallbackChoices { get; }
+
+    public PrintDocument[] Documents { get; } = Enum.GetValues<PrintDocument>();
+    public string[] PrintClassChoices { get; } = [Any, .. Domain.PrintClass.Known];
+    public string[] ServiceTypeChoices { get; } = [Any, .. Enum.GetNames<ServiceType>()];
+    public string[] ChannelChoices { get; } = [Any, .. Enum.GetNames<OrderChannel>()];
+
     [ObservableProperty] private bool _isEnabled;
+    [ObservableProperty] private PrintDocument _document;
+    [ObservableProperty] private string _printClass;
+    [ObservableProperty] private string _serviceType;
+    [ObservableProperty] private string _channel;
+    [ObservableProperty] private string _deviceName;
+    [ObservableProperty] private int _copies;
+    [ObservableProperty] private string _fallbackName;
+
+    /// <summary>A station only means something on a kitchen ticket.</summary>
+    public bool ShowsPrintClass => Document == PrintDocument.Kitchen;
+
+    partial void OnDocumentChanged(PrintDocument value) => OnPropertyChanged(nameof(ShowsPrintClass));
+
+    public PrintRoute ToDomain()
+    {
+        Route.IsEnabled = IsEnabled;
+        Route.Document = Document;
+        Route.PrintClass = Document == PrintDocument.Kitchen && PrintClass != Any ? PrintClass : null;
+        Route.ServiceType = ServiceType != Any && Enum.TryParse<ServiceType>(ServiceType, out var st) ? st : null;
+        Route.Channel = Channel != Any && Enum.TryParse<OrderChannel>(Channel, out var ch) ? ch : null;
+        Route.DeviceId = Devices.FirstOrDefault(d => d.Name == DeviceName)?.Id ?? Route.DeviceId;
+        Route.Copies = Math.Clamp(Copies, 1, 9);
+        Route.FallbackDeviceId = Devices.FirstOrDefault(d => d.Name == FallbackName)?.Id;
+        return Route;
+    }
 }

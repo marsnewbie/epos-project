@@ -115,9 +115,11 @@ a group; the link carries the position and the conditional reveal, because two
 dishes may present the same group differently. Editing "spice level" is one edit,
 and the editor reports which other dishes it touched.
 
-Prices, tax class and print class are resolved when a line is added and stored on
-the line. Re-pricing the menu next week must not rewrite what last week's ticket
-said.
+A dish's station and tax band may be left blank to follow its category, which is
+the normal case — a shop re-plumbs a section, not forty dishes. Both are
+**resolved** when a line is added and stored on the line: re-routing the menu
+next week must not rewrite what last week's ticket said, and a line carrying a
+null station would match no routing rule at all.
 
 ## Printing
 

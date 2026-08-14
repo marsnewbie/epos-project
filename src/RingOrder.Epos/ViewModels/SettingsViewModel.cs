@@ -31,6 +31,12 @@ public partial class SettingsViewModel : ViewModelBase
     public ObservableCollection<RouteRow> Routes { get; } = [];
     public ObservableCollection<PrintJob> FailedJobs { get; } = [];
     public PrintTransport[] Transports { get; } = Enum.GetValues<PrintTransport>();
+
+    /// <summary>Stations a category or dish can be sent to.</summary>
+    public string[] PrintClasses { get; } = PrintClass.Known.ToArray();
+
+    /// <summary>The same list plus a blank, for a dish that follows its category.</summary>
+    public string[] PrintClassesWithInherit { get; } = ["", .. PrintClass.Known];
     public StaffRole[] StaffRoles { get; } = Enum.GetValues<StaffRole>();
     public OptionTypeChoice[] OptionTypeChoices { get; } = OptionGroupEditorVm.TypeChoices;
 
@@ -43,6 +49,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private string _categoryEditName = "";
     [ObservableProperty] private string _categoryEditSort = "0";
     [ObservableProperty] private bool _categoryEditVisible = true;
+    [ObservableProperty] private string _categoryEditPrintClass = Domain.PrintClass.Kitchen;
 
     [ObservableProperty] private string _section = "Shop";
     [ObservableProperty] private bool _isShop = true;
@@ -277,6 +284,7 @@ public partial class SettingsViewModel : ViewModelBase
             CategoryEditName = value.Name;
             CategoryEditSort = value.SortOrderText;
             CategoryEditVisible = value.IsVisible;
+            CategoryEditPrintClass = value.PrintClass;
         }
         if (!string.IsNullOrWhiteSpace(MenuSearch)) return;
         _ = ChangeCategorySelectionAsync(value);
@@ -406,6 +414,7 @@ public partial class SettingsViewModel : ViewModelBase
         CategoryEditName = SelectedMenuCategory.Name;
         CategoryEditSort = SelectedMenuCategory.SortOrderText;
         CategoryEditVisible = SelectedMenuCategory.IsVisible;
+        CategoryEditPrintClass = SelectedMenuCategory.PrintClass;
     }
 
     [RelayCommand]
@@ -420,11 +429,18 @@ public partial class SettingsViewModel : ViewModelBase
         SelectedMenuCategory.Name = CategoryEditName.Trim();
         SelectedMenuCategory.SortOrderText = CategoryEditSort;
         SelectedMenuCategory.IsVisible = CategoryEditVisible;
+        SelectedMenuCategory.PrintClass = CategoryEditPrintClass;
         SelectedMenuCategory.ApplyToDomain();
         _app.Menu.UpsertCategory(SelectedMenuCategory.Category);
         EditingCategory = false;
         ReloadMenuBrowser();
-        _setStatus($"Saved category {CategoryEditName}");
+
+        // Lines carry the station they were added with, so a re-route only
+        // affects what is rung from now on — yesterday's ticket still says what
+        // it said.
+        _app.Session.Record("menu.category", SelectedMenuCategory.Id,
+            $"{CategoryEditName} → {CategoryEditPrintClass}");
+        _setStatus($"Saved category {CategoryEditName} — new orders print at {CategoryEditPrintClass}");
         _onSaved?.Invoke();
     }
 
@@ -1090,10 +1106,10 @@ public partial class SettingsViewModel : ViewModelBase
         foreach (var device in _app.PrintDevices.GetDevices())
             Printers.Add(new PrinterRow(device));
 
-        var map = _app.PrintDevices.GetDeviceMap();
+        var devices = _app.PrintDevices.GetDevices();
         Routes.Clear();
         foreach (var route in _app.PrintDevices.GetRoutes())
-            Routes.Add(new RouteRow(route, map));
+            Routes.Add(new RouteRow(route, devices));
 
         PrinterHint = Printers.Count == 0
             ? UiText.Pick(
@@ -1195,11 +1211,57 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ToggleRoute(RouteRow? row)
+    private async Task AddRouteAsync()
+    {
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditSettings, UiText.Pick("Add print rule", "添加出单规则")))
+            return;
+
+        var devices = _app.PrintDevices.GetDevices(enabledOnly: true);
+        if (devices.Count == 0)
+        {
+            _setStatus(UiText.Pick("Add a printer first", "请先添加打印机"));
+            return;
+        }
+
+        _app.PrintDevices.UpsertRoute(new PrintRoute
+        {
+            SortOrder = Routes.Count,
+            Document = PrintDocument.Kitchen,
+            DeviceId = devices[0].Id,
+        });
+        ReloadPrinters();
+    }
+
+    [RelayCommand]
+    private void SaveRoute(RouteRow? row)
     {
         if (row is null) return;
-        row.Route.IsEnabled = !row.Route.IsEnabled;
-        _app.PrintDevices.UpsertRoute(row.Route);
+        var route = row.ToDomain();
+        _app.PrintDevices.UpsertRoute(route);
+        _app.Session.Record("print.route", route.Id, route.Describe(_app.PrintDevices.GetDeviceMap()));
+        ReloadPrinters();
+        _setStatus(UiText.Pick("Print rule saved", "出单规则已保存"));
+    }
+
+    [RelayCommand]
+    private async Task DeleteRouteAsync(RouteRow? row)
+    {
+        if (row is null) return;
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditSettings, UiText.Pick("Remove print rule", "删除出单规则")))
+            return;
+
+        // The last kitchen rule going is worth a warning: without one, tickets
+        // fall back to whichever printer happens to be first.
+        var remaining = Routes.Count(r => r.Route.Id != row.Route.Id && r.Document == PrintDocument.Kitchen);
+        if (row.Document == PrintDocument.Kitchen && remaining == 0 &&
+            !await UiPrompt.ConfirmAsync(
+                UiText.Pick("Remove the last kitchen rule?", "删除最后一条厨房规则？"),
+                UiText.Pick(
+                    "Kitchen tickets will go to whichever printer is first in the list. Continue?",
+                    "厨房票将送到列表中的第一台打印机。继续？")))
+            return;
+
+        _app.PrintDevices.DeleteRoute(row.Route.Id);
         ReloadPrinters();
     }
 

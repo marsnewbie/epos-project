@@ -103,16 +103,54 @@
             <ItemsControl ItemsSource="{Binding Routes}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:RouteRow">
-                  <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,6">
-                    <TextBlock Text="{Binding Summary}" VerticalAlignment="Center"
-                               Opacity="{Binding IsEnabled, Converter={x:Static conv:BoolToOpacityConverter.Instance}}" />
-                    <Button Grid.Column="1" Classes="btn" Content="On / off" Width="120"
-                            Command="{Binding DataContext.ToggleRouteCommand, ElementName=Root}"
-                            CommandParameter="{Binding}" />
-                  </Grid>
+                  <Border Classes="panel-flat" Padding="12" Margin="0,0,0,8">
+                    <StackPanel Spacing="6">
+                      <Grid ColumnDefinitions="150,*,*,*,Auto">
+                        <ComboBox ItemsSource="{Binding Documents}" SelectedItem="{Binding Document}"
+                                  Height="44" HorizontalAlignment="Stretch" Margin="0,0,6,0" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding PrintClassChoices}"
+                                  SelectedItem="{Binding PrintClass}" IsEnabled="{Binding ShowsPrintClass}"
+                                  Height="44" HorizontalAlignment="Stretch" Margin="0,0,6,0" />
+                        <ComboBox Grid.Column="2" ItemsSource="{Binding ServiceTypeChoices}"
+                                  SelectedItem="{Binding ServiceType}"
+                                  Height="44" HorizontalAlignment="Stretch" Margin="0,0,6,0" />
+                        <ComboBox Grid.Column="3" ItemsSource="{Binding ChannelChoices}"
+                                  SelectedItem="{Binding Channel}"
+                                  Height="44" HorizontalAlignment="Stretch" Margin="0,0,6,0" />
+                        <CheckBox Grid.Column="4" IsChecked="{Binding IsEnabled}" Content="On"
+                                  VerticalAlignment="Center" />
+                      </Grid>
+
+                      <Grid ColumnDefinitions="Auto,*,Auto,90,Auto,*">
+                        <TextBlock Text="to" Classes="muted" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding DeviceChoices}"
+                                  SelectedItem="{Binding DeviceName}"
+                                  Height="44" HorizontalAlignment="Stretch" Margin="0,0,8,0" />
+                        <TextBlock Grid.Column="2" Text="copies" Classes="muted" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <NumericUpDown Grid.Column="3" Value="{Binding Copies}" Minimum="1" Maximum="9"
+                                       Increment="1" FormatString="0" Height="44" Margin="0,0,8,0" />
+                        <TextBlock Grid.Column="4" Text="if it fails" Classes="muted" VerticalAlignment="Center" Margin="0,0,8,0" />
+                        <ComboBox Grid.Column="5" ItemsSource="{Binding FallbackChoices}"
+                                  SelectedItem="{Binding FallbackName}"
+                                  Height="44" HorizontalAlignment="Stretch" />
+                      </Grid>
+
+                      <Grid ColumnDefinitions="*,*">
+                        <Button Classes="btn" Content="Save rule" Margin="0,0,6,0"
+                                Command="{Binding DataContext.SaveRouteCommand, ElementName=Root}"
+                                CommandParameter="{Binding}" />
+                        <Button Grid.Column="1" Classes="btn" Content="Remove rule"
+                                Command="{Binding DataContext.DeleteRouteCommand, ElementName=Root}"
+                                CommandParameter="{Binding}" />
+                      </Grid>
+                    </StackPanel>
+                  </Border>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
+
+            <Button Classes="btn" Content="+ Add rule" Command="{Binding AddRouteCommand}"
+                    HorizontalAlignment="Left" Width="200" />
 
             <TextBlock Text="Ticket options" Classes="title" Margin="0,16,0,4" />
             <TextBox Classes="field" Watermark="Encoding gbk|gb18030|utf8" Text="{Binding PrintEncoding}" />
@@ -379,6 +417,11 @@
                     <TextBox Classes="field" Watermark="Name" Text="{Binding CategoryEditName}" />
                     <TextBox Classes="field" Watermark="Sort order" Text="{Binding CategoryEditSort}" />
                     <CheckBox IsChecked="{Binding CategoryEditVisible}" Content="Visible on the till" Foreground="#1c1917" />
+                    <TextBlock Text="Cooked at" Classes="muted" Margin="0,8,0,0" />
+                    <ComboBox ItemsSource="{Binding PrintClasses}" SelectedItem="{Binding CategoryEditPrintClass}"
+                              Height="44" HorizontalAlignment="Stretch" />
+                    <TextBlock Text="Decides which printer these dishes reach. Set it per section — a shop thinks in sections, not in forty individual dishes."
+                               Classes="muted" TextWrapping="Wrap" />
                     <Button Classes="cash" Content="Save category" Command="{Binding SaveCategoryCommand}" Width="180" />
                   </StackPanel>
 
@@ -407,6 +450,13 @@
                           <TextBox Grid.Column="1" Classes="field" Watermark="Sort" Text="{Binding DishEditor.SortOrderText}" />
                         </Grid>
                         <CheckBox IsChecked="{Binding DishEditor.IsAvailable}" Content="On sale (uncheck = 86)" Foreground="#1c1917" />
+                        <Grid ColumnDefinitions="Auto,*">
+                          <TextBlock Text="Cooked at" Classes="muted" VerticalAlignment="Center" Margin="0,0,8,0" />
+                          <ComboBox Grid.Column="1" ItemsSource="{Binding PrintClassesWithInherit}"
+                                    SelectedItem="{Binding DishEditor.PrintClass}"
+                                    Height="44" HorizontalAlignment="Stretch"
+                                    ToolTip.Tip="Leave blank to follow the category" />
+                        </Grid>
                         <TextBox Classes="field" Watermark="Description / staff hint" Text="{Binding DishEditor.Description}" />
 
                         <Grid ColumnDefinitions="*,Auto" Margin="0,12,0,4">

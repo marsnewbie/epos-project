@@ -257,6 +257,7 @@ public sealed class MenuRepository
         }
 
         AttachOptionGroups(list);
+        AttachCategoryDefaults(list);
         return list;
     }
 
@@ -273,7 +274,11 @@ public sealed class MenuRepository
             item = r.Read() ? ReadItem(r) : null;
         }
 
-        if (item is not null) AttachOptionGroups([item]);
+        if (item is not null)
+        {
+            AttachOptionGroups([item]);
+            AttachCategoryDefaults([item]);
+        }
         return item;
     }
 
@@ -451,6 +456,25 @@ public sealed class MenuRepository
 
             if (catalogue.TryGetValue(r.GetString(1), out var group))
                 item.OptionGroups.Add(group.ForItem(r.GetInt32(2), showWhen));
+        }
+    }
+
+    /// <summary>
+    /// Copies each category's station and tax band onto its dishes, so a dish
+    /// that inherits can still resolve them without a second lookup at the
+    /// counter.
+    /// </summary>
+    private void AttachCategoryDefaults(List<MenuItem> items)
+    {
+        if (items.Count == 0) return;
+        var categories = GetCategories(visibleOnly: false)
+            .ToDictionary(c => c.Id, StringComparer.Ordinal);
+
+        foreach (var item in items)
+        {
+            if (!categories.TryGetValue(item.CategoryId, out var category)) continue;
+            item.CategoryPrintClass = category.PrintClass;
+            item.CategoryTaxClassId = category.TaxClassId;
         }
     }
 

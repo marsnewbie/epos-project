@@ -440,3 +440,39 @@ component that can fail silently must report its own health somewhere a human
 looks.**
 
 67 tests.
+
+---
+
+## 2026-08-15 — Print routing becomes something a shop can configure
+
+The routing model existed but could not be reached: rules matched on a dish's
+station, and nothing in the interface set one. A shop adding a fryer printer
+still needed us to edit their bundle, which is the opposite of the whole design.
+
+**Stations are set on the category** — "Starters cook at the fryer" — with a
+per-dish override for the exceptions. That is how a shop thinks about it: in
+sections, not in forty individual dishes.
+
+**A route editor in Settings**: document, station, service type, channel, target
+printer, copies, and a fallback, with "(any)" first in every filter because most
+rules are broad. Removing the last kitchen rule asks for confirmation, since
+tickets would then fall to whichever printer happens to be first.
+
+### The half-wire this exposed
+
+A dish that follows its category has a null station. The order line took that
+null, and `PrintRoute.Matches` compares a rule's station to the line's — so
+**every dish that inherited would have matched no rule and reached no printer.**
+The demo shop's bundle sets a station on every dish, so nothing looked wrong.
+
+Fixed by resolving on load: the repository copies each category's station and
+tax band onto its dishes, `EffectivePrintClass` falls back category → kitchen,
+and the till writes the resolved value onto the line. Three tests now cover
+inherit, override, and nothing-set-anywhere.
+
+Worth noting the shape of this mistake, because it is the second of its kind:
+**a feature configured in one place and consumed in another is not finished
+until something exercises the path between them.** Both times the missing link
+was invisible in the demo data.
+
+70 tests.

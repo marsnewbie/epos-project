@@ -13,6 +13,7 @@ public partial class CategoryAdminRow : ObservableObject
         Name = category.Name;
         IsVisible = category.IsVisible;
         SortOrderText = category.SortOrder.ToString();
+        PrintClass = category.PrintClass;
     }
 
     public Category Category { get; }
@@ -21,6 +22,13 @@ public partial class CategoryAdminRow : ObservableObject
     [ObservableProperty] private string _name;
     [ObservableProperty] private bool _isVisible;
     [ObservableProperty] private string _sortOrderText;
+
+    /// <summary>
+    /// Station its dishes cook at, and therefore which printer they reach.
+    /// Set here rather than per dish because a shop thinks in sections: the
+    /// whole of "Starters" goes to the fryer, not forty individual dishes.
+    /// </summary>
+    [ObservableProperty] private string _printClass = Domain.PrintClass.Kitchen;
 
     public string VisibilityText => IsVisible ? "Shown" : "Hidden";
     partial void OnIsVisibleChanged(bool value) => OnPropertyChanged(nameof(VisibilityText));
@@ -32,6 +40,7 @@ public partial class CategoryAdminRow : ObservableObject
         Category.Name = Name.Trim();
         Category.IsVisible = IsVisible;
         Category.SortOrder = int.TryParse(SortOrderText, out var s) ? s : Category.SortOrder;
+        Category.PrintClass = string.IsNullOrWhiteSpace(PrintClass) ? Domain.PrintClass.Kitchen : PrintClass;
     }
 }
 
@@ -78,6 +87,7 @@ public partial class DishEditorVm : ObservableObject
         IsAvailable = item.IsAvailable;
         SortOrderText = item.SortOrder.ToString();
         CategoryId = item.CategoryId;
+        PrintClass = item.PrintClass ?? "";
         Categories.Clear();
         foreach (var c in categories) Categories.Add(c);
         SelectedCategory = Categories.FirstOrDefault(c => c.Id == item.CategoryId) ?? Categories.FirstOrDefault();
@@ -123,6 +133,7 @@ public partial class DishEditorVm : ObservableObject
                 d.ItemTranslation,
                 d.Description,
                 d.BasePrice,
+                d.PrintClass,
                 d.IsAvailable,
                 d.SortOrder,
                 Groups = d.OptionGroups.Select(g => new
@@ -160,6 +171,9 @@ public partial class DishEditorVm : ObservableObject
     [ObservableProperty] private string _kitchenName = "";
     [ObservableProperty] private string _description = "";
     [ObservableProperty] private string _priceText = "0.00";
+
+    /// <summary>Station override. Blank means the category decides.</summary>
+    [ObservableProperty] private string _printClass = "";
     [ObservableProperty] private bool _isAvailable = true;
     [ObservableProperty] private string _sortOrderText = "0";
     [ObservableProperty] private string _categoryId = "";
@@ -244,6 +258,9 @@ public partial class DishEditorVm : ObservableObject
             ItemTranslation = string.IsNullOrWhiteSpace(KitchenName) ? null : KitchenName.Trim(),
             Description = string.IsNullOrWhiteSpace(Description) ? null : Description.Trim(),
             BasePrice = decimal.TryParse(PriceText, out var p) ? p : 0,
+            // Blank means "wherever the category goes" — the common case, and
+            // one fewer thing to keep in step when a shop re-plumbs a station.
+            PrintClass = string.IsNullOrWhiteSpace(PrintClass) ? null : PrintClass.Trim(),
             IsAvailable = IsAvailable,
             SortOrder = int.TryParse(SortOrderText, out var s) ? s : 0,
             OptionGroups = groups,

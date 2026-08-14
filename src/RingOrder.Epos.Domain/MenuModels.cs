@@ -104,11 +104,29 @@ public sealed class MenuItem
     /// </summary>
     public decimal BasePrice { get; set; }
 
-    /// <summary>Station that cooks it; falls back to the category's class.</summary>
+    /// <summary>
+    /// Station that cooks it, or null to follow the category. Null is the
+    /// common case: a shop re-plumbs a section, not forty dishes.
+    /// </summary>
     public string? PrintClass { get; set; }
 
-    /// <summary>Tax class; falls back to the category's class.</summary>
+    /// <summary>Tax class, or null to follow the category.</summary>
     public string? TaxClassId { get; set; }
+
+    /// <summary>The category's values, filled in on load so the two below can resolve.</summary>
+    public string? CategoryPrintClass { get; set; }
+    public string? CategoryTaxClassId { get; set; }
+
+    /// <summary>
+    /// What actually gets written on an order line. Resolved when the line is
+    /// added, never looked up again — re-routing the menu next week must not
+    /// change what last week's ticket said.
+    /// </summary>
+    public string EffectivePrintClass =>
+        PrintClass ?? CategoryPrintClass ?? Domain.PrintClass.Kitchen;
+
+    public string EffectiveTaxClassId =>
+        TaxClassId ?? CategoryTaxClassId ?? "hot-food";
 
     public bool IsAvailable { get; set; } = true;
     public bool IsBundle { get; set; }

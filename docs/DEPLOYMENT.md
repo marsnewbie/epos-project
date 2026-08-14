@@ -162,9 +162,9 @@ with a banner rather than the order being lost.
 is open, and the answer appears when you test the printer in Settings. That is a
 real difference from a till that finds out when the customer complains.
 
-**What is left:** a reprint screen for jobs that ran out of attempts, and a route
-editor in Settings — rules can be switched on and off there today, but adding one
-for a third station still means editing the shop bundle.
+**Configured in Settings, not by us.** A shop adding a fryer printer adds the
+device, sets the section's station on the category, and adds a rule — no bundle
+edit, no call to us. That is the test of whether the routing model is real.
 
 ## Licensing — undecided
 

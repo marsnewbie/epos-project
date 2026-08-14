@@ -466,8 +466,10 @@ public partial class TillViewModel : ViewModelBase
 
         var line = LinePricing.BuildMenuLine(
             SelectedItem, TakePendingQuantity(), _pendingSelections, LineNotesDraft);
-        line.PrintClass = SelectedItem.PrintClass;
-        line.TaxClassId = SelectedItem.TaxClassId;
+        // Resolved, not inherited: a dish that follows its category still has
+        // to name a station on the line, or routing has nothing to match on.
+        line.PrintClass = SelectedItem.EffectivePrintClass;
+        line.TaxClassId = SelectedItem.EffectiveTaxClassId;
         Lines.Add(line);
         SelectedLine = line;
         LineNotesDraft = "";
