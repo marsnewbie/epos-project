@@ -1,6 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 using RingOrder.Epos.Domain;
@@ -137,13 +138,145 @@ public static class UiPrompt
         return result;
     }
 
-    public static async Task<bool> RequireManagerPinAsync(AppSettings settings, string actionLabel)
+    /// <summary>
+    /// Gate an action on a permission, with supervisor override.
+    /// <para>
+    /// The real scene: a cashier is mid-order, the customer wants a line taken
+    /// off, and the supervisor walks over. Signing the cashier out and back in
+    /// would lose the ticket, so the supervisor types their own PIN, the action
+    /// is recorded against both of them, and the cashier keeps the screen.
+    /// </para>
+    /// <para>
+    /// Someone who already holds the permission is not asked again. A till that
+    /// challenges a manager for manager work teaches everyone to share a PIN,
+    /// which is how audit trails become fiction.
+    /// </para>
+    /// </summary>
+    public static async Task<bool> RequireAsync(AppServices app, Permission permission, string actionLabel)
     {
-        var pin = await PromptTextAsync(UiText.ManagerPinTitle(actionLabel), "PIN", password: true);
-        if (pin is null) return false;
-        if (string.Equals(pin.Trim(), settings.ManagerPin?.Trim() ?? "1234", StringComparison.Ordinal))
+        var session = app.Session;
+
+        if (session.Can(permission))
+        {
+            session.Record(AuditAction(permission), detail: actionLabel);
             return true;
-        await ConfirmAsync(UiText.PinIncorrectTitle, UiText.PinIncorrectBody);
-        return false;
+        }
+
+        var pin = await PromptPinAsync(UiText.ApprovalTitle(actionLabel));
+        if (pin is null) return false;
+
+        var approver = app.Staff.Authenticate(pin);
+        if (approver is null)
+        {
+            await ConfirmAsync(UiText.PinIncorrectTitle, UiText.PinIncorrectBody);
+            return false;
+        }
+
+        if (!approver.Can(permission))
+        {
+            await ConfirmAsync(
+                UiText.NotAllowedTitle,
+                UiText.NotAllowedBody(approver.Name, actionLabel));
+            return false;
+        }
+
+        session.Record(
+            AuditAction(permission),
+            subjectId: approver.Id,
+            detail: $"{actionLabel} — approved by {approver.Name}");
+        return true;
+    }
+
+    private static string AuditAction(Permission permission) =>
+        $"permission.{permission.ToString().ToLowerInvariant()}";
+
+    /// <summary>
+    /// PIN entry on a keypad. A counter has no keyboard, and a PIN typed on an
+    /// on-screen QWERTY is a PIN read over the customer's shoulder.
+    /// </summary>
+    public static async Task<string?> PromptPinAsync(string title)
+    {
+        var owner = Owner;
+        if (owner is null) return null;
+
+        string? result = null;
+        var entry = new System.Text.StringBuilder();
+
+        var display = new TextBlock
+        {
+            FontSize = 30,
+            FontWeight = FontWeight.Bold,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            MinHeight = 40,
+            Foreground = Fg,
+        };
+
+        var dlg = new Window
+        {
+            Title = title,
+            Width = 360,
+            Height = 520,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            Background = Bg,
+        };
+
+        void Redraw() => display.Text = new string('●', entry.Length);
+
+        var pad = new UniformGrid { Columns = 3 };
+        foreach (var key in new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "⌫", "0", "✓" })
+        {
+            var button = new Button { Content = key };
+            button.Classes.Add("key");
+            button.Click += (_, _) =>
+            {
+                switch (key)
+                {
+                    case "⌫":
+                        if (entry.Length > 0) entry.Length--;
+                        Redraw();
+                        break;
+                    case "✓":
+                        result = entry.ToString();
+                        dlg.Close();
+                        break;
+                    default:
+                        if (entry.Length < 8) entry.Append(key);
+                        Redraw();
+                        break;
+                }
+            };
+            pad.Children.Add(button);
+        }
+
+        var cancel = new Button { Content = UiText.Cancel, Height = 52 };
+        cancel.Classes.Add("btn");
+        cancel.Click += (_, _) => dlg.Close();
+
+        dlg.Content = new Border
+        {
+            Padding = new Thickness(18),
+            Child = new StackPanel
+            {
+                Spacing = 12,
+                Children =
+                {
+                    new TextBlock
+                    {
+                        Text = title,
+                        FontSize = 17,
+                        FontWeight = FontWeight.Bold,
+                        TextWrapping = TextWrapping.Wrap,
+                        Foreground = Fg,
+                    },
+                    display,
+                    pad,
+                    cancel,
+                },
+            },
+        };
+
+        await dlg.ShowDialog(owner);
+        return result;
     }
 }

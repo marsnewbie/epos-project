@@ -1,4 +1,4 @@
-namespace RingOrder.Epos.Domain;
+﻿namespace RingOrder.Epos.Domain;
 
 public sealed class AppSettings
 {
@@ -52,10 +52,6 @@ public sealed class AppSettings
     public decimal DefaultDeliveryFee { get; set; }
     public string? LastMenuImportAt { get; set; }
     public int NextOrderSequence { get; set; } = 1;
-
-    /// <summary>Manager PIN for void / drawer / sensitive settings. Default 1234 — change in shop.</summary>
-    public string ManagerPin { get; set; } = "1234";
-    public string? CashierPin { get; set; }
 
     public List<QuickNoteDef> QuickNotes { get; set; } = QuickKitchenNotes.CreateDefaultList();
 

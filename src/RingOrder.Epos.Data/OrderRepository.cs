@@ -30,14 +30,14 @@ public sealed class OrderRepository
                   terminal_id,staff_id,shift_id,
                   customer_id,customer_name,customer_phone,delivery_address,delivery_postcode,
                   table_number,hold_label,void_reason,
-                  subtotal_pence,delivery_fee_pence,discount_total_pence,below_minimum_pence,total_pence,
+                  subtotal_pence,delivery_fee_pence,discount_total_pence,discount_reason,below_minimum_pence,total_pence,
                   notes,requested_for,fulfilment_label,payment_label,ticket_footer,
                   online_external_id,online_payload,kitchen_printed,front_printed,online_acked,
                   created_at,updated_at)
                 VALUES(
                   $id,$on,$svc,$ch,$pn,$cw,$st,$term,$staff,$shift,
                   $cid,$cn,$cp,$da,$dp,$tn,$hl,$vr,
-                  $sub,$df,$disc,$bms,$tot,
+                  $sub,$df,$disc,$dreason,$bms,$tot,
                   $notes,$rf,$fl,$pl,$tf,$oe,$op,$kp,$fp,$oa,$ca,$ua)
                 ON CONFLICT(id) DO UPDATE SET
                   order_number=excluded.order_number,
@@ -60,6 +60,7 @@ public sealed class OrderRepository
                   subtotal_pence=excluded.subtotal_pence,
                   delivery_fee_pence=excluded.delivery_fee_pence,
                   discount_total_pence=excluded.discount_total_pence,
+                  discount_reason=excluded.discount_reason,
                   below_minimum_pence=excluded.below_minimum_pence,
                   total_pence=excluded.total_pence,
                   notes=excluded.notes,
@@ -321,6 +322,7 @@ public sealed class OrderRepository
         cmd.Parameters.AddWithValue("$sub", Money.ToPence(o.Subtotal));
         cmd.Parameters.AddWithValue("$df", Money.ToPence(o.DeliveryFee));
         cmd.Parameters.AddWithValue("$disc", Money.ToPence(o.DiscountTotal));
+        cmd.Parameters.AddWithValue("$dreason", (object?)o.DiscountReason ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$bms", Money.ToPence(o.BelowMinimumSurcharge));
         cmd.Parameters.AddWithValue("$tot", Money.ToPence(o.Total));
         cmd.Parameters.AddWithValue("$notes", (object?)o.Notes ?? DBNull.Value);
@@ -367,6 +369,7 @@ public sealed class OrderRepository
             Subtotal = P("subtotal_pence"),
             DeliveryFee = P("delivery_fee_pence"),
             DiscountTotal = P("discount_total_pence"),
+            DiscountReason = SN("discount_reason"),
             BelowMinimumSurcharge = P("below_minimum_pence"),
             Total = P("total_pence"),
             Notes = SN("notes"),

@@ -201,7 +201,7 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private async Task OpenDrawerAsync()
     {
-        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), UiText.Pick("Open drawer", "开钱箱")))
+        if (!await UiPrompt.RequireAsync(_app, Permission.OpenDrawerWithoutSale, UiText.Pick("Open drawer", "开钱箱")))
             return;
         try
         {

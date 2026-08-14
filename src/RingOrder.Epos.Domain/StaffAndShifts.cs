@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 
 namespace RingOrder.Epos.Domain;
@@ -32,6 +32,10 @@ public enum Permission
     VoidSentLine,
     VoidOrder,
     Refund,
+
+    /// <summary>Reopen a settled sale to add to it or re-tender it.</summary>
+    ReopenPaidOrder,
+
     Discount,
     OpenDrawerWithoutSale,
     CloseShift,

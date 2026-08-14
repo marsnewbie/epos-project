@@ -65,13 +65,66 @@
           </StackPanel>
         </Border>
 
-        <Border Classes="panel" CornerRadius="8" Padding="16" IsVisible="{Binding IsStaff}">
-          <StackPanel Spacing="4">
-            <TextBlock Text="Staff / PIN" FontWeight="Bold" FontSize="18" Foreground="#1c1917" Margin="0,0,0,8" />
-            <TextBlock Text="Manager PIN protects Void, Open drawer, and 86." Foreground="#5b6472" FontSize="12" Margin="0,0,0,8" />
-            <TextBox Classes="field" Watermark="Manager PIN" Text="{Binding ManagerPin}" PasswordChar="•" />
-            <TextBox Classes="field" Watermark="Cashier PIN (optional)" Text="{Binding CashierPin}" PasswordChar="•" />
-          </StackPanel>
+        <Border Classes="panel" Padding="16" IsVisible="{Binding IsStaff}">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,12">
+              <TextBlock Text="Staff" Classes="title" />
+              <TextBlock Text="{Binding StaffHint}" Classes="muted" TextWrapping="Wrap" />
+              <Grid ColumnDefinitions="*,160,Auto">
+                <TextBox Classes="field" Watermark="Name" Text="{Binding NewStaffName}" Margin="0,0,8,0" />
+                <ComboBox Grid.Column="1" ItemsSource="{Binding StaffRoles}"
+                          SelectedItem="{Binding NewStaffRole}" Height="44" Margin="0,0,8,0"
+                          HorizontalAlignment="Stretch" />
+                <Button Grid.Column="2" Classes="primary" Content="Add staff"
+                        Command="{Binding AddStaffCommand}" Width="140" />
+              </Grid>
+            </StackPanel>
+
+            <ScrollViewer>
+              <ItemsControl ItemsSource="{Binding StaffMembers}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:StaffRow">
+                    <Border Classes="panel-flat" Padding="12" Margin="0,0,0,8">
+                      <Grid ColumnDefinitions="*,150,Auto,Auto">
+                        <StackPanel VerticalAlignment="Center">
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                            <Border Classes="pill warn" IsVisible="{Binding NeedsAttention}">
+                              <TextBlock Text="{Binding Status}" />
+                            </Border>
+                            <Border Classes="pill ok" IsVisible="{Binding IsCurrent}">
+                              <TextBlock Text="Signed in" />
+                            </Border>
+                          </StackPanel>
+                          <TextBlock Text="Switched off" Classes="muted"
+                                     IsVisible="{Binding !IsActive}" />
+                        </StackPanel>
+
+                        <ComboBox Grid.Column="1"
+                                  ItemsSource="{Binding DataContext.StaffRoles, ElementName=Root}"
+                                  SelectedItem="{Binding SelectedRole}" Height="44"
+                                  HorizontalAlignment="Stretch" Margin="0,0,8,0" />
+
+                        <Button Grid.Column="2" Classes="btn" Content="Save role" Width="110"
+                                Margin="0,0,8,0"
+                                Command="{Binding DataContext.SetStaffRoleCommand, ElementName=Root}"
+                                CommandParameter="{Binding}" />
+
+                        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
+                          <Button Classes="btn" Content="Change PIN" Width="130"
+                                  Command="{Binding DataContext.ChangeStaffPinCommand, ElementName=Root}"
+                                  CommandParameter="{Binding}" />
+                          <Button Classes="btn" Content="{Binding ActiveLabel}" Width="120"
+                                  Command="{Binding DataContext.ToggleStaffActiveCommand, ElementName=Root}"
+                                  CommandParameter="{Binding}" />
+                        </StackPanel>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </DockPanel>
         </Border>
 
         <Border Classes="panel" CornerRadius="8" Padding="16" IsVisible="{Binding IsShift}">

@@ -187,5 +187,57 @@ does not collide with **Orders** the way "Order" would.
 
 Still to do on the interface: payment deserves its own full screen rather than a
 keypad squeezed into the ticket column; Web orders should fold into Orders as a
-channel filter now that the top bar carries the on/off; and the function bar
-(discount, note, park, find, undo) is designed but not yet built.
+channel filter now that the top bar carries the on/off.
+
+---
+
+## 2026-08-15 — Review: two authentication systems, and fixing it
+
+A pass over the code found something I had introduced myself. The till had
+**two** ways of proving who you are: real staff rows with salted PIN hashes and
+roles, and `AppSettings.ManagerPin` — a single plaintext PIN shared by the whole
+shop, still guarding void, drawer and 86. With a shared PIN, "who voided that
+order" has no answer, which is the exact question the staff table was added to
+answer.
+
+**One system now.** `AppSettings.ManagerPin` and `CashierPin` are gone.
+Everything gated asks for a `Permission`, and the check follows what the trade
+actually does:
+
+- Someone who already holds the permission is **not** challenged. A till that
+  asks a manager to prove they are a manager teaches everyone to share a PIN,
+  and the audit trail becomes fiction.
+- Otherwise it is a **supervisor override**: the cashier keeps the screen and
+  their half-built ticket, the supervisor types their own PIN, and the audit
+  records both names.
+- PINs are entered on a keypad, not a text box. A counter has no keyboard, and
+  an on-screen QWERTY is a PIN read over the customer's shoulder.
+
+`Permission.ReopenPaidOrder` was added rather than reusing Refund — reopening a
+settled sale to add to it is its own act, and naming it that way means the audit
+log reads like what happened.
+
+**Settings → Staff became real people management**: add staff with a role, change
+a PIN, switch someone off. Two guards come from real failures — a PIN already in
+use is refused (two people sharing one cannot be told apart afterwards), and the
+last manager cannot be switched off (nobody could open Settings again). Staff are
+deactivated, never deleted, because their name is on every order they took.
+
+**Discounts exist.** A shop asks for this on day one — "a fiver off", "ten
+percent for the regular". One box takes either form: `5` or `10%`. A reason is
+required, because a discount without one is an unexplained hole in the takings,
+and both go to the audit log. The discount stays visible on the ticket with a
+one-tap undo, so staff see it is still on before they take the money rather than
+after.
+
+**Migration 2 shipped** to carry the discount reason, which put the upgrade path
+through its first real exercise: a database with 170 dishes in it was backed up,
+migrated and reopened with everything intact. There are now tests for that
+path — including one that writes a day's trading the way the *old* release wrote
+it, because using today's repository to seed the "old" database would test
+nothing.
+
+55 tests.
+
+Still to do: payment on its own screen; Web orders folded into Orders; Settings
+sections for printers-as-devices, tax, receipt layout, backup and diagnostics.

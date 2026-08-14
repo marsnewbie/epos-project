@@ -21,7 +21,16 @@ public static class SchemaMigrations
     public static IReadOnlyList<Migration> All { get; } =
     [
         new(1, "initial", InitialSchema),
+        new(2, "order_discount_reason", OrderDiscountReason),
     ];
+
+    /// <summary>
+    /// A discount without a reason is an unexplained hole in the takings. The
+    /// amount already existed; this is the half that makes it auditable.
+    /// </summary>
+    private const string OrderDiscountReason = """
+        ALTER TABLE orders ADD COLUMN discount_reason TEXT;
+        """;
 
     public static int LatestVersion => All.Max(m => m.Version);
 

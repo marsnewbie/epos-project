@@ -54,6 +54,9 @@ public partial class SellViewModel : ViewModelBase
     [ObservableProperty] private decimal _subtotal;
     [ObservableProperty] private decimal _deliveryFee;
     [ObservableProperty] private decimal _total;
+    [ObservableProperty] private decimal _discountTotal;
+    [ObservableProperty] private bool _hasDiscount;
+    [ObservableProperty] private string _discountText = "";
     [ObservableProperty] private string _cashTenderedText = "";
     [ObservableProperty] private string _changeText = "";
     [ObservableProperty] private string _adHocName = "";
@@ -121,6 +124,8 @@ public partial class SellViewModel : ViewModelBase
     [ObservableProperty] private string _lblRequired = "REQ";
     [ObservableProperty] private string _itemsCountText = "0 items";
     [ObservableProperty] private string _lblClearCash = "CLR";
+    [ObservableProperty] private string _lblDiscount = "Discount";
+    [ObservableProperty] private string _lblUndo = "Remove line";
     [ObservableProperty] private decimal _amountPaid;
     [ObservableProperty] private decimal _balanceDue;
     [ObservableProperty] private bool _hasPayments;
@@ -141,6 +146,8 @@ public partial class SellViewModel : ViewModelBase
     public void RefreshUiLabels()
     {
         LblPhoneOrder = UiText.PhoneOrder;
+        LblDiscount = UiText.Pick("Discount", "折扣");
+        LblUndo = UiText.Pick("Remove line", "删除该行");
         LblHeld = UiText.Held;
         LblNew = UiText.NewTicket;
         LblClear = UiText.ClearTicket;
@@ -636,6 +643,78 @@ public partial class SellViewModel : ViewModelBase
         SelectItem(item);
     }
 
+    /// <summary>
+    /// Take money off the whole ticket. One box accepts either form because
+    /// that is how it is asked for at the counter: "a fiver off" is <c>5</c>,
+    /// "ten percent" is <c>10%</c>.
+    /// </summary>
+    [RelayCommand]
+    private async Task ApplyDiscountAsync()
+    {
+        if (Lines.Count == 0)
+        {
+            PanelStatus = UiText.Pick("Add dishes before discounting", "先加菜再打折");
+            return;
+        }
+
+        if (!await UiPrompt.RequireAsync(_app, Permission.Discount, UiText.Pick("Discount", "折扣")))
+            return;
+
+        var entered = await UiPrompt.PromptTextAsync(
+            UiText.Pick("Discount", "折扣"),
+            UiText.Pick("5 for £5 off, or 10% ", "5 表示减 £5，10% 表示打折"));
+        if (string.IsNullOrWhiteSpace(entered)) return;
+
+        var raw = entered.Trim();
+        var isPercent = raw.EndsWith('%');
+        if (!decimal.TryParse(raw.TrimEnd('%').Trim(), out var value) || value <= 0)
+        {
+            PanelStatus = UiText.Pick($"'{raw}' is not a discount", $"'{raw}' 不是有效折扣");
+            return;
+        }
+
+        var goods = Money.Round(Lines.Sum(l => l.LineTotal));
+        var amount = isPercent ? Money.Round(goods * value / 100m) : Money.Round(value);
+
+        if (amount > goods)
+        {
+            PanelStatus = UiText.Pick(
+                $"£{amount:0.00} is more than the £{goods:0.00} of food",
+                $"£{amount:0.00} 超过了菜品金额 £{goods:0.00}");
+            return;
+        }
+
+        // A discount with no reason is an unexplained hole in the takings.
+        var reason = await UiPrompt.PromptTextAsync(
+            UiText.Pick("Reason", "折扣原因"),
+            UiText.Pick("Regular customer, complaint, staff meal…", "老顾客、投诉补偿、员工餐…"));
+        if (string.IsNullOrWhiteSpace(reason)) return;
+
+        _ticket.DiscountTotal = amount;
+        _ticket.DiscountReason = reason.Trim();
+        SyncTicketTotals();
+
+        _app.Session.Record("order.discount", _ticket.Id,
+            $"{(isPercent ? $"{value}%" : "")} £{amount:0.00} — {reason.Trim()}");
+        PanelStatus = UiText.Pick(
+            $"Discount £{amount:0.00} — {reason.Trim()}",
+            $"折扣 £{amount:0.00} — {reason.Trim()}");
+    }
+
+    [RelayCommand]
+    private async Task ClearDiscountAsync()
+    {
+        if (_ticket.DiscountTotal <= 0) return;
+        if (!await UiPrompt.RequireAsync(_app, Permission.Discount, UiText.Pick("Remove discount", "取消折扣")))
+            return;
+
+        _app.Session.Record("order.discount.clear", _ticket.Id, $"was £{_ticket.DiscountTotal:0.00}");
+        _ticket.DiscountTotal = 0;
+        _ticket.DiscountReason = null;
+        SyncTicketTotals();
+        PanelStatus = UiText.Pick("Discount removed", "折扣已取消");
+    }
+
     /// <summary>Quantity for the next dish added, from keyed entry. Resets after use.</summary>
     private int PendingQuantity { get; set; } = 1;
 
@@ -754,7 +833,7 @@ public partial class SellViewModel : ViewModelBase
     private async Task EightySixItemAsync(MenuItem? item)
     {
         if (item is null) return;
-        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "86 / sold out"))
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditMenu, UiText.Pick("Mark sold out (86)", "标记售罄 (86)")))
             return;
         item.IsAvailable = false;
         _app.Menu.SetItemAvailable(item.Id, false);
@@ -1481,11 +1560,20 @@ public partial class SellViewModel : ViewModelBase
         {
             Lines = Lines.ToList(),
             DeliveryFee = OrderType == "Delivery" ? _app.GetSettings().DefaultDeliveryFee : 0,
+            DiscountTotal = _ticket.DiscountTotal,
         };
         LinePricing.RecalculateOrder(tmp);
         Subtotal = tmp.Subtotal;
         DeliveryFee = tmp.DeliveryFee;
         Total = tmp.Total;
+
+        // A discount stays visible while the ticket is open: staff need to see
+        // it is still on before they take the money, not discover it after.
+        DiscountTotal = _ticket.DiscountTotal;
+        HasDiscount = DiscountTotal > 0;
+        DiscountText = HasDiscount
+            ? $"- £{DiscountTotal:0.00}  {_ticket.DiscountReason}".TrimEnd()
+            : "";
         LineCount = Lines.Sum(l => l.Quantity);
         IsTicketEmpty = Lines.Count == 0;
         HasUnsentLines = Lines.Any(l => !l.KitchenSent);

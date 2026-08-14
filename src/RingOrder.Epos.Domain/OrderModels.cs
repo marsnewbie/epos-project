@@ -142,6 +142,9 @@ public sealed class PosOrder
     public decimal Subtotal { get; set; }
     public decimal DeliveryFee { get; set; }
     public decimal DiscountTotal { get; set; }
+
+    /// <summary>Why money came off. Required whenever DiscountTotal is not zero.</summary>
+    public string? DiscountReason { get; set; }
     public decimal Total { get; set; }
     public string? Notes { get; set; }
     /// <summary>Kitchen "Requested for:" (from website scheduled / ASAP).</summary>

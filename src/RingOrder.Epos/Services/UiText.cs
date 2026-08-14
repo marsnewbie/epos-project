@@ -35,11 +35,15 @@ public static class UiText
     // ── Dialogs ────────────────────────────────────────────────────
     public static string Ok => Pick("OK", "确定");
     public static string Cancel => Pick("Cancel", "取消");
-    public static string ManagerPinTitle(string action) =>
-        Pick($"Manager PIN · {action}", $"经理 PIN · {action}");
-    public static string PinIncorrectTitle => Pick("PIN incorrect", "PIN 不正确");
+    public static string ApprovalTitle(string action) =>
+        Pick($"Approval needed · {action}", $"需要授权 · {action}");
+    public static string PinIncorrectTitle => Pick("PIN not recognised", "PIN 不正确");
     public static string PinIncorrectBody =>
-        Pick("Manager PIN did not match.", "经理 PIN 不正确。");
+        Pick("No staff member has that PIN.", "没有员工使用该 PIN。");
+    public static string NotAllowedTitle => Pick("Not allowed", "权限不足");
+    public static string NotAllowedBody(string name, string action) =>
+        Pick($"{name} is not allowed to {action.ToLowerInvariant()}.",
+             $"{name} 没有「{action}」的权限。");
 
     // ── Sell ───────────────────────────────────────────────────────
     public static string Search => Pick("Search dishes", "搜索菜品");

@@ -25,6 +25,8 @@ public partial class SettingsViewModel : ViewModelBase
     public ObservableCollection<MenuEditRow> MenuRows { get; } = [];
     public ObservableCollection<QuickNoteEditRow> NoteRows { get; } = [];
     public ObservableCollection<CategoryAdminRow> MenuCategories { get; } = [];
+    public ObservableCollection<StaffRow> StaffMembers { get; } = [];
+    public StaffRole[] StaffRoles { get; } = Enum.GetValues<StaffRole>();
     public OptionTypeChoice[] OptionTypeChoices { get; } = OptionGroupEditorVm.TypeChoices;
 
     [ObservableProperty] private CategoryAdminRow? _selectedMenuCategory;
@@ -72,8 +74,10 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private string _defaultDeliveryFeeText = "0";
     [ObservableProperty] private string _menuInfo = "";
     [ObservableProperty] private string _menuSearch = "";
-    [ObservableProperty] private string _managerPin = "1234";
-    [ObservableProperty] private string _cashierPin = "";
+    [ObservableProperty] private StaffRow? _selectedStaff;
+    [ObservableProperty] private string _newStaffName = "";
+    [ObservableProperty] private StaffRole _newStaffRole = StaffRole.Cashier;
+    [ObservableProperty] private string _staffHint = "";
     [ObservableProperty] private string _callerIdMode = "simulate";
     [ObservableProperty] private string _callerIdCom = "COM3";
     [ObservableProperty] private bool _callerIdEnabled;
@@ -189,8 +193,7 @@ public partial class SettingsViewModel : ViewModelBase
         PollIntervalText = s.OnlinePollIntervalSeconds.ToString();
         OnlinePollingEnabled = s.OnlinePollingEnabled;
         DefaultDeliveryFeeText = s.DefaultDeliveryFee.ToString("0.##");
-        ManagerPin = s.ManagerPin;
-        CashierPin = s.CashierPin ?? "";
+        ReloadStaff();
         CallerIdEnabled = s.CallerIdEnabled;
         CallerIdMode = s.CallerIdMode;
         CallerIdCom = s.CallerIdComPort;
@@ -433,7 +436,7 @@ public partial class SettingsViewModel : ViewModelBase
             _setStatus($"Cannot delete — {count} dishes still in this category. Move or delete dishes first.");
             return;
         }
-        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "Delete category"))
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditMenu, UiText.Pick("Delete category", "删除分类")))
             return;
         if (!await UiPrompt.ConfirmAsync("Delete category?", $"Delete “{SelectedMenuCategory.Name}”? This cannot be undone."))
             return;
@@ -600,7 +603,7 @@ public partial class SettingsViewModel : ViewModelBase
             ClearDishEditor();
             return;
         }
-        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "Delete dish"))
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditMenu, UiText.Pick("Delete dish", "删除菜品")))
             return;
         if (!await UiPrompt.ConfirmAsync("Delete dish?", $"Delete “{DishEditor.Name}”? Orders history keeps past lines; Sell will no longer offer this dish."))
             return;
@@ -707,8 +710,6 @@ public partial class SettingsViewModel : ViewModelBase
         s.OnlinePollIntervalSeconds = int.TryParse(PollIntervalText, out var iv) ? Math.Clamp(iv, 2, 60) : 4;
         s.OnlinePollingEnabled = OnlinePollingEnabled;
         s.DefaultDeliveryFee = decimal.TryParse(DefaultDeliveryFeeText, out var fee) ? fee : 0;
-        s.ManagerPin = string.IsNullOrWhiteSpace(ManagerPin) ? "1234" : ManagerPin.Trim();
-        s.CashierPin = string.IsNullOrWhiteSpace(CashierPin) ? null : CashierPin.Trim();
         s.CallerIdEnabled = CallerIdEnabled;
         s.CallerIdMode = CallerIdMode.Trim();
         s.CallerIdComPort = CallerIdCom.Trim();
@@ -748,7 +749,7 @@ public partial class SettingsViewModel : ViewModelBase
             return;
         }
 
-        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "Re-import shop bundle"))
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditSettings, UiText.Pick("Re-import shop bundle", "重新导入配置包")))
             return;
         if (!await UiPrompt.ConfirmAsync(
                 "Re-import shop bundle?",
@@ -768,6 +769,153 @@ public partial class SettingsViewModel : ViewModelBase
         {
             _setStatus($"Import failed: {ex.Message}");
         }
+    }
+
+    // ── Staff ───────────────────────────────────────────────────────────────
+
+    private void ReloadStaff()
+    {
+        StaffMembers.Clear();
+        foreach (var member in _app.Staff.ListAll(activeOnly: false))
+            StaffMembers.Add(new StaffRow(member, member.Id == _app.Session.Staff?.Id));
+
+        var needChange = StaffMembers.Count(r => r.Member.MustChangePin && r.Member.IsActive);
+        StaffHint = needChange > 0
+            ? UiText.Pick(
+                $"{needChange} account(s) still use the PIN we set up. Change them before the shop opens.",
+                $"{needChange} 个账号仍在用我们设置的初始 PIN，开店前请修改。")
+            : UiText.Pick(
+                "Everyone signs in with their own PIN, so voids and payments have a name against them.",
+                "每人用自己的 PIN 登录，作废和收款才有名字可查。");
+    }
+
+    [RelayCommand]
+    private async Task AddStaffAsync()
+    {
+        if (!await UiPrompt.RequireAsync(_app, Permission.ManageStaff, UiText.Pick("Add staff", "添加员工")))
+            return;
+
+        var name = NewStaffName.Trim();
+        if (name.Length == 0)
+        {
+            _setStatus(UiText.Pick("Enter a name first", "请先输入姓名"));
+            return;
+        }
+
+        var pin = await UiPrompt.PromptPinAsync(UiText.Pick($"PIN for {name}", $"{name} 的 PIN"));
+        if (string.IsNullOrWhiteSpace(pin)) return;
+        if (pin.Length < 4)
+        {
+            _setStatus(UiText.Pick("A PIN needs at least 4 digits", "PIN 至少 4 位"));
+            return;
+        }
+
+        // Two people with one PIN means neither can be told apart afterwards.
+        if (_app.Staff.Authenticate(pin) is { } clash)
+        {
+            _setStatus(UiText.Pick(
+                $"That PIN already belongs to {clash.Name}",
+                $"该 PIN 已被 {clash.Name} 使用"));
+            return;
+        }
+
+        var (hash, salt) = PinHasher.Hash(pin);
+        _app.Staff.Upsert(new StaffMember
+        {
+            Name = name,
+            Role = NewStaffRole,
+            PinHash = hash,
+            PinSalt = salt,
+        });
+
+        _app.Session.Record("staff.add", detail: $"{name} ({NewStaffRole})");
+        NewStaffName = "";
+        ReloadStaff();
+        _setStatus(UiText.Pick($"Added {name}", $"已添加 {name}"));
+    }
+
+    [RelayCommand]
+    private async Task ChangeStaffPinAsync(StaffRow? row)
+    {
+        if (row is null) return;
+
+        // Anyone may change their own PIN; changing someone else's is a manager job.
+        var isSelf = row.Member.Id == _app.Session.Staff?.Id;
+        if (!isSelf && !await UiPrompt.RequireAsync(
+                _app, Permission.ManageStaff, UiText.Pick("Change another PIN", "修改他人 PIN")))
+            return;
+
+        var pin = await UiPrompt.PromptPinAsync(
+            UiText.Pick($"New PIN for {row.Member.Name}", $"{row.Member.Name} 的新 PIN"));
+        if (string.IsNullOrWhiteSpace(pin)) return;
+        if (pin.Length < 4)
+        {
+            _setStatus(UiText.Pick("A PIN needs at least 4 digits", "PIN 至少 4 位"));
+            return;
+        }
+
+        if (_app.Staff.Authenticate(pin) is { } clash && clash.Id != row.Member.Id)
+        {
+            _setStatus(UiText.Pick(
+                $"That PIN already belongs to {clash.Name}",
+                $"该 PIN 已被 {clash.Name} 使用"));
+            return;
+        }
+
+        _app.Staff.SetPin(row.Member.Id, pin);
+        _app.Session.Record("staff.pin", row.Member.Id, row.Member.Name);
+        ReloadStaff();
+        _setStatus(UiText.Pick($"PIN changed for {row.Member.Name}", $"已修改 {row.Member.Name} 的 PIN"));
+    }
+
+    [RelayCommand]
+    private async Task SetStaffRoleAsync(StaffRow? row)
+    {
+        if (row is null) return;
+        if (!await UiPrompt.RequireAsync(_app, Permission.ManageStaff, UiText.Pick("Change role", "修改角色")))
+            return;
+
+        row.Member.Role = row.SelectedRole;
+        _app.Staff.Upsert(row.Member);
+        _app.Session.Record("staff.role", row.Member.Id, $"{row.Member.Name} -> {row.SelectedRole}");
+        ReloadStaff();
+        _setStatus(UiText.Pick(
+            $"{row.Member.Name} is now {row.SelectedRole}",
+            $"{row.Member.Name} 现在是 {row.SelectedRole}"));
+    }
+
+    /// <summary>
+    /// Staff are deactivated, never deleted: their name is attached to every
+    /// order they took, and a report that cannot name the person who rang a sale
+    /// is not worth printing.
+    /// </summary>
+    [RelayCommand]
+    private async Task ToggleStaffActiveAsync(StaffRow? row)
+    {
+        if (row is null) return;
+        if (!await UiPrompt.RequireAsync(_app, Permission.ManageStaff, UiText.Pick("Change staff access", "修改员工状态")))
+            return;
+
+        if (row.Member.Id == _app.Session.Staff?.Id)
+        {
+            _setStatus(UiText.Pick("You cannot switch yourself off", "不能停用自己"));
+            return;
+        }
+
+        var stillActive = _app.Staff.ListAll()
+            .Count(m => m.Id != row.Member.Id && m.Can(Permission.ManageStaff));
+        if (row.Member.IsActive && row.Member.Can(Permission.ManageStaff) && stillActive == 0)
+        {
+            _setStatus(UiText.Pick(
+                "That is the last manager — the till would lock everyone out of Settings",
+                "这是最后一个经理，停用后没人能进设置"));
+            return;
+        }
+
+        row.Member.IsActive = !row.Member.IsActive;
+        _app.Staff.Upsert(row.Member);
+        _app.Session.Record("staff.active", row.Member.Id, $"{row.Member.Name} active={row.Member.IsActive}");
+        ReloadStaff();
     }
 
     [RelayCommand]
@@ -804,7 +952,7 @@ public partial class SettingsViewModel : ViewModelBase
     [RelayCommand]
     private async Task OpenDrawerAsync()
     {
-        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "Open drawer"))
+        if (!await UiPrompt.RequireAsync(_app, Permission.OpenDrawerWithoutSale, UiText.Pick("Open drawer", "开钱箱")))
             return;
         Save();
         try

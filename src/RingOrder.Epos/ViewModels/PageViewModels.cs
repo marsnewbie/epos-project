@@ -160,7 +160,7 @@ public partial class OrdersViewModel : ViewModelBase
             _openOnSell?.Invoke(SelectedOrder);
             return;
         }
-        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), UiText.Pick("Reopen order", "重开订单")))
+        if (!await UiPrompt.RequireAsync(_app, Permission.ReopenPaidOrder, UiText.Pick("Reopen a paid order", "重开已付订单")))
             return;
         if (!await UiPrompt.ConfirmAsync(
                 UiText.Pick("Reopen paid order?", "重开已付订单？"),
@@ -189,7 +189,7 @@ public partial class OrdersViewModel : ViewModelBase
             _setStatus("Already voided");
             return;
         }
-        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "Void order"))
+        if (!await UiPrompt.RequireAsync(_app, Permission.VoidOrder, UiText.Pick("Void order", "作废订单")))
             return;
         var paidNote = SelectedOrder.AmountPaid > 0
             ? UiText.Pick(

@@ -318,6 +318,16 @@
           <Border DockPanel.Dock="Bottom" Classes="panel-flat" Margin="0,8,0,0"
                   IsVisible="{Binding !ShowCashPanel}">
             <StackPanel Spacing="8">
+
+              <!-- Discount stays on screen while it applies, with one tap to undo. -->
+              <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasDiscount}">
+                <Border Classes="pill warn" HorizontalAlignment="Left">
+                  <TextBlock Text="{Binding DiscountText}" />
+                </Border>
+                <Button Grid.Column="1" Classes="btn" Content="✕" Width="48" MinHeight="36" Height="36"
+                        Command="{Binding ClearDiscountCommand}" />
+              </Grid>
+
               <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Orientation="Horizontal" Spacing="4" IsEnabled="{Binding CanEditSelectedLine}">
                   <Button Classes="key" Content="−" Command="{Binding QtyMinusCommand}" Width="44" Margin="0,0,4,0" />
@@ -344,15 +354,31 @@
                 </StackPanel>
               </Grid>
 
+              <!--
+                Function bar: the things staff reach for mid-order. They live
+                here rather than in a menu because each one is needed while a
+                customer is standing there.
+              -->
+              <UniformGrid Columns="4">
+                <Button Classes="btn" Content="{Binding LblDiscount}"
+                        Command="{Binding ApplyDiscountCommand}" Margin="0,0,4,0" />
+                <Button Classes="btn" Content="{Binding LblNotes}"
+                        Command="{Binding ToggleCustomerMoreCommand}" Margin="0,0,4,0" />
+                <Button Classes="btn" Content="{Binding LblAdHoc}"
+                        Command="{Binding ToggleAdHocCommand}" Margin="0,0,4,0" />
+                <Button Classes="btn" Content="{Binding LblUndo}"
+                        Command="{Binding RemoveLineCommand}" />
+              </UniformGrid>
+
               <Button Classes="primary" Content="{Binding SendButtonText}"
-                      Command="{Binding SendKitchenCommand}" Height="50" />
+                      Command="{Binding SendKitchenCommand}" />
               <Grid ColumnDefinitions="*,*,*">
                 <Button Grid.Column="0" Classes="hold" Content="{Binding LblHold}"
-                        Command="{Binding HoldTicketCommand}" Margin="0,0,4,0" Height="48" />
+                        Command="{Binding HoldTicketCommand}" Margin="0,0,4,0" Height="60" />
                 <Button Grid.Column="1" Classes="cash" Content="{Binding LblPayCash}"
-                        Command="{Binding BeginCashPayCommand}" Margin="0,0,4,0" Height="48" />
+                        Command="{Binding BeginCashPayCommand}" Margin="0,0,4,0" Height="60" />
                 <Button Grid.Column="2" Classes="card" Content="{Binding LblPayCard}"
-                        Command="{Binding PayCardCommand}" Height="48" />
+                        Command="{Binding PayCardCommand}" Height="60" />
               </Grid>
             </StackPanel>
           </Border>
