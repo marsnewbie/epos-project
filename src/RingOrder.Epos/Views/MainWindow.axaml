@@ -80,6 +80,18 @@
         </Grid>
       </Border>
 
+      <!--
+        A new web order gets a band across the screen that stays until someone
+        opens Orders. A notification that fades is no use to a kitchen at seven
+        o'clock: nobody is watching the screen when it appears.
+      -->
+      <Button DockPanel.Dock="Top" IsVisible="{Binding HasNewWebOrders}"
+              Command="{Binding GoOrdersCommand}" Classes="primary"
+              HorizontalAlignment="Stretch" CornerRadius="0" Height="52">
+        <TextBlock Text="{Binding NewWebOrderBanner}" FontSize="{StaticResource FontStrong}"
+                   FontWeight="Bold" Foreground="{StaticResource InkOnDark}" />
+      </Button>
+
       <Border DockPanel.Dock="Bottom" Background="{StaticResource Panel}" Padding="14,8"
               BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
         <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource InkMuted}"
@@ -93,8 +105,6 @@
                   Content="{Binding NavTill}" Command="{Binding GoTillCommand}" />
           <Button Classes="rail" Classes.on="{Binding IsOrdersNav}"
                   Content="{Binding NavOrders}" Command="{Binding GoOrdersCommand}" />
-          <Button Classes="rail" Classes.on="{Binding IsOnlineNav}"
-                  Content="{Binding NavOnline}" Command="{Binding GoOnlineCommand}" />
           <Button Classes="rail" Classes.on="{Binding IsCustomersNav}"
                   Content="{Binding NavCustomers}" Command="{Binding GoCustomersCommand}" />
           <Button Classes="rail" Classes.on="{Binding IsSettingsNav}"

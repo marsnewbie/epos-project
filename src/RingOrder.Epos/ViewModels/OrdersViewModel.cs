@@ -29,6 +29,17 @@ public partial class OrdersViewModel : ViewModelBase
     [ObservableProperty] private bool _filterUnpaid;
     [ObservableProperty] private bool _filterHeld;
     [ObservableProperty] private bool _filterPaid;
+    [ObservableProperty] private string _channelFilter = "All";
+    [ObservableProperty] private bool _channelAll = true;
+    [ObservableProperty] private bool _channelCounter;
+    [ObservableProperty] private bool _channelPhone;
+    [ObservableProperty] private bool _channelWeb;
+    [ObservableProperty] private bool _channelPlatform;
+    [ObservableProperty] private string _lblChannelAll = "All sources";
+    [ObservableProperty] private string _lblChannelCounter = "Counter";
+    [ObservableProperty] private string _lblChannelPhone = "Phone";
+    [ObservableProperty] private string _lblChannelWeb = "Web";
+    [ObservableProperty] private string _lblChannelPlatform = "Platform";
     [ObservableProperty] private string _todaySummary = "";
     [ObservableProperty] private string _lblToday = "Today";
     [ObservableProperty] private string _lblRefresh = "Refresh";
@@ -57,13 +68,18 @@ public partial class OrdersViewModel : ViewModelBase
         LblReprintFront = UiText.ReprintFront;
         LblVoid = UiText.VoidOrder;
         LblReopen = UiText.ReopenOrder;
+        LblChannelAll = UiText.Pick("All sources", "全部来源");
+        LblChannelCounter = UiText.Pick("Counter", "到店");
+        LblChannelPhone = UiText.Pick("Phone", "电话");
+        LblChannelWeb = UiText.Pick("Web", "网单");
+        LblChannelPlatform = UiText.Pick("Platform", "平台");
         Refresh();
     }
 
     public void Refresh()
     {
         Orders.Clear();
-        foreach (var o in _app.Orders.GetTodayFiltered(Filter))
+        foreach (var o in _app.Orders.GetTodayFiltered(Filter).Where(MatchesChannel))
             Orders.Add(o);
         if (SelectedOrder is not null)
             SelectedOrder = Orders.FirstOrDefault(o => o.Id == SelectedOrder.Id);
@@ -93,6 +109,29 @@ public partial class OrdersViewModel : ViewModelBase
         FilterPaid = Filter.Equals("Paid", StringComparison.OrdinalIgnoreCase);
         Refresh();
     }
+
+    /// <summary>
+    /// Where an order came from is a filter on today's list, not a separate
+    /// screen. Web orders sit beside counter orders because that is how the
+    /// shop thinks about them: they are all today's work, and staff switching
+    /// screens to find out whether a website order arrived is staff not
+    /// serving anyone.
+    /// </summary>
+    [RelayCommand]
+    private void SetChannel(string? channel)
+    {
+        ChannelFilter = channel ?? "All";
+        ChannelAll = ChannelFilter == "All";
+        ChannelCounter = ChannelFilter == "Counter";
+        ChannelPhone = ChannelFilter == "Phone";
+        ChannelWeb = ChannelFilter == "Web";
+        ChannelPlatform = ChannelFilter == "Platform";
+        Refresh();
+    }
+
+    private bool MatchesChannel(PosOrder order) =>
+        ChannelFilter == "All" ||
+        (Enum.TryParse<OrderChannel>(ChannelFilter, out var wanted) && order.Channel == wanted);
 
     partial void OnSelectedOrderChanged(PosOrder? value)
     {

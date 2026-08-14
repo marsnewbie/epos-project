@@ -10,7 +10,8 @@
 
   <Grid>
   <Grid ColumnDefinitions="176,*,430"
-        IsEnabled="{Binding !ShowChangeOverlay}">
+        IsEnabled="{Binding !ShowChangeOverlay}"
+        IsVisible="{Binding !ShowCashPanel}">
 
     <!-- Categories -->
     <Border Grid.Column="0" Classes="panel" Padding="8" Margin="0,0,8,0">
@@ -315,8 +316,7 @@
                      IsVisible="{Binding ShowCustomerMore}" />
           </StackPanel>
 
-          <Border DockPanel.Dock="Bottom" Classes="panel-flat" Margin="0,8,0,0"
-                  IsVisible="{Binding !ShowCashPanel}">
+          <Border DockPanel.Dock="Bottom" Classes="panel-flat" Margin="0,8,0,0">
             <StackPanel Spacing="8">
 
               <!-- Discount stays on screen while it applies, with one tap to undo. -->
@@ -383,66 +383,6 @@
             </StackPanel>
           </Border>
 
-          <Border DockPanel.Dock="Bottom" Classes="panel-flat" Margin="0,8,0,0"
-                  IsVisible="{Binding ShowCashPanel}">
-            <StackPanel Spacing="6">
-              <Grid ColumnDefinitions="*,Auto">
-                <StackPanel>
-                  <TextBlock Classes="muted" FontSize="11">
-                    <Run Text="{Binding DueLabel}" />
-                    <Run Text=" " />
-                    <Run Text="{Binding BalanceDueText}" FontWeight="Bold" />
-                  </TextBlock>
-                  <TextBlock Text="{Binding LblCashTender}" Classes="muted" FontSize="11" Margin="0,4,0,0" />
-                  <TextBlock Text="{Binding CashTenderedText, StringFormat={}£{0}}" FontSize="26"
-                             FontWeight="Bold" Foreground="#15803d" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" HorizontalAlignment="Right">
-                  <TextBlock Text="{Binding Total, StringFormat={}£{0:0.00}}" Foreground="#1c1917"
-                             FontWeight="SemiBold" HorizontalAlignment="Right" />
-                  <TextBlock IsVisible="{Binding HasPayments}" HorizontalAlignment="Right" FontSize="11" Foreground="#5b6472">
-                    <Run Text="{Binding PaidLabel}" />
-                    <Run Text=" £" />
-                    <Run Text="{Binding AmountPaid, StringFormat={}{0:0.00}}" />
-                  </TextBlock>
-                  <TextBlock Text="{Binding ChangeText}" Foreground="#b45309" FontWeight="Bold"
-                             FontSize="15" HorizontalAlignment="Right" Margin="0,4,0,0" />
-                </StackPanel>
-              </Grid>
-              <UniformGrid Columns="4">
-                <Button Classes="key" Content="1" Command="{Binding CashDigitCommand}" CommandParameter="1" />
-                <Button Classes="key" Content="2" Command="{Binding CashDigitCommand}" CommandParameter="2" />
-                <Button Classes="key" Content="3" Command="{Binding CashDigitCommand}" CommandParameter="3" />
-                <Button Classes="key" Content="£10" Command="{Binding CashQuickCommand}" CommandParameter="10" />
-                <Button Classes="key" Content="4" Command="{Binding CashDigitCommand}" CommandParameter="4" />
-                <Button Classes="key" Content="5" Command="{Binding CashDigitCommand}" CommandParameter="5" />
-                <Button Classes="key" Content="6" Command="{Binding CashDigitCommand}" CommandParameter="6" />
-                <Button Classes="key" Content="£20" Command="{Binding CashQuickCommand}" CommandParameter="20" />
-                <Button Classes="key" Content="7" Command="{Binding CashDigitCommand}" CommandParameter="7" />
-                <Button Classes="key" Content="8" Command="{Binding CashDigitCommand}" CommandParameter="8" />
-                <Button Classes="key" Content="9" Command="{Binding CashDigitCommand}" CommandParameter="9" />
-                <Button Classes="key" Content="£50" Command="{Binding CashQuickCommand}" CommandParameter="50" />
-                <Button Classes="key" Content="⌫" Command="{Binding CashBackspaceCommand}" FontSize="20" />
-                <Button Classes="key" Content="0" Command="{Binding CashDigitCommand}" CommandParameter="0" />
-                <Button Classes="key" Content="." Command="{Binding CashDigitCommand}" CommandParameter="." />
-                <Button Classes="key" Content="{Binding LblExact}" Command="{Binding CashExactCommand}" />
-              </UniformGrid>
-              <Grid ColumnDefinitions="*,*,2*">
-                <Button Grid.Column="0" Classes="btn" Content="{Binding LblBack}"
-                        Command="{Binding CancelCashPayCommand}" Height="52" Margin="0,0,4,0" />
-                <Button Grid.Column="1" Classes="btn" Content="{Binding LblClearCash}"
-                        Command="{Binding CashClearCommand}" Height="52" Margin="0,0,4,0" />
-                <Button Grid.Column="2" Classes="cash" Content="{Binding LblConfirmCash}"
-                        Command="{Binding PayCashCommand}" Height="52" />
-              </Grid>
-              <Button Classes="card" Content="{Binding LblPayCardOnPad}"
-                      Command="{Binding PayCardCommand}" Height="44" />
-              <Button Classes="btn" Content="{Binding LblPrintInterim}"
-                      Command="{Binding PrintInterimReceiptCommand}" Height="40"
-                      IsVisible="{Binding HasPayments}" />
-            </StackPanel>
-          </Border>
-
           <Grid>
             <ListBox Classes="ticket" ItemsSource="{Binding Lines}" SelectedItem="{Binding SelectedLine}"
                      IsVisible="{Binding !IsTicketEmpty}">
@@ -494,18 +434,151 @@
     </Border>
   </Grid>
 
+  <!--
+    Taking money gets the whole screen. It is the action with the highest cost
+    of a mistake, and it was previously a 48px keypad in a 430px column.
+    The ticket is not shown here on purpose: at this point the dishes are
+    settled and the only questions are how much and by what.
+  -->
+  <Border IsVisible="{Binding ShowCashPanel}" Background="{StaticResource Page}">
+    <DockPanel Margin="8">
+
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,10">
+        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <TextBlock Text="{Binding LblTakePayment}" Classes="title" />
+          <Border Classes="pill accent">
+            <TextBlock Text="{Binding TicketNumberText}" />
+          </Border>
+        </StackPanel>
+        <Button Grid.Column="1" Classes="btn" Content="{Binding LblBack}"
+                Command="{Binding CancelCashPayCommand}" Width="140" />
+      </Grid>
+
+      <!-- What is owed, and what has been taken so far -->
+      <Border DockPanel.Dock="Left" Classes="panel" Width="420" Padding="20" Margin="0,0,10,0">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Spacing="4">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Text="{Binding LblOrderTotal}" Classes="muted" />
+              <TextBlock Grid.Column="1" Text="{Binding Total, StringFormat={}£{0:0.00}}"
+                         FontSize="{StaticResource FontStrong}" FontWeight="SemiBold" />
+            </Grid>
+            <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding HasPayments}">
+              <TextBlock Text="{Binding PaidLabel}" Classes="muted" />
+              <TextBlock Grid.Column="1" Text="{Binding AmountPaid, StringFormat={}£{0:0.00}}"
+                         FontSize="{StaticResource FontStrong}" Foreground="{StaticResource Cash}" />
+            </Grid>
+
+            <Border Height="1" Background="{StaticResource Line}" Margin="0,10" />
+
+            <TextBlock Text="{Binding DueLabel}" Classes="muted" />
+            <TextBlock Text="{Binding BalanceDueText}" FontSize="{StaticResource FontMoneyBig}"
+                       FontWeight="Bold" Foreground="{StaticResource Accent}" />
+          </StackPanel>
+
+          <StackPanel DockPanel.Dock="Bottom" Spacing="4" IsVisible="{Binding HasPayments}">
+            <TextBlock Text="{Binding LblTakenSoFar}" Classes="muted" />
+            <TextBlock Text="{Binding PaymentSummaryText}" TextWrapping="Wrap"
+                       Foreground="{StaticResource InkMuted}"
+                       FontSize="{StaticResource FontSmall}" />
+          </StackPanel>
+
+          <StackPanel Margin="0,24,0,0" Spacing="4">
+            <TextBlock Text="{Binding LblCashTender}" Classes="muted" />
+            <TextBlock Text="{Binding CashTenderedText, StringFormat={}£{0}}"
+                       FontSize="{StaticResource FontMoneyBig}" FontWeight="Bold"
+                       Foreground="{StaticResource Cash}" />
+            <TextBlock Text="{Binding ChangeText}" Foreground="{StaticResource Hold}"
+                       FontWeight="Bold" FontSize="{StaticResource FontMoney}" Margin="0,8,0,0" />
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <!-- How it is being paid -->
+      <Border Classes="panel" Padding="16">
+        <DockPanel>
+          <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,*,*" Margin="0,12,0,0">
+            <Button Classes="btn" Content="{Binding LblPrintInterim}" Width="180"
+                    Command="{Binding PrintInterimReceiptCommand}"
+                    IsVisible="{Binding HasPayments}" Margin="0,0,8,0" />
+            <Button Grid.Column="1" Classes="card" Content="{Binding LblPayCardOnPad}"
+                    Command="{Binding PayCardCommand}" Margin="0,0,8,0" />
+            <Button Grid.Column="2" Classes="cash" Content="{Binding LblConfirmCash}"
+                    Command="{Binding PayCashCommand}" />
+          </Grid>
+
+          <!--
+            Digits on the left in phone order, notes down the right. The note
+            column is where a hand goes for the commonest case by far — the
+            customer hands over a twenty — so it is never more than one press
+            away from the confirm button.
+          -->
+          <Grid RowDefinitions="*,*,*,*,*" ColumnDefinitions="*,*,*,*">
+            <Button Grid.Row="0" Grid.Column="0" Classes="key" Content="7"
+                    Command="{Binding CashDigitCommand}" CommandParameter="7" />
+            <Button Grid.Row="0" Grid.Column="1" Classes="key" Content="8"
+                    Command="{Binding CashDigitCommand}" CommandParameter="8" />
+            <Button Grid.Row="0" Grid.Column="2" Classes="key" Content="9"
+                    Command="{Binding CashDigitCommand}" CommandParameter="9" />
+            <Button Grid.Row="0" Grid.Column="3" Classes="key tender" Content="£5"
+                    Command="{Binding CashQuickCommand}" CommandParameter="5" />
+
+            <Button Grid.Row="1" Grid.Column="0" Classes="key" Content="4"
+                    Command="{Binding CashDigitCommand}" CommandParameter="4" />
+            <Button Grid.Row="1" Grid.Column="1" Classes="key" Content="5"
+                    Command="{Binding CashDigitCommand}" CommandParameter="5" />
+            <Button Grid.Row="1" Grid.Column="2" Classes="key" Content="6"
+                    Command="{Binding CashDigitCommand}" CommandParameter="6" />
+            <Button Grid.Row="1" Grid.Column="3" Classes="key tender" Content="£10"
+                    Command="{Binding CashQuickCommand}" CommandParameter="10" />
+
+            <Button Grid.Row="2" Grid.Column="0" Classes="key" Content="1"
+                    Command="{Binding CashDigitCommand}" CommandParameter="1" />
+            <Button Grid.Row="2" Grid.Column="1" Classes="key" Content="2"
+                    Command="{Binding CashDigitCommand}" CommandParameter="2" />
+            <Button Grid.Row="2" Grid.Column="2" Classes="key" Content="3"
+                    Command="{Binding CashDigitCommand}" CommandParameter="3" />
+            <Button Grid.Row="2" Grid.Column="3" Classes="key tender" Content="£20"
+                    Command="{Binding CashQuickCommand}" CommandParameter="20" />
+
+            <Button Grid.Row="3" Grid.Column="0" Classes="key" Content="0"
+                    Command="{Binding CashDigitCommand}" CommandParameter="0" />
+            <Button Grid.Row="3" Grid.Column="1" Classes="key" Content="."
+                    Command="{Binding CashDigitCommand}" CommandParameter="." />
+            <Button Grid.Row="3" Grid.Column="2" Classes="key" Content="⌫"
+                    Command="{Binding CashBackspaceCommand}" />
+            <Button Grid.Row="3" Grid.Column="3" Classes="key tender" Content="£50"
+                    Command="{Binding CashQuickCommand}" CommandParameter="50" />
+
+            <Button Grid.Row="4" Grid.Column="0" Classes="key" Content="{Binding LblClearCash}"
+                    Command="{Binding CashClearCommand}" />
+            <Button Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="3" Classes="key tender"
+                    Content="{Binding LblExactAmount}" Command="{Binding CashExactCommand}" />
+          </Grid>
+        </DockPanel>
+      </Border>
+    </DockPanel>
+  </Border>
+
   <!-- Full-screen settlement: must acknowledge before any till work continues -->
-  <Border IsVisible="{Binding ShowChangeOverlay}" Background="#E0000000" ZIndex="100">
-    <Border Background="#ffffff" CornerRadius="12" Padding="28" Margin="24"
+  <Border IsVisible="{Binding ShowChangeOverlay}" Background="#E0202531" ZIndex="100">
+    <Border Background="{StaticResource Panel}" CornerRadius="12" Padding="36" Margin="24"
             HorizontalAlignment="Center" VerticalAlignment="Center"
-            BorderBrush="#15803d" BorderThickness="3" MinWidth="300" MaxWidth="420">
-      <StackPanel Spacing="12">
-        <TextBlock Text="{Binding ChangeOverlayText}" FontSize="32" FontWeight="Bold"
-                   Foreground="#15803d" TextAlignment="Center" TextWrapping="Wrap" />
-        <TextBlock Text="{Binding ChangeOverlaySub}" FontSize="14" Foreground="#5b6472"
+            BorderBrush="{StaticResource Cash}" BorderThickness="3"
+            MinWidth="420" MaxWidth="560">
+      <StackPanel Spacing="14">
+        <!--
+          The change figure stays up until someone dismisses it. An amount that
+          clears itself is how the wrong money gets handed over.
+        -->
+        <TextBlock Text="{Binding ChangeOverlayText}" FontSize="{StaticResource FontMoneyBig}"
+                   FontWeight="Bold" Foreground="{StaticResource Cash}"
+                   TextAlignment="Center" TextWrapping="Wrap" />
+        <TextBlock Text="{Binding ChangeOverlaySub}" FontSize="{StaticResource FontBody}"
+                   Foreground="{StaticResource InkMuted}"
                    TextAlignment="Center" TextWrapping="Wrap" />
         <Button Classes="cash" Content="{Binding LblNextTicket}"
-                Command="{Binding DismissChangeOverlayCommand}" Height="52" Margin="0,8,0,0" />
+                Command="{Binding DismissChangeOverlayCommand}" Margin="0,10,0,0" />
       </StackPanel>
     </Border>
   </Border>

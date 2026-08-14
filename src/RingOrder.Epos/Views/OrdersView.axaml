@@ -24,7 +24,24 @@
             <Button Classes="btn" Classes.on="{Binding FilterPaid}" Content="{Binding LblFilterPaid}"
                     Command="{Binding SetFilterCommand}" CommandParameter="Paid" Height="40" />
           </UniformGrid>
-          <TextBlock Text="{Binding TodaySummary}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
+          <!--
+            Where an order came from is a filter here, not a separate screen.
+            Staff leaving the order list to find out whether a web order landed
+            are staff not serving anyone.
+          -->
+          <UniformGrid Columns="5">
+            <Button Classes="btn" Classes.on="{Binding ChannelAll}" Content="{Binding LblChannelAll}"
+                    Command="{Binding SetChannelCommand}" CommandParameter="All" Height="40" Margin="0,0,4,0" />
+            <Button Classes="btn" Classes.on="{Binding ChannelCounter}" Content="{Binding LblChannelCounter}"
+                    Command="{Binding SetChannelCommand}" CommandParameter="Counter" Height="40" Margin="0,0,4,0" />
+            <Button Classes="btn" Classes.on="{Binding ChannelPhone}" Content="{Binding LblChannelPhone}"
+                    Command="{Binding SetChannelCommand}" CommandParameter="Phone" Height="40" Margin="0,0,4,0" />
+            <Button Classes="btn" Classes.on="{Binding ChannelWeb}" Content="{Binding LblChannelWeb}"
+                    Command="{Binding SetChannelCommand}" CommandParameter="Web" Height="40" Margin="0,0,4,0" />
+            <Button Classes="btn" Classes.on="{Binding ChannelPlatform}" Content="{Binding LblChannelPlatform}"
+                    Command="{Binding SetChannelCommand}" CommandParameter="Platform" Height="40" />
+          </UniformGrid>
+          <TextBlock Text="{Binding TodaySummary}" Classes="muted" TextWrapping="Wrap" />
         </StackPanel>
         <ListBox Classes="ticket" ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder}">
           <ListBox.ItemTemplate>

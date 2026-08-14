@@ -135,6 +135,10 @@ public partial class TillViewModel : ViewModelBase
     [ObservableProperty] private string _paidLabel = "Paid";
     [ObservableProperty] private string _lblPayCardOnPad = "Card (balance)";
     [ObservableProperty] private string _lblPrintInterim = "Interim receipt";
+    [ObservableProperty] private string _lblTakePayment = "Take payment";
+    [ObservableProperty] private string _lblOrderTotal = "Order total";
+    [ObservableProperty] private string _lblTakenSoFar = "Taken so far";
+    [ObservableProperty] private string _lblExactAmount = "Exact";
     [ObservableProperty] private string _lblNextTicket = "Next";
     [ObservableProperty] private bool _showChangeOverlay;
     [ObservableProperty] private string _changeOverlayText = "";
@@ -185,6 +189,9 @@ public partial class TillViewModel : ViewModelBase
         PaidLabel = UiText.AmountPaid;
         LblPayCardOnPad = UiText.PayCardBalance;
         LblPrintInterim = UiText.Pick("Interim receipt", "中途收据");
+        LblTakePayment = UiText.Pick("Take payment", "收款");
+        LblOrderTotal = UiText.Pick("Order total", "订单金额");
+        LblTakenSoFar = UiText.Pick("Taken so far", "已收明细");
         LblNextTicket = UiText.Pick("Next order", "下一单");
         ItemsCountText = UiText.ItemsCount(LineCount);
         ReloadQuickNotes();
@@ -807,6 +814,12 @@ public partial class TillViewModel : ViewModelBase
 
     private void UpdateCashConfirmLabel()
     {
+        // Both buttons name the amount they are about to act on. "Take cash" and
+        // "Card" alone make the cashier check the figure somewhere else first,
+        // and the one time they do not is the one that goes wrong.
+        LblExactAmount = $"{UiText.Exact} £{BalanceDue:0.00}";
+        LblPayCardOnPad = $"{UiText.Card} £{BalanceDue:0.00}";
+
         if (!decimal.TryParse(CashTenderedText, out var tendered) || tendered <= 0)
         {
             LblConfirmCash = UiText.TakeCashFull;
@@ -814,7 +827,7 @@ public partial class TillViewModel : ViewModelBase
         }
         LblConfirmCash = tendered + 0.001m < BalanceDue
             ? $"{UiText.PayPartial} £{tendered:0.00}"
-            : UiText.TakeCashFull;
+            : $"{UiText.TakeCashFull} £{tendered:0.00}";
     }
 
     private void RefreshPaymentSummary()

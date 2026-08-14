@@ -285,3 +285,44 @@ One thing worth recording as a method note: cleaning unused `using` directives
 with a clever heuristic dropped ones that were needed, because the probe list
 did not know about `Customer`, `PrintJob` or `AppSettings`. The compiler already
 knows this answer exactly. Do not guess at something a tool can tell you.
+
+---
+
+## 2026-08-15 — Payment gets a screen, and Web orders stop being a module
+
+**Payment is the whole screen now.** It was a 48px keypad in a 430px column,
+which is the wrong place for the action with the highest cost of a mistake. What
+is owed sits on the left in the largest type on the till; the keypad is on the
+right with the note buttons (£5/£10/£20/£50) down the edge nearest the confirm
+button, because the commonest case in a takeaway by a long way is a customer
+handing over a note.
+
+Both confirm buttons now name their amount — "Exact £10.60", "Card £10.60",
+"Take cash £20.00". A button that says only "Card" makes the cashier verify the
+figure somewhere else first, and the once they skip it is the one that goes
+wrong.
+
+The ticket is deliberately not shown on that screen: by then the dishes are
+settled and the only questions are how much and by what.
+
+The payment *logic* was not touched. Partial payment, split tender, change and
+the settlement overlay had already been worked over and were behaving; this was
+a change of presentation only.
+
+**Web orders are no longer a module.** The top bar has carried the on/off since
+the interface work, which left two places managing one thing. Orders now filters
+by channel — all / counter / phone / web / platform — because that is how a shop
+thinks about it: they are all today's work, and staff switching screens to find
+out whether a website order landed are staff not serving anyone. The connection
+test moved to Settings → Online, where it belongs: proving credentials is an
+install-time job, while turning the feed off is a during-service decision and
+stays in the top bar.
+
+`OnlineViewModel` and `OnlineView` are deleted. That left `OnlineBadge` as dead
+state — a dot for a nav item that no longer exists — and rather than delete it,
+it became the thing it should have been: **a band across the top of the screen
+when a web order arrives, which stays until someone opens Orders.** Nobody is
+watching the screen at the moment an order lands, so a notification that fades
+has not notified anyone.
+
+55 tests, app boots.

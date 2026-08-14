@@ -25,7 +25,6 @@ public partial class MainViewModel : ViewModelBase
             Till.LoadOrderForContinue(order);
             GoTill();
         });
-        Online = new OnlineViewModel(app, SetStatus);
         Customers = new CustomersViewModel(app, SetStatus, customer =>
         {
             Till.StartDeliveryForCustomer(customer);
@@ -71,11 +70,22 @@ public partial class MainViewModel : ViewModelBase
                 Dispatcher.UIThread.Post(() =>
                 {
                     StatusText = UiText.Pick(
-                        $"ONLINE {order.OrderNumber} · kitchen printed",
-                        $"线上 {order.OrderNumber} · 已打厨房");
-                    OnlineBadge = "●";
-                    Online.Refresh();
+                        $"Web order {order.OrderNumber} · kitchen printed",
+                        $"网单 {order.OrderNumber} · 已打厨房");
+
+                    // A banner that stays until someone looks. A message that
+                    // clears itself is no use to a kitchen at seven o'clock.
+                    NewWebOrders++;
+                    NewWebOrderBanner = UiText.Pick(
+                        NewWebOrders == 1
+                            ? $"New web order {order.OrderNumber}"
+                            : $"{NewWebOrders} new web orders",
+                        NewWebOrders == 1
+                            ? $"新网单 {order.OrderNumber}"
+                            : $"{NewWebOrders} 张新网单");
+                    HasNewWebOrders = true;
                     Orders.Refresh();
+
                     try
                     {
                         if (OperatingSystem.IsWindows())
@@ -99,7 +109,6 @@ public partial class MainViewModel : ViewModelBase
 
     public TillViewModel Till { get; }
     public OrdersViewModel Orders { get; }
-    public OnlineViewModel Online { get; }
     public CustomersViewModel Customers { get; }
     public SettingsViewModel SettingsVm { get; }
 
@@ -129,10 +138,11 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _clockText = "";
     [ObservableProperty] private string _shopName = "";
     [ObservableProperty] private string _navKey = "till";
-    [ObservableProperty] private string _onlineBadge = "";
+    [ObservableProperty] private int _newWebOrders;
+    [ObservableProperty] private bool _hasNewWebOrders;
+    [ObservableProperty] private string _newWebOrderBanner = "";
     [ObservableProperty] private string _navTill = "Till";
     [ObservableProperty] private string _navOrders = "Orders";
-    [ObservableProperty] private string _navOnline = "Online";
     [ObservableProperty] private string _navCustomers = "Customers";
     [ObservableProperty] private string _navSettings = "Settings";
     [ObservableProperty] private string _lblLanguage = "中文";
@@ -140,7 +150,6 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _languageHint = "";
     [ObservableProperty] private bool _isTillNav = true;
     [ObservableProperty] private bool _isOrdersNav;
-    [ObservableProperty] private bool _isOnlineNav;
     [ObservableProperty] private bool _isCustomersNav;
     [ObservableProperty] private bool _isSettingsNav;
 
@@ -155,16 +164,11 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private void GoOrders() => Navigate("orders", Orders, UiText.NavOrders, () =>
     {
+        // Looking at the list is the acknowledgement.
+        NewWebOrders = 0;
+        HasNewWebOrders = false;
         Orders.RefreshUiLabels();
         Orders.Refresh();
-    });
-
-    [RelayCommand]
-    private void GoOnline() => Navigate("online", Online, UiText.NavOnline, () =>
-    {
-        OnlineBadge = "";
-        Online.RefreshUiLabels();
-        Online.Refresh();
     });
 
     [RelayCommand]
@@ -190,7 +194,6 @@ public partial class MainViewModel : ViewModelBase
         NavKey = key;
         IsTillNav = key == "till";
         IsOrdersNav = key == "orders";
-        IsOnlineNav = key == "online";
         IsCustomersNav = key == "customers";
         IsSettingsNav = key == "settings";
         SectionTitle = title;
@@ -227,7 +230,6 @@ public partial class MainViewModel : ViewModelBase
         // Re-enter current page so titles/lists refresh
         if (IsTillNav) GoTill();
         else if (IsOrdersNav) GoOrders();
-        else if (IsOnlineNav) GoOnline();
         else if (IsCustomersNav) GoCustomers();
         else GoSettings();
     }
@@ -236,7 +238,6 @@ public partial class MainViewModel : ViewModelBase
     {
         NavTill = UiText.NavTill;
         NavOrders = UiText.NavOrders;
-        NavOnline = UiText.NavOnline;
         NavCustomers = UiText.NavCustomers;
         NavSettings = UiText.NavSettings;
         LblLanguage = UiText.LanguageToggle;
@@ -249,7 +250,6 @@ public partial class MainViewModel : ViewModelBase
         LanguageHint = UiText.UiLangNote;
         Till.RefreshUiLabels();
         Orders.RefreshUiLabels();
-        Online.RefreshUiLabels();
         Customers.RefreshUiLabels();
         SettingsVm.RefreshUiLabels();
     }
@@ -377,7 +377,6 @@ public partial class MainViewModel : ViewModelBase
         }
 
         RefreshStatusLights();
-        Online.Refresh();
     }
 
     // ── Shift ───────────────────────────────────────────────────────────────

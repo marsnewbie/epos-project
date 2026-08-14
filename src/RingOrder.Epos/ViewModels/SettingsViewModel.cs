@@ -78,6 +78,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private string _newStaffName = "";
     [ObservableProperty] private StaffRole _newStaffRole = StaffRole.Cashier;
     [ObservableProperty] private string _staffHint = "";
+    [ObservableProperty] private string _webTestResult = "";
     [ObservableProperty] private string _callerIdMode = "simulate";
     [ObservableProperty] private string _callerIdCom = "COM3";
     [ObservableProperty] private bool _callerIdEnabled;
@@ -768,6 +769,42 @@ public partial class SettingsViewModel : ViewModelBase
         catch (Exception ex)
         {
             _setStatus($"Import failed: {ex.Message}");
+        }
+    }
+
+    // ── Web orders ──────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Pull one order now. Used at install time to prove the credentials work
+    /// before the shop opens, and during support when a merchant says an order
+    /// has not arrived. Turning the feed on and off is a top-bar control, not a
+    /// setting — that decision is made during service, not during setup.
+    /// </summary>
+    [RelayCommand]
+    private async Task TestWebOrdersAsync()
+    {
+        Save();
+        var settings = _app.GetSettings();
+        if (string.IsNullOrWhiteSpace(settings.OnlineOrderServerUrl) ||
+            string.IsNullOrWhiteSpace(settings.OnlineUsername))
+        {
+            WebTestResult = UiText.Pick(
+                "Set the base URL and the credentials from the website's print settings first.",
+                "请先填写网址和网站打印设置里的凭据。");
+            return;
+        }
+
+        WebTestResult = UiText.Pick("Checking…", "检查中…");
+        try
+        {
+            await _app.OnlinePoller.PollOnceAsync();
+            WebTestResult = string.IsNullOrWhiteSpace(_app.OnlinePoller.LastStatus)
+                ? UiText.Pick("Connected. No order waiting.", "连接正常，暂无待取订单。")
+                : _app.OnlinePoller.LastStatus;
+        }
+        catch (Exception ex)
+        {
+            WebTestResult = ex.Message;
         }
     }
 

@@ -92,9 +92,19 @@ Two independent things, and conflating them was a bug once:
   the interface is set to. The kitchen and the customer read different languages
   and always will.
 
+**Taking payment.** The whole screen. Owed on the left in the largest type on
+the till, keypad on the right with the note buttons (£5/£10/£20/£50) down the
+side nearest the confirm button — the commonest case by far is a customer
+handing over a note. Both confirm buttons name their amount: "Exact £10.60",
+"Card £10.60". A button that says only "Card" makes the cashier check the figure
+somewhere else, and the once they do not is the one that goes wrong.
+
+**A new web order** gets a band across the top of the screen that stays until
+someone opens Orders. Nobody is watching the screen when it arrives, so a
+notification that fades has not notified anyone.
+
 ## Still to build
 
-- Payment on its own screen rather than a keypad in the ticket column
-- Web orders folded into Orders as a channel filter, now the top bar has the toggle
 - Settings sections for printers-as-devices, tax, receipt layout, backup and diagnostics
 - Keyboard shortcuts for tills with a numeric keypad
+- A Delivery screen for driver dispatch, and Reports

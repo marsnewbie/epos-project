@@ -173,8 +173,15 @@
             <TextBox Classes="field" Watermark="Username (u)" Text="{Binding OnlineUsername}" />
             <TextBox Classes="field" Watermark="Password (p)" Text="{Binding OnlinePassword}" PasswordChar="•" />
             <TextBox Classes="field" Watermark="Poll interval seconds" Text="{Binding PollIntervalText}" />
-            <CheckBox IsChecked="{Binding OnlinePollingEnabled}" Content="Enable polling on startup" Foreground="#1c1917" Margin="0,4" />
-            <CheckBox IsChecked="{Binding AutoKitchenPrintOnline}" Content="Auto kitchen print online orders" Foreground="#1c1917" Margin="0,4" />
+            <CheckBox IsChecked="{Binding OnlinePollingEnabled}" Content="Start accepting web orders when the till starts" Foreground="#1c1917" Margin="0,4" />
+            <CheckBox IsChecked="{Binding AutoKitchenPrintOnline}" Content="Print web orders to the kitchen automatically" Foreground="#1c1917" Margin="0,4" />
+
+            <!-- Proving the credentials at install time, before the shop opens. -->
+            <Button Classes="primary" Content="Test connection" Command="{Binding TestWebOrdersCommand}"
+                    HorizontalAlignment="Left" Width="220" Margin="0,12,0,0" />
+            <TextBlock Text="{Binding WebTestResult}" Classes="muted" TextWrapping="Wrap" Margin="0,8,0,0" />
+            <TextBlock Text="Turning the feed on and off during service is the button in the top bar."
+                       Classes="muted" TextWrapping="Wrap" Margin="0,8,0,0" />
           </StackPanel>
         </Border>
 
