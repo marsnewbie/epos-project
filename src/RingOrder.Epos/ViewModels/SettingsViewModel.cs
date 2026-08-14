@@ -1,6 +1,7 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using RingOrder.Epos.Data;
 using RingOrder.Epos.Domain;
 using RingOrder.Epos.Services;
 
@@ -339,7 +340,7 @@ public partial class SettingsViewModel : ViewModelBase
         var paidDone = active.Where(o => o.Status is PosOrderStatus.Paid or PosOrderStatus.Completed).ToList();
         var cash = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.Cash).Sum(t => t.Amount);
         var card = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.CardManual).Sum(t => t.Amount);
-        var online = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.OnlinePaid).Sum(t => t.Amount);
+        var online = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.PrepaidOnline).Sum(t => t.Amount);
         var dueOpen = active.Where(o => o.IsUnpaid).Sum(o => o.BalanceDue);
         var voided = all.Count(o => o.Status == PosOrderStatus.Voided);
         ShiftSummary =
@@ -567,6 +568,14 @@ public partial class SettingsViewModel : ViewModelBase
             }
         }
 
+        // Option groups are shared, so editing one here edits it everywhere it
+        // is used. Saying which dishes those are beats a surprise at the counter.
+        var alsoAffected = domain.OptionGroups
+            .SelectMany(g => _app.Menu.GetItemNamesUsingGroup(g.Id))
+            .Where(name => !string.Equals(name, domain.Name, StringComparison.Ordinal))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
         _app.Menu.UpsertItem(domain);
         DishEditor.ValidationMessage = "";
         var id = domain.Id;
@@ -574,7 +583,11 @@ public partial class SettingsViewModel : ViewModelBase
         SelectedMenuItem = MenuRows.FirstOrDefault(r => r.Item.Id == id);
         if (SelectedMenuItem is not null)
             OpenDishEditor(SelectedMenuItem.Item);
-        _setStatus($"Saved dish {domain.MenuNumber} {domain.Name}".Trim());
+        var saved = $"Saved dish {domain.MenuNumber} {domain.Name}".Trim();
+        _setStatus(alsoAffected.Count == 0
+            ? saved
+            : $"{saved} — shared option groups also changed for: {string.Join(", ", alsoAffected.Take(6))}"
+              + (alsoAffected.Count > 6 ? $" and {alsoAffected.Count - 6} more" : ""));
         _onSaved?.Invoke();
     }
 
@@ -724,17 +737,37 @@ public partial class SettingsViewModel : ViewModelBase
     [RelayCommand]
     private async Task ReimportMenuAsync()
     {
-        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "Re-import seed menu"))
+        var bundle = Directory
+            .EnumerateFiles(LocalPaths.ProfileDirectory, "*.ringpos.json")
+            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+
+        if (bundle is null)
+        {
+            _setStatus($"No shop bundle found in {LocalPaths.ProfileDirectory}");
+            return;
+        }
+
+        if (!await UiPrompt.RequireManagerPinAsync(_app.GetSettings(), "Re-import shop bundle"))
             return;
         if (!await UiPrompt.ConfirmAsync(
-                "Re-import seed menu?",
-                "This replaces categories/dishes with the embedded seed. Custom dishes you created may be overwritten or removed. Continue?"))
+                "Re-import shop bundle?",
+                $"This replaces the whole catalogue with {Path.GetFileName(bundle)}. "
+                + "Menu changes made here since the last import are lost. Orders and customers are untouched. Continue?"))
             return;
-        var (cats, items) = _app.MenuSeeder.ImportEmbedded();
-        ClearDishEditor();
-        Reload();
-        _setStatus($"Re-imported menu: {cats} categories, {items} items");
-        _onSaved?.Invoke();
+
+        try
+        {
+            var report = _app.BundleImporter.ImportFromFile(bundle);
+            ClearDishEditor();
+            Reload();
+            _setStatus(report.Summary);
+            _onSaved?.Invoke();
+        }
+        catch (Exception ex)
+        {
+            _setStatus($"Import failed: {ex.Message}");
+        }
     }
 
     [RelayCommand]

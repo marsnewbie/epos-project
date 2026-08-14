@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using RingOrder.Epos.Domain;
 
@@ -314,8 +314,8 @@ public partial class OptionGroupEditorVm : ObservableObject
     {
         var typeKey = g.Type switch
         {
-            OptionGroupType.Checkbox => "checkbox",
-            OptionGroupType.Select => "select",
+            OptionGroupType.Multi => "checkbox",
+            OptionGroupType.Single => "select",
             _ => "radio",
         };
         var vm = new OptionGroupEditorVm
@@ -326,7 +326,7 @@ public partial class OptionGroupEditorVm : ObservableObject
             SelectedType = TypeChoices.First(t => t.Key == typeKey),
             Required = g.Required,
             MinText = (g.MinSelections ?? (g.Required ? 1 : 0)).ToString(),
-            MaxText = (g.MaxSelections ?? (g.Type == OptionGroupType.Checkbox ? g.Choices.Count : 1)).ToString(),
+            MaxText = (g.MaxSelections ?? (g.Type == OptionGroupType.Multi ? g.Choices.Count : 1)).ToString(),
             ShowWhenGroupId = g.ShowWhen?.GroupId,
             ShowWhenChoiceId = g.ShowWhen?.ChoiceIds.FirstOrDefault(),
         };
@@ -354,9 +354,9 @@ public partial class OptionGroupEditorVm : ObservableObject
         SyncShowWhenFromSelection();
         var type = TypeKey switch
         {
-            "checkbox" => OptionGroupType.Checkbox,
-            "select" => OptionGroupType.Select,
-            _ => OptionGroupType.Radio,
+            "checkbox" => OptionGroupType.Multi,
+            "select" => OptionGroupType.Single,
+            _ => OptionGroupType.Single,
         };
         var g = new OptionGroup
         {
@@ -365,10 +365,10 @@ public partial class OptionGroupEditorVm : ObservableObject
             Type = type,
             Required = Required,
             SortOrder = sortOrder,
-            MinSelections = type == OptionGroupType.Checkbox
+            MinSelections = type == OptionGroupType.Multi
                 ? (int.TryParse(MinText, out var mn) ? mn : 0)
                 : null,
-            MaxSelections = type == OptionGroupType.Checkbox
+            MaxSelections = type == OptionGroupType.Multi
                 ? (int.TryParse(MaxText, out var mx) ? mx : Choices.Count)
                 : null,
             ShowWhen = string.IsNullOrWhiteSpace(ShowWhenGroupId) || string.IsNullOrWhiteSpace(ShowWhenChoiceId)

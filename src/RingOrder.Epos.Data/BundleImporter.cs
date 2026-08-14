@@ -1,0 +1,308 @@
+using System.Text.Json;
+using RingOrder.Epos.Domain;
+
+namespace RingOrder.Epos.Data;
+
+/// <summary>What an import did, so it can be shown, logged, and checked.</summary>
+public sealed record ImportReport(
+    string ShopName,
+    string? ProfileVersion,
+    int Categories,
+    int OptionGroups,
+    int Items,
+    int QuickNotes,
+    int Staff,
+    IReadOnlyList<string> Warnings)
+{
+    public bool HasWarnings => Warnings.Count > 0;
+
+    public string Summary =>
+        $"{ShopName}: {Categories} categories, {Items} dishes, {OptionGroups} option groups, "
+        + $"{QuickNotes} quick notes, {Staff} staff"
+        + (HasWarnings ? $" ({Warnings.Count} warnings)" : "");
+}
+
+/// <summary>
+/// Turns a shop bundle into a working till. Provisioning is import + physical
+/// setup; nothing about a shop is compiled in.
+/// </summary>
+public sealed class BundleImporter
+{
+    private readonly MenuRepository _menu;
+    private readonly SettingsRepository _settings;
+    private readonly StaffRepository _staff;
+
+    public BundleImporter(MenuRepository menu, SettingsRepository settings, StaffRepository staff)
+    {
+        _menu = menu;
+        _settings = settings;
+        _staff = staff;
+    }
+
+    public static ShopBundle Read(string path)
+    {
+        var json = File.ReadAllText(path);
+        return JsonSerializer.Deserialize<ShopBundle>(json, JsonUtil.Options)
+               ?? throw new InvalidDataException($"{path} is not a shop bundle");
+    }
+
+    /// <summary>
+    /// Credentials live beside the bundle in a file that never enters version
+    /// control. Missing is normal — a shop with no website has none.
+    /// </summary>
+    public static ShopSecrets? ReadSecrets(string bundlePath)
+    {
+        var path = Path.Combine(Path.GetDirectoryName(bundlePath) ?? ".", "secrets.json");
+        if (!File.Exists(path)) return null;
+        return JsonSerializer.Deserialize<ShopSecrets>(File.ReadAllText(path), JsonUtil.Options);
+    }
+
+    public ImportReport ImportFromFile(string path)
+        => Import(Read(path), ReadSecrets(path));
+
+    /// <summary>
+    /// Replaces the catalogue and shop configuration. Trading data — orders,
+    /// shifts, customers — is never touched: a menu update mid-week must not
+    /// erase the week.
+    /// </summary>
+    public ImportReport Import(ShopBundle bundle, ShopSecrets? secrets = null)
+    {
+        var warnings = new List<string>();
+
+        var taxClasses = bundle.Tax.Classes
+            .Select(t => new TaxClass { Id = t.Id, Name = t.Name, RateBasisPoints = t.RateBasisPoints })
+            .ToList();
+        if (taxClasses.Count == 0)
+            warnings.Add("bundle defines no tax classes; VAT will read as zero on every line");
+        _menu.ReplaceTaxClasses(taxClasses);
+
+        var tiers = bundle.PriceTiers
+            .Select(t => new PriceTier { Id = t.Id, Name = t.Name, IsDefault = t.IsDefault })
+            .ToList();
+        if (tiers.Count > 0 && tiers.All(t => !t.IsDefault))
+        {
+            tiers[0].IsDefault = true;
+            warnings.Add($"no default price tier in the bundle; '{tiers[0].Id}' was made the default");
+        }
+        _menu.ReplacePriceTiers(tiers);
+
+        var taxClassIds = taxClasses.Select(t => t.Id).ToHashSet(StringComparer.Ordinal);
+        var tierIds = tiers.Select(t => t.Id).ToHashSet(StringComparer.Ordinal);
+
+        var categories = bundle.Menu.Categories.Select(c => new Category
+        {
+            Id = c.Id,
+            Name = c.Name,
+            Translation = c.Translation,
+            Description = c.Description,
+            SortOrder = c.SortOrder,
+            IsVisible = c.IsVisible,
+            PrintClass = c.PrintClass,
+            TaxClassId = c.TaxClassId,
+        }).ToList();
+
+        var groups = bundle.Menu.OptionGroups.Select(g => new OptionGroup
+        {
+            Id = g.Id,
+            Name = g.Name,
+            Translation = g.Translation,
+            Type = string.Equals(g.Type, "multi", StringComparison.OrdinalIgnoreCase)
+                ? OptionGroupType.Multi
+                : OptionGroupType.Single,
+            Required = g.Required,
+            MinSelections = g.MinSelections,
+            MaxSelections = g.MaxSelections,
+            Choices = g.Choices.Select(c => new OptionChoice
+            {
+                Id = c.Id,
+                Label = c.Label,
+                OptionTranslation = c.Translation,
+                PriceDelta = Money.FromPence(c.PriceDeltaPence),
+                IsDefault = c.IsDefault,
+                IsAvailable = c.IsAvailable,
+            }).ToList(),
+        }).ToList();
+
+        var groupIds = groups.Select(g => g.Id).ToHashSet(StringComparer.Ordinal);
+        var categoryIds = categories.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+
+        foreach (var category in categories.Where(c => !taxClassIds.Contains(c.TaxClassId)))
+            warnings.Add($"category {category.Name}: tax class '{category.TaxClassId}' is not in the bundle");
+
+        var items = new List<MenuItem>();
+        foreach (var def in bundle.Menu.Items)
+        {
+            if (!categoryIds.Contains(def.CategoryId))
+                warnings.Add($"{def.Name}: category '{def.CategoryId}' is not in the bundle");
+
+            if (def.TaxClassId is { } taxClassId && !taxClassIds.Contains(taxClassId))
+                warnings.Add($"{def.Name}: tax class '{taxClassId}' is not in the bundle");
+
+            foreach (var tierId in def.TierPricesPence.Keys.Where(t => !tierIds.Contains(t)))
+                warnings.Add($"{def.Name}: price tier '{tierId}' is not in the bundle");
+
+            var links = new List<MenuItemOptionLink>();
+            foreach (var link in def.OptionGroups)
+            {
+                if (!groupIds.Contains(link.GroupId))
+                {
+                    warnings.Add($"{def.Name}: option group '{link.GroupId}' is not in the bundle");
+                    continue;
+                }
+
+                OptionShowWhen? showWhen = null;
+                if (link.ShowWhen is { } sw)
+                {
+                    var source = groups.FirstOrDefault(g => g.Id == sw.GroupId);
+                    var missing = sw.ChoiceIds
+                        .Where(id => source?.Choices.All(c => c.Id != id) ?? true)
+                        .ToList();
+
+                    if (source is null || missing.Count > 0)
+                        warnings.Add(
+                            $"{def.Name}: '{link.GroupId}' shows when {sw.GroupId} is chosen, but that "
+                            + (source is null ? "group is missing" : $"choice is missing ({string.Join(", ", missing)})"));
+                    else
+                        showWhen = new OptionShowWhen { GroupId = sw.GroupId, ChoiceIds = sw.ChoiceIds };
+                }
+
+                links.Add(new MenuItemOptionLink
+                {
+                    GroupId = link.GroupId,
+                    SortOrder = link.SortOrder,
+                    ShowWhen = showWhen,
+                });
+            }
+
+            items.Add(new MenuItem
+            {
+                Id = def.Id,
+                CategoryId = def.CategoryId,
+                MenuNumber = def.MenuNumber,
+                Name = def.Name,
+                ItemTranslation = def.Translation,
+                Description = def.Description,
+                BasePrice = Money.FromPence(def.PricePence),
+                TierPrices = def.TierPricesPence.ToDictionary(
+                    p => p.Key, p => Money.FromPence(p.Value), StringComparer.Ordinal),
+                PrintClass = def.PrintClass,
+                TaxClassId = def.TaxClassId,
+                IsAvailable = def.IsAvailable,
+                SortOrder = def.SortOrder,
+                OptionLinks = links,
+            });
+        }
+
+        var duplicateNumbers = items
+            .Where(i => !string.IsNullOrWhiteSpace(i.MenuNumber))
+            .GroupBy(i => i.MenuNumber!, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1)
+            .ToList();
+        foreach (var duplicate in duplicateNumbers)
+            warnings.Add($"menu number {duplicate.Key} is used by {duplicate.Count()} dishes");
+
+        _menu.ReplaceAll(categories, groups, items);
+
+        var settings = _settings.Load();
+        ApplyToSettings(settings, bundle, secrets);
+        _settings.Save(settings);
+
+        var staffCount = SeedStaff(bundle, warnings);
+
+        return new ImportReport(
+            bundle.Shop.Name,
+            bundle.ProfileVersion,
+            categories.Count,
+            groups.Count,
+            items.Count,
+            bundle.QuickNotes.Count,
+            staffCount,
+            warnings);
+    }
+
+    private static void ApplyToSettings(AppSettings settings, ShopBundle bundle, ShopSecrets? secrets)
+    {
+        settings.ShopName = bundle.Shop.Name;
+        settings.ShopAddress = bundle.Shop.Address ?? "";
+        settings.ShopPostcode = bundle.Shop.Postcode ?? "";
+        settings.ShopPhone = bundle.Shop.Phone ?? "";
+        settings.UiLanguage = bundle.Locale.UiLanguage;
+
+        if (bundle.QuickNotes.Count > 0)
+            settings.QuickNotes = bundle.QuickNotes;
+
+        settings.DefaultDeliveryFee = Money.FromPence(bundle.Delivery.DefaultFeePence);
+
+        var front = bundle.Printing.Devices.FirstOrDefault(d => d.HasCashDrawer)
+                    ?? bundle.Printing.Devices.FirstOrDefault();
+        var kitchen = bundle.Printing.Devices.FirstOrDefault(d => !d.HasCashDrawer) ?? front;
+        if (front is not null)
+        {
+            settings.FrontPrinterName = front.Address ?? settings.FrontPrinterName;
+            settings.PrintEncoding = front.Encoding;
+            settings.PrintChineseAsRaster = front.CjkAsRaster;
+        }
+        if (kitchen is not null)
+            settings.KitchenPrinterName = kitchen.Address ?? settings.KitchenPrinterName;
+
+        var web = bundle.Channels.Web;
+        settings.OnlinePollIntervalSeconds = Math.Clamp(web.PollSeconds, 5, 300);
+        settings.AutoKitchenPrintOnline = web.AutoPrint;
+
+        var baseUrl = secrets?.Web?.BaseUrl ?? web.BaseUrl;
+        if (!string.IsNullOrWhiteSpace(baseUrl))
+            settings.ApplyOnlineBaseUrl(baseUrl);
+
+        if (secrets?.Web is { } credentials)
+        {
+            settings.OnlineResId = credentials.ResId ?? "";
+            settings.OnlineUsername = credentials.Username ?? "";
+            settings.OnlinePassword = credentials.Password ?? "";
+        }
+    }
+
+    private int SeedStaff(ShopBundle bundle, List<string> warnings)
+    {
+        if (_staff.CountActive() > 0)
+            return 0;   // a working till's staff list is theirs, not the bundle's
+
+        var seeded = 0;
+        foreach (var seed in bundle.Staff)
+        {
+            if (string.IsNullOrWhiteSpace(seed.Pin))
+            {
+                warnings.Add($"staff '{seed.Name}' has no PIN and was skipped");
+                continue;
+            }
+
+            var (hash, salt) = PinHasher.Hash(seed.Pin);
+            _staff.Upsert(new StaffMember
+            {
+                Name = seed.Name,
+                Role = Enum.TryParse<StaffRole>(seed.Role, ignoreCase: true, out var role)
+                    ? role
+                    : StaffRole.Cashier,
+                PinHash = hash,
+                PinSalt = salt,
+                MustChangePin = seed.MustChangePin,
+            });
+            seeded++;
+        }
+
+        return seeded;
+    }
+}
+
+public sealed class ShopSecrets
+{
+    public string? ShopSlug { get; set; }
+    public WebSecrets? Web { get; set; }
+}
+
+public sealed class WebSecrets
+{
+    public string? BaseUrl { get; set; }
+    public string? ResId { get; set; }
+    public string? Username { get; set; }
+    public string? Password { get; set; }
+}

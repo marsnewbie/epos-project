@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RingOrder.Epos.Domain;
@@ -74,7 +74,7 @@ public partial class OrdersViewModel : ViewModelBase
         // Include partial tenders on Sent/Held (cash already in drawer)
         var cash = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.Cash).Sum(t => t.Amount);
         var card = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.CardManual).Sum(t => t.Amount);
-        var online = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.OnlinePaid).Sum(t => t.Amount);
+        var online = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.PrepaidOnline).Sum(t => t.Amount);
         var dueOpen = active.Where(o => o.IsUnpaid).Sum(o => o.BalanceDue);
         var unpaid = active.Count(o => o.IsUnpaid && o.Status != PosOrderStatus.Held);
         var held = active.Count(o => o.Status == PosOrderStatus.Held);
@@ -113,7 +113,7 @@ public partial class OrdersViewModel : ViewModelBase
                 (t.CashReceived is > 0 ? $" (tendered £{t.CashReceived:0.00})" : "") +
                 (t.ChangeGiven is > 0 ? $" change £{t.ChangeGiven:0.00}" : "")));
         DetailText =
-            $"{value.OrderNumber}  {value.OrderType}  {value.Source}  {value.Status}\n" +
+            $"{value.OrderNumber}  {value.ServiceType}  {value.Channel}  {value.Status}\n" +
             (string.IsNullOrWhiteSpace(value.HoldLabel) ? "" : $"Hold: {value.HoldLabel}\n") +
             (string.IsNullOrWhiteSpace(value.TableNumber) ? "" : $"Table: {value.TableNumber}\n") +
             $"{value.CustomerName} {value.CustomerPhone}\n" +
@@ -308,7 +308,7 @@ public partial class OnlineViewModel : ViewModelBase
                 : UiText.Pick("Online OFF", "线上接单：关"))
             : _app.OnlinePoller.LastStatus;
         Orders.Clear();
-        foreach (var o in _app.Orders.GetOnlineRecent())
+        foreach (var o in _app.Orders.GetRecentByChannel(OrderChannel.Web))
             Orders.Add(o);
     }
 

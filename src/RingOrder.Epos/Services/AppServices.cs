@@ -15,7 +15,10 @@ public sealed class AppServices
     public OrderRepository Orders { get; }
     public PrintJobRepository PrintJobs { get; }
     public CustomerRepository Customers { get; }
-    public MenuSeeder MenuSeeder { get; }
+    public StaffRepository Staff { get; }
+    public ShiftRepository Shifts { get; }
+    public AuditRepository Audit { get; }
+    public BundleImporter BundleImporter { get; }
     public PrintService Print { get; }
     public OnlineOrderPoller OnlinePoller { get; }
     public SimulatedCallerId CallerId { get; }
@@ -26,21 +29,28 @@ public sealed class AppServices
 
     private AppSettings _cachedSettings;
 
+    /// <summary>Set when the till has no catalogue yet and needs provisioning.</summary>
+    public bool NeedsProvisioning { get; private set; }
+
+    /// <summary>What the last bundle import did, when one happened at startup.</summary>
+    public ImportReport? StartupImport { get; private set; }
+
     private AppServices()
     {
         Db = new EposDb();
-        Db.EnsureCreated();
+        Db.Migrate(message => Console.WriteLine($"[db] {message}"));
         Settings = new SettingsRepository(Db);
         Menu = new MenuRepository(Db);
         Orders = new OrderRepository(Db);
         PrintJobs = new PrintJobRepository(Db);
         Customers = new CustomerRepository(Db);
-        MenuSeeder = new MenuSeeder(Menu, Settings);
-        MenuSeeder.EnsureSeeded();
+        Staff = new StaffRepository(Db);
+        Shifts = new ShiftRepository(Db);
+        Audit = new AuditRepository(Db);
+        BundleImporter = new BundleImporter(Menu, Settings, Staff);
+        ProvisionIfNeeded();
 
         _cachedSettings = Settings.Load();
-        // Persist migrated online endpoints (Goodcom URL → EPOS JSON) once.
-        Settings.Save(_cachedSettings);
 
         KitchenPrinter = new WindowsEscPosPrinter(_cachedSettings.KitchenPrinterName, () => _cachedSettings);
         FrontPrinter = new WindowsEscPosPrinter(_cachedSettings.FrontPrinterName, () => _cachedSettings);
@@ -56,6 +66,41 @@ public sealed class AppServices
     {
         Instance = new AppServices();
         return Instance;
+    }
+
+    /// <summary>
+    /// First run on a merchant's PC: the installer drops the shop bundle into
+    /// the profile folder and the till builds itself from it. An empty catalogue
+    /// with no bundle is not an error — it is a till waiting to be set up, and
+    /// saying so beats seeding someone else's menu.
+    /// </summary>
+    private void ProvisionIfNeeded()
+    {
+        if (Menu.CountItems() > 0) return;
+
+        var bundle = Directory
+            .EnumerateFiles(LocalPaths.ProfileDirectory, "*.ringpos.json")
+            .OrderBy(f => f, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+
+        if (bundle is null)
+        {
+            NeedsProvisioning = true;
+            return;
+        }
+
+        try
+        {
+            StartupImport = BundleImporter.ImportFromFile(bundle);
+            Console.WriteLine($"[provision] {StartupImport.Summary}");
+            foreach (var warning in StartupImport.Warnings)
+                Console.WriteLine($"[provision] warning: {warning}");
+        }
+        catch (Exception ex)
+        {
+            NeedsProvisioning = true;
+            Console.WriteLine($"[provision] {Path.GetFileName(bundle)} failed to import: {ex.Message}");
+        }
     }
 
     public AppSettings GetSettings() => _cachedSettings;

@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.Drawing.Imaging;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
@@ -281,7 +281,9 @@ public static class TicketRenderer
             b.KitchenLine("*** VOID ***", large: true);
         else if (unsentOnly && order.Lines.Any(l => l.KitchenSent))
             b.KitchenLine("*** ADDITIONS ***", large: true);
-        b.KitchenLine(OrderTypeEnglish(order.OrderType), large: true);
+        b.KitchenLine(TicketHeadline(order), large: true);
+        if (ChannelBanner(order) is { } banner)
+            b.KitchenLine(banner, large: true);
         b.Normal().Line($"Order No:{order.OrderNumber}");
         b.Line(order.CreatedAt.ToLocalTime().ToString("HH:mm dd-MM-yy"));
 
@@ -294,9 +296,6 @@ public static class TicketRenderer
             b.Normal().Line("Requested for:");
             b.KitchenLine(when!, large: true);
         }
-
-        if (order.Source == PosOrderSource.Online)
-            b.Normal().Line("ONLINE");
 
         b.Separator('-');
 
@@ -351,7 +350,7 @@ public static class TicketRenderer
         if (!string.IsNullOrWhiteSpace(order.CustomerPhone))
             b.KitchenLine(order.CustomerPhone!, large: true);
 
-        if (order.OrderType == PosOrderType.Delivery)
+        if (order.ServiceType == ServiceType.Delivery)
         {
             var addr = NormalizeAddress(order.DeliveryAddress);
             foreach (var addrLine in WrapLines(addr, EscPos.ColsFontA))
@@ -359,17 +358,9 @@ public static class TicketRenderer
             if (!string.IsNullOrWhiteSpace(order.DeliveryPostcode))
                 b.Line(order.DeliveryPostcode!);
         }
-        else if (order.OrderType == PosOrderType.EatIn)
-        {
-            b.KitchenLine(string.IsNullOrWhiteSpace(order.TableNumber) ? "EAT-IN" : $"TABLE {order.TableNumber}", large: true);
-        }
-        else if (order.OrderType == PosOrderType.WalkIn)
-        {
-            b.KitchenLine("WAITING", large: true);
-        }
         else
         {
-            b.KitchenLine("COLLECTION", large: true);
+            b.KitchenLine(TicketHeadline(order), large: true);
         }
 
         if (!string.IsNullOrWhiteSpace(order.Notes))
@@ -404,7 +395,7 @@ public static class TicketRenderer
         b.Line(interim ? "*** INTERIM / NOT PAID IN FULL ***" : "RECEIPT").Left().Separator('=');
         b.Line($"Order {order.OrderNumber}");
         b.Line(order.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"));
-        b.Line(OrderTypeEnglish(order.OrderType));
+        b.Line(TicketHeadline(order));
         b.Separator();
         foreach (var line in order.Lines)
         {
@@ -432,7 +423,9 @@ public static class TicketRenderer
                 {
                     TenderType.Cash => "Cash",
                     TenderType.CardManual => "Card",
-                    TenderType.OnlinePaid => "Online",
+                    TenderType.CardIntegrated => "Card",
+                    TenderType.PrepaidOnline => "Paid online",
+                    TenderType.Voucher => "Voucher",
                     _ => t.Type.ToString(),
                 };
                 b.ColumnsAscii(label, EscPos.Money(t.Amount));
@@ -492,13 +485,32 @@ public static class TicketRenderer
         return string.Join(", ", outParts);
     }
 
-    private static string OrderTypeEnglish(PosOrderType t) => t switch
+    /// <summary>
+    /// The one line the kitchen reads first: what has to happen to this food.
+    /// A collection order for someone standing at the counter says so, because
+    /// that is the difference between cooking it now and cooking it next.
+    /// </summary>
+    public static string TicketHeadline(PosOrder order) => order.ServiceType switch
     {
-        PosOrderType.Delivery => "Delivery",
-        PosOrderType.Collection => "Collection",
-        PosOrderType.WalkIn => "Walk-in",
-        PosOrderType.EatIn => "Eat-in",
-        _ => t.ToString(),
+        ServiceType.Delivery => "DELIVERY",
+        ServiceType.EatIn => string.IsNullOrWhiteSpace(order.TableNumber)
+            ? "EAT-IN"
+            : $"TABLE {order.TableNumber}",
+        _ => order.CustomerWaiting ? "COLLECTION - WAITING" : "COLLECTION",
+    };
+
+    /// <summary>
+    /// Where it came from, when that is not the counter. Marketplace orders in
+    /// particular have to be obvious: they are already paid and already timed.
+    /// </summary>
+    public static string? ChannelBanner(PosOrder order) => order.Channel switch
+    {
+        OrderChannel.Phone => "PHONE ORDER",
+        OrderChannel.Web => "WEB ORDER",
+        OrderChannel.Platform => string.IsNullOrWhiteSpace(order.PlatformName)
+            ? "PLATFORM ORDER"
+            : order.PlatformName!.ToUpperInvariant(),
+        _ => null,
     };
 
     private static string? ResolvePayment(PosOrder order)
@@ -522,7 +534,8 @@ public static class TicketRenderer
                 {
                     TenderType.Cash => "CASH",
                     TenderType.CardManual => "CARD",
-                    TenderType.OnlinePaid => order.Tenders[0].Reference ?? "PAID",
+                    TenderType.CardIntegrated => "CARD",
+                    TenderType.PrepaidOnline => order.Tenders[0].Reference ?? "PAID ONLINE",
                     _ => order.Tenders[0].Type.ToString(),
                 };
             }
@@ -534,7 +547,7 @@ public static class TicketRenderer
             order.PaymentLabel.Contains("PART", StringComparison.OrdinalIgnoreCase))
             return order.PaymentLabel;
 
-        return order.Source == PosOrderSource.Online ? "Order Not Paid" : "UNPAID";
+        return order.Channel is OrderChannel.Web or OrderChannel.Platform ? "Order Not Paid" : "UNPAID";
     }
 
     private static string? FirstNonEmpty(params string?[] values) =>

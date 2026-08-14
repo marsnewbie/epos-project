@@ -14,10 +14,4 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
   </ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Include="Seed\categories.json" />
-    <EmbeddedResource Include="Seed\menu_items.json" />
-    <EmbeddedResource Include="Seed\restaurant.json" />
-  </ItemGroup>
-
 </Project>

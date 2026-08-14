@@ -133,7 +133,7 @@ public static class LinePricing
             ids ??= Array.Empty<string>();
             var count = ids.Count;
 
-            if (group.Type is OptionGroupType.Radio or OptionGroupType.Select)
+            if (group.Type is OptionGroupType.Single)
             {
                 if (group.Required && count != 1)
                     return $"Select one option for {group.Name}";
@@ -158,7 +158,7 @@ public static class LinePricing
         foreach (var group in item.OptionGroups.OrderBy(g => g.SortOrder))
         {
             var defaults = group.Choices.Where(c => c.IsDefault && c.IsAvailable).Select(c => c.Id).ToList();
-            if (defaults.Count == 0 && group.Required && group.Type is OptionGroupType.Radio or OptionGroupType.Select)
+            if (defaults.Count == 0 && group.Required && group.Type is OptionGroupType.Single)
             {
                 var first = group.Choices.FirstOrDefault(c => c.IsAvailable);
                 if (first is not null) defaults.Add(first.Id);
@@ -179,6 +179,5 @@ public static class LinePricing
         return pruned;
     }
 
-    public static decimal RoundMoney(decimal value) =>
-        Math.Round(value, 2, MidpointRounding.AwayFromZero);
+    public static decimal RoundMoney(decimal value) => Money.Round(value);
 }

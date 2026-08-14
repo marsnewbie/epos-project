@@ -1,4 +1,4 @@
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RingOrder.Epos.Domain;
@@ -353,7 +353,7 @@ public partial class SellViewModel : ViewModelBase
         var current = _pendingSelections.TryGetValue(group.Id, out var ids) ? ids.ToList() : [];
         var zh = _app.GetSettings().UiLanguage == "zh";
 
-        if (group.Type is OptionGroupType.Radio or OptionGroupType.Select)
+        if (group.Type is OptionGroupType.Single)
         {
             // Tap same radio again does nothing (keep required selection)
             _pendingSelections[group.Id] = new[] { choice.ChoiceId };
@@ -425,7 +425,7 @@ public partial class SellViewModel : ViewModelBase
         foreach (var g in LinePricing.GetVisibleOptionGroups(SelectedItem, _pendingSelections))
         {
             if (_pendingSelections.ContainsKey(g.Id)) continue;
-            if (g.Type is not (OptionGroupType.Radio or OptionGroupType.Select)) continue;
+            if (g.Type is not (OptionGroupType.Single)) continue;
             var def = g.Choices.FirstOrDefault(c => c.IsDefault && c.IsAvailable)
                       ?? (g.Required ? g.Choices.FirstOrDefault(c => c.IsAvailable) : null);
             if (def is not null)
@@ -445,15 +445,15 @@ public partial class SellViewModel : ViewModelBase
             _pendingSelections.TryGetValue(g.Id, out var selectedIds);
             selectedIds ??= Array.Empty<string>();
             var selectedCount = selectedIds.Count;
-            var isMulti = g.Type == OptionGroupType.Checkbox;
+            var isMulti = g.Type == OptionGroupType.Multi;
             var max = g.MaxSelections ?? (isMulti ? g.Choices.Count : 1);
             var min = g.MinSelections ?? (g.Required ? 1 : 0);
             var atMax = isMulti && selectedCount >= max;
 
             var typeLabel = g.Type switch
             {
-                OptionGroupType.Checkbox => zh ? "多选" : "Multi",
-                OptionGroupType.Select => zh ? "下拉单选" : "Select",
+                OptionGroupType.Multi => zh ? "多选" : "Multi",
+                OptionGroupType.Single => zh ? "下拉单选" : "Select",
                 _ => zh ? "单选" : "Single",
             };
 
@@ -1272,7 +1272,7 @@ public partial class SellViewModel : ViewModelBase
         _ticket = order;
         Lines.Clear();
         foreach (var l in order.Lines) Lines.Add(l);
-        OrderType = order.OrderType.ToString();
+        OrderType = TicketTypeKey(order);
         CustomerName = order.CustomerName ?? "";
         CustomerPhone = order.CustomerPhone ?? "";
         DeliveryAddress = order.DeliveryAddress ?? "";
@@ -1299,13 +1299,32 @@ public partial class SellViewModel : ViewModelBase
             throw new InvalidOperationException("TABLE needs table / pager number.");
     }
 
+    /// <summary>
+    /// Which service button an existing order should light up. Collection with
+    /// the customer waiting maps back onto the Waiting button.
+    /// </summary>
+    private static string TicketTypeKey(PosOrder order) => order.ServiceType switch
+    {
+        ServiceType.Delivery => "Delivery",
+        ServiceType.EatIn => "EatIn",
+        _ => order.CustomerWaiting ? "WalkIn" : "Collection",
+    };
+
     private PosOrder PersistTicket(PosOrderStatus status)
     {
         _ticket.OrderNumber = string.IsNullOrWhiteSpace(_ticket.OrderNumber)
             ? _app.Settings.AllocateOrderNumber()
             : _ticket.OrderNumber;
-        _ticket.OrderType = Enum.Parse<PosOrderType>(OrderType);
-        _ticket.Source = PosOrderSource.Pos;
+        // "Waiting" is a collection order with the customer at the counter,
+        // not a fourth service type. The channel is left as it was found so
+        // paying off a web order does not relabel where it came from.
+        _ticket.ServiceType = OrderType switch
+        {
+            "Delivery" => ServiceType.Delivery,
+            "EatIn" => ServiceType.EatIn,
+            _ => ServiceType.Collection,
+        };
+        _ticket.CustomerWaiting = OrderType == "WalkIn";
         // Status transitions — never silently wipe Paid→Draft; never downgrade Sent→Draft/Open
         if (status == PosOrderStatus.Paid)
             _ticket.Status = PosOrderStatus.Paid;
@@ -1327,11 +1346,11 @@ public partial class SellViewModel : ViewModelBase
         _ticket.DeliveryAddress = NullIfEmpty(DeliveryAddress);
         _ticket.DeliveryPostcode = NullIfEmpty(DeliveryPostcode);
         _ticket.TableNumber = NullIfEmpty(TableNumber);
-        if (_ticket.OrderType == PosOrderType.EatIn && !string.IsNullOrWhiteSpace(TableNumber))
+        if (_ticket.ServiceType == ServiceType.EatIn && !string.IsNullOrWhiteSpace(TableNumber))
             _ticket.FulfilmentLabel = $"Table {TableNumber.Trim()}";
         _ticket.Notes = NullIfEmpty(OrderNotes);
         _ticket.Lines = Lines.ToList();
-        _ticket.DeliveryFee = _ticket.OrderType == PosOrderType.Delivery ? _app.GetSettings().DefaultDeliveryFee : 0;
+        _ticket.DeliveryFee = _ticket.ServiceType == ServiceType.Delivery ? _app.GetSettings().DefaultDeliveryFee : 0;
         _ticket.UpdatedAt = DateTimeOffset.Now;
         LinePricing.RecalculateOrder(_ticket);
 

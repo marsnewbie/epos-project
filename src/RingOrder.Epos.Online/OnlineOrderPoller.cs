@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -209,11 +209,11 @@ public static class EposJsonOrderMapper
                 : dto.OrderNumber.Trim(),
             OnlineExternalId = string.IsNullOrWhiteSpace(dto.Id) ? dto.OrderNumber : dto.Id,
             OnlinePayload = rawJson,
-            Source = PosOrderSource.Online,
+            Channel = OrderChannel.Web,
             Status = PosOrderStatus.Open,
-            OrderType = string.Equals(dto.OrderType, "delivery", StringComparison.OrdinalIgnoreCase)
-                ? PosOrderType.Delivery
-                : PosOrderType.Collection,
+            ServiceType = string.Equals(dto.OrderType, "delivery", StringComparison.OrdinalIgnoreCase)
+                ? ServiceType.Delivery
+                : ServiceType.Collection,
             CustomerName = EmptyToNull(dto.CustomerName),
             CustomerPhone = EmptyToNull(dto.CustomerPhone),
             DeliveryAddress = EmptyToNull(dto.DeliveryAddress),
@@ -280,7 +280,7 @@ public static class EposJsonOrderMapper
         {
             order.Tenders.Add(new OrderTender
             {
-                Type = TenderType.OnlinePaid,
+                Type = TenderType.PrepaidOnline,
                 Amount = order.Total,
                 Reference = dto.PaymentLabel ?? dto.PaymentMethod,
             });
@@ -324,9 +324,9 @@ public static class GoodcomPayloadParser
             OrderNumber = string.IsNullOrWhiteSpace(orderId) ? $"ON-{DateTime.Now:HHmmss}" : orderId,
             OnlineExternalId = orderId,
             OnlinePayload = payload,
-            Source = PosOrderSource.Online,
+            Channel = OrderChannel.Web,
             Status = PosOrderStatus.Open,
-            OrderType = deliveryType == "1" ? PosOrderType.Delivery : PosOrderType.Collection,
+            ServiceType = deliveryType == "1" ? ServiceType.Delivery : ServiceType.Collection,
             Lines = ParseItems(itemsSeg),
         };
 
@@ -370,7 +370,7 @@ public static class GoodcomPayloadParser
         {
             order.Tenders.Add(new OrderTender
             {
-                Type = TenderType.OnlinePaid,
+                Type = TenderType.PrepaidOnline,
                 Amount = order.Total,
                 Reference = details[7],
             });

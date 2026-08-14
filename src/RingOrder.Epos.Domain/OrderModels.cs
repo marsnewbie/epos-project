@@ -27,6 +27,16 @@ public sealed class CartLine
     public decimal LineTotal { get; set; }
     public string? Notes { get; set; }
     public bool IsAdHoc { get; set; }
+
+    /// <summary>
+    /// Station this line prints to, resolved when it was added. Held on the line
+    /// rather than looked up later so re-routing the menu never changes what an
+    /// old ticket said.
+    /// </summary>
+    public string? PrintClass { get; set; }
+
+    /// <summary>VAT band at the time of sale, for the same reason.</summary>
+    public string? TaxClassId { get; set; }
     /// <summary>True after this line has been printed to kitchen.</summary>
     public bool KitchenSent { get; set; }
     public DateTimeOffset? KitchenSentAt { get; set; }
@@ -70,6 +80,7 @@ public sealed class CartLine
 
 public sealed class OrderTender
 {
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public TenderType Type { get; set; }
     /// <summary>Amount applied to the bill (never includes cash change).</summary>
     public decimal Amount { get; set; }
@@ -78,6 +89,10 @@ public sealed class OrderTender
     /// <summary>Change returned (cash tenders only).</summary>
     public decimal? ChangeGiven { get; set; }
     public string? Reference { get; set; }
+
+    /// <summary>Who took the money — every payment is attributable.</summary>
+    public string? StaffId { get; set; }
+
     public DateTimeOffset At { get; set; } = DateTimeOffset.Now;
 }
 
@@ -85,9 +100,36 @@ public sealed class PosOrder
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string OrderNumber { get; set; } = "";
-    public PosOrderType OrderType { get; set; } = PosOrderType.Collection;
-    public PosOrderSource Source { get; set; } = PosOrderSource.Pos;
+
+    /// <summary>How the customer gets the food.</summary>
+    public ServiceType ServiceType { get; set; } = ServiceType.Collection;
+
+    /// <summary>Where the order came from.</summary>
+    public OrderChannel Channel { get; set; } = OrderChannel.Counter;
+
+    /// <summary>Marketplace name when <see cref="Channel"/> is Platform.</summary>
+    public string? PlatformName { get; set; }
+
+    /// <summary>
+    /// Customer is standing at the counter waiting for this one. Prints WAITING
+    /// on the kitchen ticket so it jumps the queue — it is a property of the
+    /// moment, not a fourth kind of order.
+    /// </summary>
+    public bool CustomerWaiting { get; set; }
+
     public PosOrderStatus Status { get; set; } = PosOrderStatus.Draft;
+
+    /// <summary>Till that took it — reserved for a second terminal.</summary>
+    public string? TerminalId { get; set; }
+
+    /// <summary>Staff member who opened the ticket.</summary>
+    public string? StaffId { get; set; }
+
+    /// <summary>Trading session this order belongs to, for X/Z reporting.</summary>
+    public string? ShiftId { get; set; }
+
+    /// <summary>Price tier the lines were priced at (takeaway, eat-in, platform).</summary>
+    public string PriceTierId { get; set; } = "standard";
     public string? CustomerId { get; set; }
     public string? CustomerName { get; set; }
     public string? CustomerPhone { get; set; }
