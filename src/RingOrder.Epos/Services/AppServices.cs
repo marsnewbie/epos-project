@@ -19,6 +19,7 @@ public sealed class AppServices
     public ShiftRepository Shifts { get; }
     public AuditRepository Audit { get; }
     public BundleImporter BundleImporter { get; }
+    public PosSession Session { get; }
     public PrintService Print { get; }
     public OnlineOrderPoller OnlinePoller { get; }
     public SimulatedCallerId CallerId { get; }
@@ -48,6 +49,7 @@ public sealed class AppServices
         Shifts = new ShiftRepository(Db);
         Audit = new AuditRepository(Db);
         BundleImporter = new BundleImporter(Menu, Settings, Staff);
+        Session = new PosSession(Staff, Shifts, Audit);
         ProvisionIfNeeded();
 
         _cachedSettings = Settings.Load();

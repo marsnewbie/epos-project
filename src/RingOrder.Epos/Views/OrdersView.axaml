@@ -1,4 +1,4 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RingOrder.Epos.ViewModels"
              xmlns:domain="using:RingOrder.Epos.Domain"
@@ -6,27 +6,27 @@
              x:DataType="vm:OrdersViewModel"
              Background="#e8eaed">
   <Grid ColumnDefinitions="1.1*,*" Margin="4">
-    <Border Grid.Column="0" Classes="pos-panel" Padding="10" Margin="0,0,8,0">
+    <Border Grid.Column="0" Classes="panel" Padding="10" Margin="0,0,8,0">
       <DockPanel>
         <StackPanel DockPanel.Dock="Top" Margin="0,0,0,10" Spacing="8">
           <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Text="{Binding LblToday}" Classes="pos-title" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Classes="pos-nav" Content="{Binding LblRefresh}" Click="OnRefresh"
+            <TextBlock Text="{Binding LblToday}" Classes="title" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="btn" Content="{Binding LblRefresh}" Click="OnRefresh"
                     Width="110" Height="40" />
           </Grid>
           <UniformGrid Columns="4">
-            <Button Classes="pos-nav" Classes.active="{Binding FilterAll}" Content="{Binding LblFilterAll}"
+            <Button Classes="btn" Classes.on="{Binding FilterAll}" Content="{Binding LblFilterAll}"
                     Command="{Binding SetFilterCommand}" CommandParameter="All" Height="40" Margin="0,0,4,0" />
-            <Button Classes="pos-nav" Classes.active="{Binding FilterUnpaid}" Content="{Binding LblFilterUnpaid}"
+            <Button Classes="btn" Classes.on="{Binding FilterUnpaid}" Content="{Binding LblFilterUnpaid}"
                     Command="{Binding SetFilterCommand}" CommandParameter="Unpaid" Height="40" Margin="0,0,4,0" />
-            <Button Classes="pos-nav" Classes.active="{Binding FilterHeld}" Content="{Binding LblFilterHeld}"
+            <Button Classes="btn" Classes.on="{Binding FilterHeld}" Content="{Binding LblFilterHeld}"
                     Command="{Binding SetFilterCommand}" CommandParameter="Held" Height="40" Margin="0,0,4,0" />
-            <Button Classes="pos-nav" Classes.active="{Binding FilterPaid}" Content="{Binding LblFilterPaid}"
+            <Button Classes="btn" Classes.on="{Binding FilterPaid}" Content="{Binding LblFilterPaid}"
                     Command="{Binding SetFilterCommand}" CommandParameter="Paid" Height="40" />
           </UniformGrid>
-          <TextBlock Text="{Binding TodaySummary}" Classes="pos-muted" FontSize="11" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding TodaySummary}" Classes="muted" FontSize="11" TextWrapping="Wrap" />
         </StackPanel>
-        <ListBox Classes="pos-ticket" ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder}">
+        <ListBox Classes="ticket" ItemsSource="{Binding Orders}" SelectedItem="{Binding SelectedOrder}">
           <ListBox.ItemTemplate>
             <DataTemplate x:DataType="domain:PosOrder">
               <Grid ColumnDefinitions="*,Auto" Margin="10,8">
@@ -57,26 +57,26 @@
       </DockPanel>
     </Border>
 
-    <Border Grid.Column="1" Classes="pos-panel" Padding="10">
+    <Border Grid.Column="1" Classes="panel" Padding="10">
       <DockPanel>
         <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,10,0,0">
-          <Button Classes="pos-action pos-cash" Content="{Binding LblOpenOnSell}"
+          <Button Classes="cash" Content="{Binding LblOpenOnSell}"
                   Command="{Binding OpenOnSellCommand}" Height="48" />
-          <Button Classes="pos-action pos-send" Content="{Binding LblReopen}"
+          <Button Classes="primary" Content="{Binding LblReopen}"
                   Command="{Binding ReopenOrderCommand}" Height="48" />
           <Grid ColumnDefinitions="*,*">
-            <Button Grid.Column="0" Classes="pos-nav" Content="{Binding LblReprintKitchen}"
+            <Button Grid.Column="0" Classes="btn" Content="{Binding LblReprintKitchen}"
                     Command="{Binding ReprintKitchenCommand}" Margin="0,0,4,0" Height="44" />
-            <Button Grid.Column="1" Classes="pos-nav" Content="{Binding LblReprintFront}"
+            <Button Grid.Column="1" Classes="btn" Content="{Binding LblReprintFront}"
                     Command="{Binding ReprintFrontCommand}" Height="44" />
           </Grid>
-          <Button Classes="pos-action pos-danger" Content="{Binding LblVoid}"
+          <Button Classes="danger" Content="{Binding LblVoid}"
                   Command="{Binding VoidOrderCommand}" Height="44" />
         </StackPanel>
         <TextBlock DockPanel.Dock="Top" Text="{Binding LblDetail}" FontWeight="Bold"
                    Foreground="#5b6472" Margin="0,0,0,8" />
         <TextBox Text="{Binding DetailText}" AcceptsReturn="True" IsReadOnly="True" TextWrapping="Wrap"
-                 Classes="pos-field" MinHeight="200" />
+                 Classes="field" MinHeight="200" />
       </DockPanel>
     </Border>
   </Grid>

@@ -27,6 +27,11 @@ public partial class SellViewModel : ViewModelBase
 
     public ObservableCollection<CategoryTile> CategoryTiles { get; } = [];
     public ObservableCollection<MenuItem> Items { get; } = [];
+
+    [ObservableProperty] private int _pageIndex;
+    [ObservableProperty] private int _pageCount = 1;
+    [ObservableProperty] private string _pageLabel = "1 / 1";
+    [ObservableProperty] private bool _hasPages;
     public ObservableCollection<CartLine> Lines { get; } = [];
     public ObservableCollection<QuickNoteItem> QuickNotes { get; } = [];
     public ObservableCollection<ModifierGroupVm> ModifierGroups { get; } = [];
@@ -283,17 +288,63 @@ public partial class SellViewModel : ViewModelBase
         CanEditSelectedLine = value is null || !value.KitchenSent;
     }
 
+    /// <summary>
+    /// Dishes are laid out in a fixed grid and paged, never scrolled.
+    /// <para>
+    /// A cook's-eye reason: staff learn where a dish is and stop reading. A
+    /// flow layout moves every tile after a rename, and a scroll view puts the
+    /// same dish in a different place depending on where the list was left. One
+    /// page, one arrangement, every time — this is the single biggest thing
+    /// separating a till someone can use at speed from one they resent.
+    /// </para>
+    /// </summary>
+    private const int ItemsPerPage = 20;   // 5 columns x 4 rows at 1366x768
+
+    private readonly List<MenuItem> _pageSource = [];
+
     private void LoadItems()
     {
-        Items.Clear();
-        IEnumerable<MenuItem> list = string.IsNullOrWhiteSpace(SearchText)
+        _pageSource.Clear();
+        _pageSource.AddRange(string.IsNullOrWhiteSpace(SearchText)
             ? _app.Menu.GetItems(SelectedCategory?.Id)
-            : _app.Menu.Search(SearchText);
-        foreach (var i in list) Items.Add(i);
+            : _app.Menu.Search(SearchText));
+
+        PageIndex = 0;
+        ApplyPage();
+
         if (!string.IsNullOrWhiteSpace(SearchText))
             CategoryHeading = $"Search: {SearchText}";
         else if (SelectedCategory is not null)
             CategoryHeading = SelectedCategory.Name;
+    }
+
+    private void ApplyPage()
+    {
+        PageCount = Math.Max(1, (int)Math.Ceiling(_pageSource.Count / (double)ItemsPerPage));
+        PageIndex = Math.Clamp(PageIndex, 0, PageCount - 1);
+
+        Items.Clear();
+        foreach (var item in _pageSource.Skip(PageIndex * ItemsPerPage).Take(ItemsPerPage))
+            Items.Add(item);
+
+        HasPages = PageCount > 1;
+        PageLabel = $"{PageIndex + 1} / {PageCount}";
+    }
+
+    [RelayCommand]
+    private void PreviousPage()
+    {
+        if (PageIndex == 0) return;
+        PageIndex--;
+        ApplyPage();
+    }
+
+    [RelayCommand]
+    private void NextPage()
+    {
+        if (PageIndex >= PageCount - 1) return;
+        PageIndex++;
+        ApplyPage();
     }
 
     [RelayCommand]
@@ -399,11 +450,14 @@ public partial class SellViewModel : ViewModelBase
             return;
         }
 
-        var line = LinePricing.BuildMenuLine(SelectedItem, 1, _pendingSelections, LineNotesDraft);
+        var line = LinePricing.BuildMenuLine(
+            SelectedItem, TakePendingQuantity(), _pendingSelections, LineNotesDraft);
+        line.PrintClass = SelectedItem.PrintClass;
+        line.TaxClassId = SelectedItem.TaxClassId;
         Lines.Add(line);
         SelectedLine = line;
         LineNotesDraft = "";
-        PanelStatus = $"Added {line.Name} £{line.LineTotal:0.00}";
+        PanelStatus = $"Added {line.Quantity} x {line.Name} £{line.LineTotal:0.00}";
         ShowModifierPanel = false;
         ModifierGroups.Clear();
         ModifierError = "";
@@ -541,23 +595,55 @@ public partial class SellViewModel : ViewModelBase
         _setStatus(PanelStatus);
     }
 
+    /// <summary>
+    /// Keyed entry by menu number, with an optional quantity in front:
+    /// <c>88</c>, <c>3*88</c>, <c>3x88</c>. Experienced staff barely look at the
+    /// tiles — they know the numbers, and typing "3x88" is one action where
+    /// tapping a tile three times is three.
+    /// </summary>
     [RelayCommand]
     private void AddByDishNumber()
     {
-        var num = DishNumberText.Trim().TrimStart('#');
-        if (string.IsNullOrWhiteSpace(num))
+        var entry = DishNumberText.Trim().TrimStart('#');
+        if (string.IsNullOrWhiteSpace(entry))
         {
-            PanelStatus = "Enter dish # then Add";
+            PanelStatus = UiText.Pick("Enter a dish number, or 3x88 for three", "输入菜号，或 3x88 表示三份");
             return;
         }
-        var item = _app.Menu.FindByMenuNumber(num);
+
+        var quantity = 1;
+        var separator = entry.IndexOfAny(['*', 'x', 'X', '×']);
+        if (separator > 0)
+        {
+            if (!int.TryParse(entry[..separator], out quantity) || quantity < 1)
+            {
+                PanelStatus = UiText.Pick($"'{entry[..separator]}' is not a quantity", $"'{entry[..separator]}' 不是数量");
+                return;
+            }
+            quantity = Math.Min(quantity, 99);
+            entry = entry[(separator + 1)..].Trim();
+        }
+
+        var item = _app.Menu.FindByMenuNumber(entry);
         if (item is null)
         {
-            PanelStatus = $"No dish #{num}";
+            PanelStatus = UiText.Pick($"No dish #{entry}", $"没有 #{entry} 号菜");
             return;
         }
+
         DishNumberText = "";
+        PendingQuantity = quantity;
         SelectItem(item);
+    }
+
+    /// <summary>Quantity for the next dish added, from keyed entry. Resets after use.</summary>
+    private int PendingQuantity { get; set; } = 1;
+
+    private int TakePendingQuantity()
+    {
+        var quantity = PendingQuantity;
+        PendingQuantity = 1;
+        return quantity;
     }
 
     [RelayCommand]
@@ -927,14 +1013,16 @@ public partial class SellViewModel : ViewModelBase
                 : PosOrderStatus.Open;
             var order = PersistTicket(keepStatus);
 
-            order.Tenders.Add(new OrderTender
+            var cash = new OrderTender
             {
                 Type = TenderType.Cash,
                 Amount = applied,
                 CashReceived = received,
                 ChangeGiven = change > 0 ? change : null,
                 Reference = change > 0 ? $"change:{change:0.00}" : "tender",
-            });
+            };
+            _app.Session.Stamp(cash);
+            order.Tenders.Add(cash);
             var fullyPaid = order.IsFullyPaid;
             order.Status = fullyPaid ? PosOrderStatus.Paid : PosOrderStatus.Sent;
             UpdatePaymentLabel(order);
@@ -1020,12 +1108,14 @@ public partial class SellViewModel : ViewModelBase
             if (!result.Success)
                 throw new InvalidOperationException(result.Message ?? UiText.Pick("Card declined", "刷卡失败"));
 
-            order.Tenders.Add(new OrderTender
+            var card = new OrderTender
             {
                 Type = TenderType.CardManual,
                 Amount = payAmount,
                 Reference = result.Message ?? "card",
-            });
+            };
+            _app.Session.Stamp(card);
+            order.Tenders.Add(card);
             var fullyPaid = order.IsFullyPaid;
             order.Status = fullyPaid ? PosOrderStatus.Paid : PosOrderStatus.Sent;
             UpdatePaymentLabel(order);
@@ -1325,6 +1415,9 @@ public partial class SellViewModel : ViewModelBase
             _ => ServiceType.Collection,
         };
         _ticket.CustomerWaiting = OrderType == "WalkIn";
+        // Stamped once, on first save: reopening yesterday's ticket must not
+        // move its money into today's shift.
+        _app.Session.Stamp(_ticket);
         // Status transitions — never silently wipe Paid→Draft; never downgrade Sent→Draft/Open
         if (status == PosOrderStatus.Paid)
             _ticket.Status = PosOrderStatus.Paid;

@@ -19,9 +19,16 @@ public static class UiText
     // ── Shell ──────────────────────────────────────────────────────
     public static string LanguageToggle => IsZh ? "English" : "中文";
     public static string Drawer => Pick("Drawer", "钱箱");
-    public static string NavSell => Pick("Sell", "点单");
+    public static string Lock => Pick("Lock", "锁屏");
+    public static string SignIn => Pick("Sign in", "登录");
+    public static string EnterPin => Pick("Enter your PIN", "请输入 PIN");
+
+    // Rail labels. "Till" is what the trade calls the screen you take an order
+    // and take the money on, and it does not collide with "Orders" the way
+    // "Order" would.
+    public static string NavSell => Pick("Till", "收银台");
     public static string NavOrders => Pick("Orders", "订单");
-    public static string NavOnline => Pick("Online", "线上");
+    public static string NavOnline => Pick("Web orders", "网单");
     public static string NavCustomers => Pick("Customers", "顾客");
     public static string NavSettings => Pick("Settings", "设置");
 

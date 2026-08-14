@@ -1,0 +1,76 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    Every colour and size in the product comes from here. Views must not carry
+    hex literals: a counter is used ten hours a day under bad lighting by people
+    who never chose this software, and consistency is most of what makes it
+    readable.
+
+    Sizes are tuned for a 15" 1366x768 touch screen, the commonest till display.
+    Nothing a finger presses is under 44px; anything that takes money is 64.
+  -->
+
+  <!-- Surfaces -->
+  <Color x:Key="PageColor">#EEF0F3</Color>
+  <Color x:Key="PanelColor">#FFFFFF</Color>
+  <Color x:Key="PanelAltColor">#F4F6F8</Color>
+  <Color x:Key="BorderColor">#D4D9E0</Color>
+  <Color x:Key="BorderStrongColor">#AEB6C2</Color>
+
+  <SolidColorBrush x:Key="Page" Color="{StaticResource PageColor}" />
+  <SolidColorBrush x:Key="Panel" Color="{StaticResource PanelColor}" />
+  <SolidColorBrush x:Key="PanelAlt" Color="{StaticResource PanelAltColor}" />
+  <SolidColorBrush x:Key="Line" Color="{StaticResource BorderColor}" />
+  <SolidColorBrush x:Key="LineStrong" Color="{StaticResource BorderStrongColor}" />
+
+  <!-- Ink -->
+  <SolidColorBrush x:Key="Ink" Color="#14181F" />
+  <SolidColorBrush x:Key="InkMuted" Color="#5B6472" />
+  <SolidColorBrush x:Key="InkFaint" Color="#8B94A3" />
+  <SolidColorBrush x:Key="InkOnDark" Color="#FFFFFF" />
+
+  <!--
+    Colour carries meaning and only meaning. Accent marks the thing selected or
+    the next step; the rest map to what an action does to money.
+  -->
+  <SolidColorBrush x:Key="Accent" Color="#C2410C" />
+  <SolidColorBrush x:Key="AccentDeep" Color="#9A330A" />
+  <SolidColorBrush x:Key="AccentWash" Color="#FFF3EC" />
+  <SolidColorBrush x:Key="AccentEdge" Color="#F7B98F" />
+
+  <SolidColorBrush x:Key="Cash" Color="#15803D" />
+  <SolidColorBrush x:Key="CashWash" Color="#E7F5EC" />
+  <SolidColorBrush x:Key="Card" Color="#1D4ED8" />
+  <SolidColorBrush x:Key="CardWash" Color="#E8EEFC" />
+  <SolidColorBrush x:Key="Hold" Color="#B45309" />
+  <SolidColorBrush x:Key="HoldWash" Color="#FDF3E3" />
+  <SolidColorBrush x:Key="Danger" Color="#B91C1C" />
+  <SolidColorBrush x:Key="DangerWash" Color="#FDECEC" />
+  <SolidColorBrush x:Key="Ok" Color="#15803D" />
+  <SolidColorBrush x:Key="OkWash" Color="#E7F5EC" />
+
+  <!-- Type. 16 is the floor: 12px under counter lighting is how mistakes happen. -->
+  <x:Double x:Key="FontCaption">13</x:Double>
+  <x:Double x:Key="FontSmall">14</x:Double>
+  <x:Double x:Key="FontBody">16</x:Double>
+  <x:Double x:Key="FontStrong">18</x:Double>
+  <x:Double x:Key="FontTitle">22</x:Double>
+  <x:Double x:Key="FontMoney">30</x:Double>
+  <x:Double x:Key="FontMoneyBig">44</x:Double>
+
+  <!-- Touch targets -->
+  <x:Double x:Key="TouchPrimary">64</x:Double>
+  <x:Double x:Key="TouchStandard">52</x:Double>
+  <x:Double x:Key="TouchCompact">44</x:Double>
+  <x:Double x:Key="TouchCategory">56</x:Double>
+  <x:Double x:Key="TouchDish">112</x:Double>
+
+  <!-- Rhythm -->
+  <x:Double x:Key="GapTight">6</x:Double>
+  <x:Double x:Key="Gap">10</x:Double>
+  <x:Double x:Key="GapWide">16</x:Double>
+  <CornerRadius x:Key="Radius">8</CornerRadius>
+  <CornerRadius x:Key="RadiusLarge">12</CornerRadius>
+
+</ResourceDictionary>

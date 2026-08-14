@@ -1,7 +1,8 @@
-using Avalonia.Threading;
+﻿using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RingOrder.Epos.Domain;
+using RingOrder.Epos.Hardware;
 using RingOrder.Epos.Services;
 
 namespace RingOrder.Epos.ViewModels;
@@ -39,6 +40,7 @@ public partial class MainViewModel : ViewModelBase
         });
 
         ShopName = app.GetSettings().ShopName;
+        RefreshSession();
         CurrentPage = Sell;
         NavKey = "sell";
         RefreshAllUiLanguage();
@@ -100,6 +102,26 @@ public partial class MainViewModel : ViewModelBase
     public OnlineViewModel Online { get; }
     public CustomersViewModel Customers { get; }
     public SettingsViewModel SettingsVm { get; }
+
+    [ObservableProperty] private bool _isLocked = true;
+    [ObservableProperty] private string _pinEntry = "";
+    [ObservableProperty] private string _pinMask = "";
+    [ObservableProperty] private string _lockMessage = "";
+    [ObservableProperty] private bool _hasLockMessage;
+    [ObservableProperty] private string _staffName = "";
+    [ObservableProperty] private string _shiftLabel = "";
+    [ObservableProperty] private string _noShiftLabel = "No shift";
+    [ObservableProperty] private bool _hasOpenShift;
+    [ObservableProperty] private bool _webOn;
+    [ObservableProperty] private string _webLabel = "Web off";
+    [ObservableProperty] private string _webTooltip = "";
+    [ObservableProperty] private bool _printersHealthy = true;
+    [ObservableProperty] private string _printerLabel = "";
+    [ObservableProperty] private string _lblLock = "Lock";
+    [ObservableProperty] private string _lblSignIn = "Sign in";
+    [ObservableProperty] private string _lblEnterPin = "Enter your PIN";
+    [ObservableProperty] private string _lblOpenShift = "Open shift";
+    [ObservableProperty] private string _lblCloseShift = "Close shift";
 
     [ObservableProperty] private ViewModelBase _currentPage = null!;
     [ObservableProperty] private string _sectionTitle = "Sell";
@@ -219,6 +241,11 @@ public partial class MainViewModel : ViewModelBase
         NavSettings = UiText.NavSettings;
         LblLanguage = UiText.LanguageToggle;
         LblDrawer = UiText.Drawer;
+        LblLock = UiText.Lock;
+        LblSignIn = UiText.SignIn;
+        LblEnterPin = UiText.EnterPin;
+        LblOpenShift = UiText.Pick("Open shift", "开班");
+        LblCloseShift = UiText.Pick("Close shift and count the drawer", "关班点钞");
         LanguageHint = UiText.UiLangNote;
         Sell.RefreshUiLabels();
         Orders.RefreshUiLabels();
@@ -228,6 +255,200 @@ public partial class MainViewModel : ViewModelBase
     }
 
     public void SetStatus(string text) => StatusText = text;
+
+    // ── Sign in / lock ──────────────────────────────────────────────────────
+
+    [RelayCommand]
+    private void PinDigit(string? digit)
+    {
+        if (string.IsNullOrEmpty(digit) || PinEntry.Length >= 8) return;
+        PinEntry += digit;
+        HasLockMessage = false;
+    }
+
+    [RelayCommand]
+    private void PinBackspace()
+    {
+        if (PinEntry.Length > 0) PinEntry = PinEntry[..^1];
+        HasLockMessage = false;
+    }
+
+    [RelayCommand]
+    private void SignIn()
+    {
+        if (PinEntry.Length == 0) return;
+
+        var member = _app.Session.SignIn(PinEntry);
+        PinEntry = "";
+
+        if (member is null)
+        {
+            LockMessage = UiText.Pick("PIN not recognised", "PIN 不正确");
+            HasLockMessage = true;
+            return;
+        }
+
+        HasLockMessage = false;
+        IsLocked = false;
+        RefreshSession();
+
+        StatusText = member.MustChangePin
+            ? UiText.Pick(
+                $"Signed in as {member.Name} — change this PIN in Settings",
+                $"已登录：{member.Name} — 请到设置中修改 PIN")
+            : UiText.Pick($"Signed in as {member.Name}", $"已登录：{member.Name}");
+    }
+
+    [RelayCommand]
+    private void Lock()
+    {
+        Sell.CompletePendingSettlement();
+        _app.Session.SignOut();
+        PinEntry = "";
+        IsLocked = true;
+        RefreshSession();
+    }
+
+    partial void OnPinEntryChanged(string value) => PinMask = new string('●', value.Length);
+
+    private void RefreshSession()
+    {
+        var session = _app.Session;
+        StaffName = session.Staff?.Name ?? "";
+        HasOpenShift = session.HasOpenShift;
+        ShiftLabel = session.Shift is { } shift
+            ? UiText.Pick($"Shift {shift.Number}", $"班次 {shift.Number}")
+            : "";
+        NoShiftLabel = UiText.Pick("No shift open", "未开班");
+        RefreshStatusLights();
+    }
+
+    /// <summary>
+    /// Printers and the web feed fail quietly. A light that is already wrong
+    /// before anyone reaches for a ticket is the cheapest fix there is.
+    /// </summary>
+    private void RefreshStatusLights()
+    {
+        var settings = _app.GetSettings();
+        var queues = new[] { settings.FrontPrinterName, settings.KitchenPrinterName }
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var reachable = queues.Count(RawPrinter.CanOpen);
+        PrintersHealthy = queues.Count > 0 && reachable == queues.Count;
+        PrinterLabel = queues.Count == 0
+            ? UiText.Pick("No printer", "未设打印机")
+            : $"{reachable}/{queues.Count}";
+
+        WebOn = _app.OnlinePoller.IsRunning;
+        WebLabel = WebOn
+            ? UiText.Pick("Web on", "网单：开")
+            : UiText.Pick("Web off", "网单：关");
+        WebTooltip = string.IsNullOrWhiteSpace(_app.OnlinePoller.LastStatus)
+            ? UiText.Pick("Pull orders from the shop website", "从店铺网站拉取订单")
+            : _app.OnlinePoller.LastStatus;
+    }
+
+    [RelayCommand]
+    private async Task ToggleWebOrdersAsync()
+    {
+        try
+        {
+            var settings = _app.GetSettings();
+            if (_app.OnlinePoller.IsRunning)
+            {
+                await _app.OnlinePoller.StopAsync();
+                settings.OnlinePollingEnabled = false;
+                _app.SaveSettings(settings);
+                StatusText = UiText.Pick("Web orders paused", "已暂停接网单");
+            }
+            else
+            {
+                settings.OnlinePollingEnabled = true;
+                _app.SaveSettings(settings);
+                await _app.OnlinePoller.StartAsync();
+                StatusText = UiText.Pick("Accepting web orders", "开始接网单");
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusText = UiText.Pick($"Web orders: {ex.Message}", $"网单：{ex.Message}");
+        }
+
+        RefreshStatusLights();
+        Online.Refresh();
+    }
+
+    // ── Shift ───────────────────────────────────────────────────────────────
+
+    [RelayCommand]
+    private async Task OpenShiftAsync()
+    {
+        if (!_app.Session.IsSignedIn) return;
+
+        var entered = await UiPrompt.PromptTextAsync(
+            UiText.Pick("Open shift", "开班"),
+            UiText.Pick("Opening float in the drawer, e.g. 100.00", "备用金，例如 100.00"),
+            initial: "0.00");
+        if (entered is null) return;
+        if (!decimal.TryParse(entered.Trim(), out var openingFloat) || openingFloat < 0)
+        {
+            StatusText = UiText.Pick("Opening float must be a number", "备用金必须是数字");
+            return;
+        }
+
+        var shift = _app.Session.OpenShift(openingFloat);
+        RefreshSession();
+        StatusText = UiText.Pick(
+            $"Shift {shift.Number} open with £{openingFloat:0.00} float",
+            $"班次 {shift.Number} 已开，备用金 £{openingFloat:0.00}");
+    }
+
+    [RelayCommand]
+    private async Task CloseShiftAsync()
+    {
+        if (_app.Session.Shift is not { } shift) return;
+        if (!_app.Session.Can(Permission.CloseShift))
+        {
+            StatusText = UiText.Pick("Closing a shift needs a supervisor", "关班需要主管权限");
+            return;
+        }
+
+        var totals = _app.Session.CurrentTotals()!;
+        if (totals.OrdersOpen > 0 && !await UiPrompt.ConfirmAsync(
+                UiText.Pick("Close shift?", "关班？"),
+                UiText.Pick(
+                    $"{totals.OrdersOpen} order(s) still owe £{totals.OutstandingDue:0.00}. Close anyway?",
+                    $"仍有 {totals.OrdersOpen} 单未结，共 £{totals.OutstandingDue:0.00}。仍要关班？")))
+            return;
+
+        // The count is entered before the expected figure is shown: a till that
+        // volunteers the answer first is not counting the drawer, it is
+        // confirming it.
+        var counted = await UiPrompt.PromptTextAsync(
+            UiText.Pick($"Close shift {shift.Number}", $"关班 {shift.Number}"),
+            UiText.Pick("Cash counted in the drawer", "点出的现金金额"));
+        if (counted is null) return;
+        if (!decimal.TryParse(counted.Trim(), out var declared) || declared < 0)
+        {
+            StatusText = UiText.Pick("Counted cash must be a number", "点钞金额必须是数字");
+            return;
+        }
+
+        var (closed, variance) = _app.Session.CloseShift(declared, null);
+        RefreshSession();
+
+        var verdict = variance == 0
+            ? UiText.Pick("balances", "平账")
+            : variance > 0
+                ? UiText.Pick($"over by £{variance:0.00}", $"多 £{variance:0.00}")
+                : UiText.Pick($"short by £{-variance:0.00}", $"少 £{-variance:0.00}");
+
+        StatusText = UiText.Pick(
+            $"Shift {shift.Number} closed — expected £{closed.ExpectedCash:0.00}, counted £{declared:0.00}, {verdict}",
+            $"班次 {shift.Number} 已关 — 应有 £{closed.ExpectedCash:0.00}，实点 £{declared:0.00}，{verdict}");
+    }
 
     private async Task BootstrapOnlineAsync()
     {

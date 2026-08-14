@@ -128,3 +128,64 @@ customers and shifts alone — a menu update mid-week must not erase the week.
 old SMP-* fixtures), bundle-import fidelity against the demo shop, tender and
 shift arithmetic, and permissions. `tools/SmokeSeed` is deleted; the test
 project does its job properly.
+
+---
+
+## 2026-08-14 — Foundation, step 4: one price list
+
+Price tiers came out of the schema, the bundle and the domain, a few hours after
+going in. Web and marketplace orders arrive already priced by whoever took them;
+the till prints and records them. A second price list here would be a copy
+nobody maintains.
+
+Tax classes stayed. A VAT band is about what the receipt has to declare, not
+about charging a different price.
+
+Migration 1 was edited rather than superseded, because no merchant has installed
+it. From the first install onward it is append-only.
+
+---
+
+## 2026-08-14 — Interface, step 1: design tokens, the shell, and signing in
+
+**Every colour and size now comes from `Styles/Tokens.axaml`.** Views carried
+their own hex literals, which is why nothing quite matched anything else. Base
+text is 16px (was 11–13), nothing a finger presses is under 44px, and anything
+that takes money is 64. Colour means one thing only: green is cash, blue is
+card, amber is held or owing, red is void or broken.
+
+**The top bar became a cockpit** — shop, shift, who is signed in, the clock, and
+status lights for the two things that fail silently: the printers and the web
+feed. The printer light asks Windows whether each queue can actually be opened,
+which catches the everyday failure of a renamed or unplugged printer before
+someone reaches for a ticket rather than after.
+
+**Signing in is now required.** The schema already demanded it — every order and
+payment carries `staff_id` and `shift_id` — and a till that takes money without
+knowing who is standing at it cannot answer the only question anyone asks when
+the drawer is short. PIN pad, no keyboard, and the demo bundle seeds Manager /
+`1234` with a change-me flag.
+
+**Shifts open and close from that same bar.** Open with a float, close by
+counting the drawer — and the count is entered *before* the expected figure is
+shown, because a till that volunteers the answer first is not counting the
+drawer, it is confirming it. Variance is recorded either way.
+
+**Dishes are a fixed 5-column grid with paging, not a flow layout in a scroll
+view.** This is the single biggest change to how the screen feels. Staff learn
+where a dish is and stop reading; a flow layout moves every tile after a rename,
+and a scroll position is wherever the last person left it. Page 2 of Chicken is
+now always page 2 of Chicken. Sold-out dishes grey out and keep their place
+rather than vanishing — a dish that disappears reads as "I am in the wrong
+category", and staff go hunting.
+
+**Keyed entry takes a quantity**: `3x88` adds three of dish 88 in one action.
+Experienced staff work by number and barely look at the tiles.
+
+Rail labels: the order screen is **Till**, which is what the trade calls it and
+does not collide with **Orders** the way "Order" would.
+
+Still to do on the interface: payment deserves its own full screen rather than a
+keypad squeezed into the ticket column; Web orders should fold into Orders as a
+channel filter now that the top bar carries the on/off; and the function bar
+(discount, note, park, find, undo) is designed but not yet built.

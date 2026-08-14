@@ -570,6 +570,23 @@ public static class TicketRenderer
 
 public static class RawPrinter
 {
+    /// <summary>
+    /// Whether Windows can open this queue right now. Cheap enough for a status
+    /// light, and it catches the everyday failure: a printer renamed, unplugged,
+    /// or never installed on this machine. It does not promise paper.
+    /// </summary>
+    public static bool CanOpen(string? printerName)
+    {
+        if (string.IsNullOrWhiteSpace(printerName) || !OperatingSystem.IsWindows())
+            return false;
+
+        if (!OpenPrinter(printerName.Normalize(), out var handle, IntPtr.Zero))
+            return false;
+
+        ClosePrinter(handle);
+        return true;
+    }
+
     public static void SendBytes(string printerName, byte[] data)
     {
         if (string.IsNullOrWhiteSpace(printerName))

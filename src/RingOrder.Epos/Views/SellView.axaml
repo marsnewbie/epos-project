@@ -1,4 +1,4 @@
-<UserControl xmlns="https://github.com/avaloniaui"
+﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RingOrder.Epos.ViewModels"
              xmlns:domain="using:RingOrder.Epos.Domain"
@@ -6,35 +6,38 @@
              x:Class="RingOrder.Epos.Views.SellView"
              x:Name="Root"
              x:DataType="vm:SellViewModel"
-             Background="#e8eaed">
+             Background="{StaticResource Page}">
 
   <Grid>
-  <Grid ColumnDefinitions="148,*,420"
+  <Grid ColumnDefinitions="176,*,430"
         IsEnabled="{Binding !ShowChangeOverlay}">
 
     <!-- Categories -->
-    <Border Grid.Column="0" Classes="pos-panel" Padding="8" Margin="0,0,8,0">
+    <Border Grid.Column="0" Classes="panel" Padding="8" Margin="0,0,8,0">
       <DockPanel>
         <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,8">
-          <TextBox Classes="pos-field-sm" Watermark="{Binding WmSearch}"
+          <TextBox Classes="field" Watermark="{Binding WmSearch}"
                    Text="{Binding SearchText}" />
-          <Grid ColumnDefinitions="*,56">
-            <TextBox Classes="pos-field-sm" Watermark="{Binding WmDishNumber}"
+          <Grid ColumnDefinitions="*,62">
+            <TextBox Classes="field" Watermark="{Binding WmDishNumber}"
                      Text="{Binding DishNumberText}" Margin="0,0,4,0" />
-            <Button Grid.Column="1" Classes="pos-key-sm" Content="{Binding LblAdd}"
-                    Command="{Binding AddByDishNumberCommand}" Margin="0" FontSize="13" />
+            <Button Grid.Column="1" Classes="btn" Content="{Binding LblAdd}"
+                    Command="{Binding AddByDishNumberCommand}" Margin="0" />
           </Grid>
-          <Button Classes="pos-nav" Content="{Binding LblPhoneOrder}"
-                  Command="{Binding StartPhoneOrderCommand}" Height="40" />
+          <Button Classes="btn" Content="{Binding LblPhoneOrder}"
+                  Command="{Binding StartPhoneOrderCommand}"
+                  HorizontalAlignment="Stretch" />
         </StackPanel>
-        <Button DockPanel.Dock="Bottom" Classes="pos-nav" Content="{Binding LblAdHoc}"
-                Command="{Binding ToggleAdHocCommand}" Height="44" Margin="0,8,0,0" />
+        <Button DockPanel.Dock="Bottom" Classes="btn" Content="{Binding LblAdHoc}"
+                Command="{Binding ToggleAdHocCommand}" Margin="0,8,0,0"
+                HorizontalAlignment="Stretch" />
         <ScrollViewer>
           <ItemsControl ItemsSource="{Binding CategoryTiles}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:CategoryTile">
-                <Button Classes="pos-cat" Classes.active="{Binding IsSelected}"
-                        Content="{Binding Name}"
+                <Button Classes="category" Classes.on="{Binding IsSelected}"
+                        Content="{Binding Name}" Margin="0,0,0,4"
+                        HorizontalAlignment="Stretch"
                         Command="{Binding DataContext.SelectCategoryCommand, ElementName=Root}"
                         CommandParameter="{Binding Category}" />
               </DataTemplate>
@@ -49,24 +52,24 @@
       <DockPanel>
         <Border DockPanel.Dock="Top" Padding="4,0,4,8">
           <Grid ColumnDefinitions="*,Auto">
-            <TextBlock Text="{Binding CategoryHeading}" Classes="pos-title" />
+            <TextBlock Text="{Binding CategoryHeading}" Classes="title" />
             <TextBlock Grid.Column="1" Text="{Binding PanelStatus}" Foreground="#c2410c" FontSize="12"
                        VerticalAlignment="Center" MaxWidth="280" TextTrimming="CharacterEllipsis" />
           </Grid>
         </Border>
 
-        <Border DockPanel.Dock="Bottom" Classes="pos-panel" Padding="8" Margin="0,8,0,0"
+        <Border DockPanel.Dock="Bottom" Classes="panel" Padding="8" Margin="0,8,0,0"
                 IsVisible="{Binding ShowAdHoc}">
           <Grid ColumnDefinitions="*,80,80,88">
-            <TextBox Classes="pos-field" Watermark="{Binding WmAdHocName}" Text="{Binding AdHocName}" Margin="0,0,6,0" />
-            <TextBox Grid.Column="1" Classes="pos-field" Watermark="£" Text="{Binding AdHocPrice}" Margin="0,0,6,0" />
-            <TextBox Grid.Column="2" Classes="pos-field" Watermark="中文" Text="{Binding AdHocZh}" Margin="0,0,6,0" />
-            <Button Grid.Column="3" Classes="pos-action pos-send" Content="{Binding LblAdd}"
+            <TextBox Classes="field" Watermark="{Binding WmAdHocName}" Text="{Binding AdHocName}" Margin="0,0,6,0" />
+            <TextBox Grid.Column="1" Classes="field" Watermark="£" Text="{Binding AdHocPrice}" Margin="0,0,6,0" />
+            <TextBox Grid.Column="2" Classes="field" Watermark="中文" Text="{Binding AdHocZh}" Margin="0,0,6,0" />
+            <Button Grid.Column="3" Classes="primary" Content="{Binding LblAdd}"
                     Command="{Binding AddAdHocCommand}" Height="40" />
           </Grid>
         </Border>
 
-        <Border DockPanel.Dock="Bottom" Classes="pos-panel" Padding="8" Margin="0,8,0,0">
+        <Border DockPanel.Dock="Bottom" Classes="panel" Padding="8" Margin="0,8,0,0">
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" MaxHeight="64">
             <ItemsControl ItemsSource="{Binding QuickNotes}">
               <ItemsControl.ItemsPanel>
@@ -76,7 +79,7 @@
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="vm:QuickNoteItem">
-                  <Button Classes="pos-chip" Content="{Binding ChipLabel}"
+                  <Button Classes="chip" Content="{Binding ChipLabel}"
                           Command="{Binding DataContext.ApplyQuickNoteCommand, ElementName=Root}"
                           CommandParameter="{Binding}" ToolTip.Tip="{Binding Display}" />
                 </DataTemplate>
@@ -85,32 +88,62 @@
           </ScrollViewer>
         </Border>
 
-        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-          <ItemsControl ItemsSource="{Binding Items}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <WrapPanel />
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="domain:MenuItem">
-                <Button Classes="pos-dish"
-                        Command="{Binding DataContext.SelectItemCommand, ElementName=Root}"
-                        CommandParameter="{Binding}">
-                  <StackPanel Spacing="1">
-                    <TextBlock Text="{Binding MenuNumber}" FontSize="16" FontWeight="Bold" Foreground="#c2410c" />
-                    <TextBlock Text="{Binding Name}" TextWrapping="Wrap" FontSize="12" FontWeight="SemiBold"
-                               MaxHeight="32" Foreground="#1c1917" />
-                    <TextBlock Text="{Binding ItemTranslation}" TextWrapping="Wrap" FontSize="11"
-                               Foreground="#5b6472" MaxHeight="18" />
-                    <TextBlock Text="{Binding BasePrice, StringFormat={}£{0:0.00}}" FontSize="12"
-                               Foreground="#374151" FontWeight="SemiBold" />
+        <!--
+          Paging bar, not a scrollbar. Page 2 of Chicken is always page 2 of
+          Chicken; a scroll position is wherever the last person left it.
+        -->
+        <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,Auto,Auto,*"
+              Margin="0,8,0,0" IsVisible="{Binding HasPages}">
+          <Button Classes="btn" Content="▲" Width="72"
+                  Command="{Binding PreviousPageCommand}" Margin="0,0,6,0" />
+          <Button Grid.Column="1" Classes="btn" Content="▼" Width="72"
+                  Command="{Binding NextPageCommand}" Margin="0,0,10,0" />
+          <TextBlock Grid.Column="2" Text="{Binding PageLabel}" Classes="muted"
+                     VerticalAlignment="Center" />
+        </Grid>
+
+        <!--
+          Fixed 5-column grid: a dish keeps its place whatever else changes, so
+          staff stop reading the tiles and start hitting them from memory.
+        -->
+        <ItemsControl ItemsSource="{Binding Items}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <UniformGrid Columns="5" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="domain:MenuItem">
+              <Button Classes="dish" Classes.out="{Binding !IsAvailable}" Margin="0,0,6,6"
+                      HorizontalAlignment="Stretch"
+                      Command="{Binding DataContext.SelectItemCommand, ElementName=Root}"
+                      CommandParameter="{Binding}">
+                <DockPanel>
+                  <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{Binding MenuNumber}" FontSize="{StaticResource FontStrong}"
+                               FontWeight="Bold" Foreground="{StaticResource Accent}" />
+                    <Border Grid.Column="1" Classes="pill bad" Padding="6,1"
+                            IsVisible="{Binding !IsAvailable}">
+                      <TextBlock Text="86" />
+                    </Border>
+                  </Grid>
+                  <TextBlock DockPanel.Dock="Bottom"
+                             Text="{Binding BasePrice, StringFormat={}£{0:0.00}}"
+                             FontSize="{StaticResource FontSmall}" FontWeight="SemiBold"
+                             Foreground="{StaticResource InkMuted}" />
+                  <StackPanel>
+                    <TextBlock Text="{Binding Name}" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontSmall}" FontWeight="SemiBold"
+                               MaxHeight="36" />
+                    <TextBlock Text="{Binding ItemTranslation}" TextWrapping="Wrap"
+                               FontSize="{StaticResource FontCaption}"
+                               Foreground="{StaticResource InkMuted}" MaxHeight="18" />
                   </StackPanel>
-                </Button>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </ScrollViewer>
+                </DockPanel>
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
       </DockPanel>
 
       <Border IsVisible="{Binding ShowModifierPanel}" Background="#99000000" CornerRadius="8" ZIndex="10">
@@ -136,11 +169,11 @@
               <StackPanel Spacing="8">
                 <TextBlock Text="{Binding ModifierError}" Foreground="#b91c1c" FontSize="13"
                            TextWrapping="Wrap" />
-                <TextBox Classes="pos-field-sm" Watermark="{Binding WmOrderNotes}" Text="{Binding LineNotesDraft}" Margin="0" />
+                <TextBox Classes="field" Watermark="{Binding WmOrderNotes}" Text="{Binding LineNotesDraft}" Margin="0" />
                 <Grid ColumnDefinitions="*,2*">
-                  <Button Classes="pos-nav" Content="{Binding LblCancel}" Command="{Binding CancelModifierCommand}"
+                  <Button Classes="btn" Content="{Binding LblCancel}" Command="{Binding CancelModifierCommand}"
                           Height="52" Margin="0,0,8,0" />
-                  <Button Grid.Column="1" Classes="pos-action pos-cash" Content="{Binding LblAddToTicket}"
+                  <Button Grid.Column="1" Classes="cash" Content="{Binding LblAddToTicket}"
                           Command="{Binding AddSelectedItemCommand}" Height="52" />
                 </Grid>
               </StackPanel>
@@ -174,7 +207,7 @@
                           </ItemsControl.ItemsPanel>
                           <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:ModifierChoiceVm">
-                              <Button Classes="pos-opt" Classes.active="{Binding IsSelected}" Classes.multi="{Binding IsMulti}"
+                              <Button Classes="option" Classes.on="{Binding IsSelected}" Classes.multi="{Binding IsMulti}"
                                       IsEnabled="{Binding IsEnabled}" Margin="0,0,8,8" MinWidth="140" MaxWidth="220"
                                       Command="{Binding DataContext.ToggleOptionCommand, ElementName=Root}"
                                       CommandParameter="{Binding}">
@@ -208,7 +241,7 @@
     </Grid>
 
     <!-- Ticket column -->
-    <Border Grid.Column="2" Classes="pos-panel" Padding="0" ClipToBounds="True">
+    <Border Grid.Column="2" Classes="panel" Padding="0" ClipToBounds="True">
       <Grid>
         <DockPanel Margin="10">
 
@@ -221,11 +254,11 @@
                   <TextBlock Text="{Binding TicketStatusBadge}" FontWeight="Bold" FontSize="11" Foreground="#fff7ed" />
                 </Border>
               </StackPanel>
-              <Button Grid.Column="1" Classes="pos-nav" Content="{Binding HeldButtonText}"
+              <Button Grid.Column="1" Classes="btn" Content="{Binding HeldButtonText}"
                       Command="{Binding ToggleHeldPanelCommand}" MinWidth="78" Height="36" Margin="0,0,4,0" FontSize="12" />
-              <Button Grid.Column="2" Classes="pos-nav" Content="{Binding LblNew}"
+              <Button Grid.Column="2" Classes="btn" Content="{Binding LblNew}"
                       Command="{Binding NewTicketCommand}" Width="64" Height="36" Margin="0,0,4,0" FontSize="12" />
-              <Button Grid.Column="3" Classes="pos-nav" Content="{Binding LblClear}"
+              <Button Grid.Column="3" Classes="btn" Content="{Binding LblClear}"
                       Command="{Binding ClearTicketCommand}" Width="64" Height="36" FontSize="12" />
             </Grid>
           </Border>
@@ -235,7 +268,7 @@
             <ItemsControl ItemsSource="{Binding HeldOrders}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate x:DataType="domain:PosOrder">
-                  <Button Classes="pos-chip" Margin="0,0,6,4" HorizontalAlignment="Left"
+                  <Button Classes="chip" Margin="0,0,6,4" HorizontalAlignment="Left"
                           Command="{Binding DataContext.ResumeHeldCommand, ElementName=Root}"
                           CommandParameter="{Binding}">
                     <TextBlock FontSize="12">
@@ -250,49 +283,49 @@
           </Border>
 
           <UniformGrid DockPanel.Dock="Top" Columns="4" Margin="0,0,0,6">
-            <Button Classes="pos-type" Classes.active="{Binding IsCollection}" Content="{Binding LblTypeCollection}"
+            <Button Classes="btn" Classes.on="{Binding IsCollection}" Content="{Binding LblTypeCollection}"
                     Command="{Binding SetOrderTypeCommand}" CommandParameter="Collection" Margin="0,0,4,0" />
-            <Button Classes="pos-type" Classes.active="{Binding IsDelivery}" Content="{Binding LblTypeDelivery}"
+            <Button Classes="btn" Classes.on="{Binding IsDelivery}" Content="{Binding LblTypeDelivery}"
                     Command="{Binding SetOrderTypeCommand}" CommandParameter="Delivery" Margin="0,0,4,0" />
-            <Button Classes="pos-type" Classes.active="{Binding IsWalkIn}" Content="{Binding LblTypeWaiting}"
+            <Button Classes="btn" Classes.on="{Binding IsWalkIn}" Content="{Binding LblTypeWaiting}"
                     Command="{Binding SetOrderTypeCommand}" CommandParameter="WalkIn" Margin="0,0,4,0" />
-            <Button Classes="pos-type" Classes.active="{Binding IsEatIn}" Content="{Binding LblTypeTable}"
+            <Button Classes="btn" Classes.on="{Binding IsEatIn}" Content="{Binding LblTypeTable}"
                     Command="{Binding SetOrderTypeCommand}" CommandParameter="EatIn" />
           </UniformGrid>
 
           <StackPanel DockPanel.Dock="Top" Margin="0,0,0,6">
             <Grid ColumnDefinitions="*,*">
-              <TextBox Classes="pos-field-sm" Watermark="{Binding WmName}" Text="{Binding CustomerName}" Margin="0,0,4,4" />
-              <TextBox Grid.Column="1" Classes="pos-field-sm" Watermark="{Binding WmPhone}" Text="{Binding CustomerPhone}" Margin="0,0,0,4" />
+              <TextBox Classes="field" Watermark="{Binding WmName}" Text="{Binding CustomerName}" Margin="0,0,4,4" />
+              <TextBox Grid.Column="1" Classes="field" Watermark="{Binding WmPhone}" Text="{Binding CustomerPhone}" Margin="0,0,0,4" />
             </Grid>
-            <TextBox Classes="pos-field-sm" Watermark="{Binding WmAddress}" Text="{Binding DeliveryAddress}"
+            <TextBox Classes="field" Watermark="{Binding WmAddress}" Text="{Binding DeliveryAddress}"
                      IsVisible="{Binding IsDelivery}" />
-            <TextBox Classes="pos-field-sm" Watermark="{Binding WmPostcode}" Text="{Binding DeliveryPostcode}"
+            <TextBox Classes="field" Watermark="{Binding WmPostcode}" Text="{Binding DeliveryPostcode}"
                      IsVisible="{Binding IsDelivery}" />
-            <TextBox Classes="pos-field-sm" Watermark="{Binding WmTable}" Text="{Binding TableNumber}"
+            <TextBox Classes="field" Watermark="{Binding WmTable}" Text="{Binding TableNumber}"
                      IsVisible="{Binding IsEatIn}" />
             <Grid ColumnDefinitions="*,Auto">
-              <TextBlock Text="{Binding CustomerSummary}" Classes="pos-muted" FontSize="11"
+              <TextBlock Text="{Binding CustomerSummary}" Classes="muted" FontSize="11"
                          VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                          IsVisible="{Binding !ShowCustomerMore}" />
-              <Button Grid.Column="1" Classes="pos-nav" Content="{Binding LblNotes}"
+              <Button Grid.Column="1" Classes="btn" Content="{Binding LblNotes}"
                       Command="{Binding ToggleCustomerMoreCommand}" Width="72" Height="28" FontSize="11" Margin="0" />
             </Grid>
-            <TextBox Classes="pos-field-sm" Watermark="{Binding WmOrderNotes}" Text="{Binding OrderNotes}"
+            <TextBox Classes="field" Watermark="{Binding WmOrderNotes}" Text="{Binding OrderNotes}"
                      IsVisible="{Binding ShowCustomerMore}" />
           </StackPanel>
 
-          <Border DockPanel.Dock="Bottom" Classes="pos-ticket-footer" Margin="0,8,0,0"
+          <Border DockPanel.Dock="Bottom" Classes="panel-flat" Margin="0,8,0,0"
                   IsVisible="{Binding !ShowCashPanel}">
             <StackPanel Spacing="8">
               <Grid ColumnDefinitions="Auto,*,Auto">
                 <StackPanel Orientation="Horizontal" Spacing="4" IsEnabled="{Binding CanEditSelectedLine}">
-                  <Button Classes="pos-key-sm" Content="−" Command="{Binding QtyMinusCommand}" Width="44" Margin="0,0,4,0" />
-                  <Button Classes="pos-key-sm" Content="+" Command="{Binding QtyPlusCommand}" Width="44" Margin="0,0,4,0" />
-                  <Button Classes="pos-key-sm" Content="⌫" Command="{Binding RemoveLineCommand}" Width="44" Margin="0" />
+                  <Button Classes="key" Content="−" Command="{Binding QtyMinusCommand}" Width="44" Margin="0,0,4,0" />
+                  <Button Classes="key" Content="+" Command="{Binding QtyPlusCommand}" Width="44" Margin="0,0,4,0" />
+                  <Button Classes="key" Content="⌫" Command="{Binding RemoveLineCommand}" Width="44" Margin="0" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
-                  <TextBlock Text="{Binding ItemsCountText}" Classes="pos-muted" FontSize="12" />
+                  <TextBlock Text="{Binding ItemsCountText}" Classes="muted" FontSize="12" />
                   <TextBlock Text="{Binding PaymentSummaryText}" FontSize="11" Foreground="#c2410c"
                              IsVisible="{Binding HasPayments}" TextWrapping="Wrap" />
                 </StackPanel>
@@ -300,7 +333,7 @@
                   <TextBlock Text="{Binding Total, StringFormat={}£{0:0.00}}"
                              FontSize="26" FontWeight="Bold" Foreground="#1c1917" HorizontalAlignment="Right" />
                   <TextBlock Text="{Binding DeliveryFee, StringFormat=+ £{0:0.00}}"
-                             Classes="pos-muted" FontSize="11" HorizontalAlignment="Right"
+                             Classes="muted" FontSize="11" HorizontalAlignment="Right"
                              IsVisible="{Binding IsDelivery}" />
                   <TextBlock HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold" Foreground="#b45309"
                              IsVisible="{Binding HasPayments}">
@@ -311,30 +344,30 @@
                 </StackPanel>
               </Grid>
 
-              <Button Classes="pos-action pos-send" Content="{Binding SendButtonText}"
+              <Button Classes="primary" Content="{Binding SendButtonText}"
                       Command="{Binding SendKitchenCommand}" Height="50" />
               <Grid ColumnDefinitions="*,*,*">
-                <Button Grid.Column="0" Classes="pos-action pos-hold" Content="{Binding LblHold}"
+                <Button Grid.Column="0" Classes="hold" Content="{Binding LblHold}"
                         Command="{Binding HoldTicketCommand}" Margin="0,0,4,0" Height="48" />
-                <Button Grid.Column="1" Classes="pos-action pos-cash" Content="{Binding LblPayCash}"
+                <Button Grid.Column="1" Classes="cash" Content="{Binding LblPayCash}"
                         Command="{Binding BeginCashPayCommand}" Margin="0,0,4,0" Height="48" />
-                <Button Grid.Column="2" Classes="pos-action pos-card" Content="{Binding LblPayCard}"
+                <Button Grid.Column="2" Classes="card" Content="{Binding LblPayCard}"
                         Command="{Binding PayCardCommand}" Height="48" />
               </Grid>
             </StackPanel>
           </Border>
 
-          <Border DockPanel.Dock="Bottom" Classes="pos-ticket-footer" Margin="0,8,0,0"
+          <Border DockPanel.Dock="Bottom" Classes="panel-flat" Margin="0,8,0,0"
                   IsVisible="{Binding ShowCashPanel}">
             <StackPanel Spacing="6">
               <Grid ColumnDefinitions="*,Auto">
                 <StackPanel>
-                  <TextBlock Classes="pos-muted" FontSize="11">
+                  <TextBlock Classes="muted" FontSize="11">
                     <Run Text="{Binding DueLabel}" />
                     <Run Text=" " />
                     <Run Text="{Binding BalanceDueText}" FontWeight="Bold" />
                   </TextBlock>
-                  <TextBlock Text="{Binding LblCashTender}" Classes="pos-muted" FontSize="11" Margin="0,4,0,0" />
+                  <TextBlock Text="{Binding LblCashTender}" Classes="muted" FontSize="11" Margin="0,4,0,0" />
                   <TextBlock Text="{Binding CashTenderedText, StringFormat={}£{0}}" FontSize="26"
                              FontWeight="Bold" Foreground="#15803d" />
                 </StackPanel>
@@ -351,41 +384,41 @@
                 </StackPanel>
               </Grid>
               <UniformGrid Columns="4">
-                <Button Classes="pos-key" Content="1" Command="{Binding CashDigitCommand}" CommandParameter="1" />
-                <Button Classes="pos-key" Content="2" Command="{Binding CashDigitCommand}" CommandParameter="2" />
-                <Button Classes="pos-key" Content="3" Command="{Binding CashDigitCommand}" CommandParameter="3" />
-                <Button Classes="pos-key" Content="£10" Command="{Binding CashQuickCommand}" CommandParameter="10" />
-                <Button Classes="pos-key" Content="4" Command="{Binding CashDigitCommand}" CommandParameter="4" />
-                <Button Classes="pos-key" Content="5" Command="{Binding CashDigitCommand}" CommandParameter="5" />
-                <Button Classes="pos-key" Content="6" Command="{Binding CashDigitCommand}" CommandParameter="6" />
-                <Button Classes="pos-key" Content="£20" Command="{Binding CashQuickCommand}" CommandParameter="20" />
-                <Button Classes="pos-key" Content="7" Command="{Binding CashDigitCommand}" CommandParameter="7" />
-                <Button Classes="pos-key" Content="8" Command="{Binding CashDigitCommand}" CommandParameter="8" />
-                <Button Classes="pos-key" Content="9" Command="{Binding CashDigitCommand}" CommandParameter="9" />
-                <Button Classes="pos-key" Content="£50" Command="{Binding CashQuickCommand}" CommandParameter="50" />
-                <Button Classes="pos-key" Content="⌫" Command="{Binding CashBackspaceCommand}" FontSize="20" />
-                <Button Classes="pos-key" Content="0" Command="{Binding CashDigitCommand}" CommandParameter="0" />
-                <Button Classes="pos-key" Content="." Command="{Binding CashDigitCommand}" CommandParameter="." />
-                <Button Classes="pos-key" Content="{Binding LblExact}" Command="{Binding CashExactCommand}" />
+                <Button Classes="key" Content="1" Command="{Binding CashDigitCommand}" CommandParameter="1" />
+                <Button Classes="key" Content="2" Command="{Binding CashDigitCommand}" CommandParameter="2" />
+                <Button Classes="key" Content="3" Command="{Binding CashDigitCommand}" CommandParameter="3" />
+                <Button Classes="key" Content="£10" Command="{Binding CashQuickCommand}" CommandParameter="10" />
+                <Button Classes="key" Content="4" Command="{Binding CashDigitCommand}" CommandParameter="4" />
+                <Button Classes="key" Content="5" Command="{Binding CashDigitCommand}" CommandParameter="5" />
+                <Button Classes="key" Content="6" Command="{Binding CashDigitCommand}" CommandParameter="6" />
+                <Button Classes="key" Content="£20" Command="{Binding CashQuickCommand}" CommandParameter="20" />
+                <Button Classes="key" Content="7" Command="{Binding CashDigitCommand}" CommandParameter="7" />
+                <Button Classes="key" Content="8" Command="{Binding CashDigitCommand}" CommandParameter="8" />
+                <Button Classes="key" Content="9" Command="{Binding CashDigitCommand}" CommandParameter="9" />
+                <Button Classes="key" Content="£50" Command="{Binding CashQuickCommand}" CommandParameter="50" />
+                <Button Classes="key" Content="⌫" Command="{Binding CashBackspaceCommand}" FontSize="20" />
+                <Button Classes="key" Content="0" Command="{Binding CashDigitCommand}" CommandParameter="0" />
+                <Button Classes="key" Content="." Command="{Binding CashDigitCommand}" CommandParameter="." />
+                <Button Classes="key" Content="{Binding LblExact}" Command="{Binding CashExactCommand}" />
               </UniformGrid>
               <Grid ColumnDefinitions="*,*,2*">
-                <Button Grid.Column="0" Classes="pos-nav" Content="{Binding LblBack}"
+                <Button Grid.Column="0" Classes="btn" Content="{Binding LblBack}"
                         Command="{Binding CancelCashPayCommand}" Height="52" Margin="0,0,4,0" />
-                <Button Grid.Column="1" Classes="pos-nav" Content="{Binding LblClearCash}"
+                <Button Grid.Column="1" Classes="btn" Content="{Binding LblClearCash}"
                         Command="{Binding CashClearCommand}" Height="52" Margin="0,0,4,0" />
-                <Button Grid.Column="2" Classes="pos-action pos-cash" Content="{Binding LblConfirmCash}"
+                <Button Grid.Column="2" Classes="cash" Content="{Binding LblConfirmCash}"
                         Command="{Binding PayCashCommand}" Height="52" />
               </Grid>
-              <Button Classes="pos-action pos-card" Content="{Binding LblPayCardOnPad}"
+              <Button Classes="card" Content="{Binding LblPayCardOnPad}"
                       Command="{Binding PayCardCommand}" Height="44" />
-              <Button Classes="pos-nav" Content="{Binding LblPrintInterim}"
+              <Button Classes="btn" Content="{Binding LblPrintInterim}"
                       Command="{Binding PrintInterimReceiptCommand}" Height="40"
                       IsVisible="{Binding HasPayments}" />
             </StackPanel>
           </Border>
 
           <Grid>
-            <ListBox Classes="pos-ticket" ItemsSource="{Binding Lines}" SelectedItem="{Binding SelectedLine}"
+            <ListBox Classes="ticket" ItemsSource="{Binding Lines}" SelectedItem="{Binding SelectedLine}"
                      IsVisible="{Binding !IsTicketEmpty}">
               <ListBox.ItemTemplate>
                 <DataTemplate x:DataType="domain:CartLine">
@@ -445,7 +478,7 @@
                    Foreground="#15803d" TextAlignment="Center" TextWrapping="Wrap" />
         <TextBlock Text="{Binding ChangeOverlaySub}" FontSize="14" Foreground="#5b6472"
                    TextAlignment="Center" TextWrapping="Wrap" />
-        <Button Classes="pos-action pos-cash" Content="{Binding LblNextTicket}"
+        <Button Classes="cash" Content="{Binding LblNextTicket}"
                 Command="{Binding DismissChangeOverlayCommand}" Height="52" Margin="0,8,0,0" />
       </StackPanel>
     </Border>

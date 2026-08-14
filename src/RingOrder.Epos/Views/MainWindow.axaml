@@ -3,68 +3,153 @@
         xmlns:vm="using:RingOrder.Epos.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1440" d:DesignHeight="900"
+        mc:Ignorable="d" d:DesignWidth="1366" d:DesignHeight="768"
         x:Class="RingOrder.Epos.Views.MainWindow"
         x:DataType="vm:MainViewModel"
-        Width="1440" Height="900"
-        MinWidth="1200" MinHeight="720"
+        Width="1366" Height="768"
+        MinWidth="1024" MinHeight="700"
         WindowStartupLocation="CenterScreen"
         Title="RingOrder EPOS"
-        Background="#e8eaed">
+        Background="{StaticResource Page}">
 
-  <DockPanel>
-    <!-- Top chrome -->
-    <Border DockPanel.Dock="Top" Background="#ffffff" Padding="14,10"
-            BorderBrush="#d0d5dd" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="*,Auto,Auto">
-        <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-          <TextBlock Text="{Binding ShopName}" FontSize="20" FontWeight="Bold"
-                     Foreground="#c2410c" VerticalAlignment="Center" />
-          <TextBlock Text="EPOS" FontSize="12" Foreground="#5b6472"
-                     VerticalAlignment="Center" Margin="0,4,0,0" />
-          <TextBlock Text="{Binding OnlineBadge}" FontSize="18" Foreground="#15803d"
-                     VerticalAlignment="Center" />
+  <Grid>
+    <DockPanel>
+
+      <!--
+        Top bar is the cockpit: who is signed in, which shift their money lands
+        in, and whether the two things that silently stop working — printers and
+        the web feed — are alive. All of it visible without opening a menu.
+      -->
+      <Border DockPanel.Dock="Top" Background="{StaticResource Panel}" Padding="14,8"
+              BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1">
+        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <TextBlock Text="{Binding ShopName}" FontSize="{StaticResource FontStrong}"
+                       FontWeight="Bold" Foreground="{StaticResource Accent}"
+                       VerticalAlignment="Center" />
+            <!-- The shift indicator is the control: tap it to open or close. -->
+            <Button Classes="btn" Height="44" Padding="10,0"
+                    IsVisible="{Binding HasOpenShift}"
+                    Command="{Binding CloseShiftCommand}"
+                    ToolTip.Tip="{Binding LblCloseShift}">
+              <Border Classes="pill accent">
+                <TextBlock Text="{Binding ShiftLabel}" />
+              </Border>
+            </Button>
+            <Button Classes="btn" Height="44" Padding="10,0"
+                    IsVisible="{Binding !HasOpenShift}"
+                    Command="{Binding OpenShiftCommand}"
+                    ToolTip.Tip="{Binding LblOpenShift}">
+              <Border Classes="pill warn">
+                <TextBlock Text="{Binding NoShiftLabel}" />
+              </Border>
+            </Button>
+          </StackPanel>
+
+          <TextBlock Grid.Column="1" Text="{Binding StaffName}" Margin="12,0,0,0"
+                     VerticalAlignment="Center" Foreground="{StaticResource InkMuted}" />
+
+          <TextBlock Grid.Column="2" Text="{Binding ClockText}"
+                     FontSize="{StaticResource FontStrong}" FontWeight="SemiBold"
+                     HorizontalAlignment="Center" VerticalAlignment="Center"
+                     FontFamily="Consolas, Cascadia Mono, monospace" />
+
+          <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button Classes="btn" Command="{Binding ToggleWebOrdersCommand}"
+                    ToolTip.Tip="{Binding WebTooltip}" Height="44" Padding="12,0">
+              <Border Classes="pill" Classes.ok="{Binding WebOn}" Classes.bad="{Binding !WebOn}">
+                <TextBlock Text="{Binding WebLabel}" />
+              </Border>
+            </Button>
+            <Border Classes="pill" Classes.ok="{Binding PrintersHealthy}"
+                    Classes.bad="{Binding !PrintersHealthy}" Height="44" Padding="12,0">
+              <TextBlock Text="{Binding PrinterLabel}" VerticalAlignment="Center" />
+            </Border>
+          </StackPanel>
+
+          <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="6" Margin="10,0,0,0">
+            <Button Classes="btn" Content="{Binding LblLanguage}"
+                    Command="{Binding ToggleLanguageCommand}" Width="86" Height="44"
+                    ToolTip.Tip="{Binding LanguageHint}" />
+            <Button Classes="btn" Content="{Binding LblDrawer}"
+                    Command="{Binding OpenDrawerCommand}" Width="92" Height="44" />
+            <Button Classes="btn" Content="{Binding LblLock}"
+                    Command="{Binding LockCommand}" Width="86" Height="44" />
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <Border DockPanel.Dock="Bottom" Background="{StaticResource Panel}" Padding="14,8"
+              BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0">
+        <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource InkMuted}"
+                   FontSize="{StaticResource FontSmall}" TextTrimming="CharacterEllipsis" />
+      </Border>
+
+      <Border DockPanel.Dock="Left" Width="112" Background="{StaticResource PanelAlt}"
+              Padding="6,8" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
+        <StackPanel Spacing="4">
+          <Button Classes="rail" Classes.on="{Binding IsSellNav}"
+                  Content="{Binding NavSell}" Command="{Binding GoSellCommand}" />
+          <Button Classes="rail" Classes.on="{Binding IsOrdersNav}"
+                  Content="{Binding NavOrders}" Command="{Binding GoOrdersCommand}" />
+          <Button Classes="rail" Classes.on="{Binding IsOnlineNav}"
+                  Content="{Binding NavOnline}" Command="{Binding GoOnlineCommand}" />
+          <Button Classes="rail" Classes.on="{Binding IsCustomersNav}"
+                  Content="{Binding NavCustomers}" Command="{Binding GoCustomersCommand}" />
+          <Button Classes="rail" Classes.on="{Binding IsSettingsNav}"
+                  Content="{Binding NavSettings}" Command="{Binding GoSettingsCommand}"
+                  Margin="0,16,0,0" />
         </StackPanel>
-        <TextBlock Grid.Column="1" Text="{Binding ClockText}" FontSize="18" FontWeight="SemiBold"
-                   Foreground="#1c1917" VerticalAlignment="Center" Margin="0,0,16,0"
-                   FontFamily="Consolas, Cascadia Mono, monospace" />
-        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
-          <Button Classes="pos-nav" Content="{Binding LblLanguage}" Command="{Binding ToggleLanguageCommand}"
-                  Width="100" Height="40" ToolTip.Tip="{Binding LanguageHint}" />
-          <Button Classes="pos-nav" Content="{Binding LblDrawer}" Command="{Binding OpenDrawerCommand}"
-                  Width="96" Height="40" />
+      </Border>
+
+      <Border Background="{StaticResource Page}" Padding="8">
+        <ContentControl Content="{Binding CurrentPage}" />
+      </Border>
+    </DockPanel>
+
+    <!--
+      Sign-in covers everything. A till that takes money without knowing who is
+      standing at it cannot answer the only question that gets asked when the
+      drawer is short.
+    -->
+    <Border IsVisible="{Binding IsLocked}" Background="#F2202531" ZIndex="200">
+      <Border Classes="panel" Padding="28" MinWidth="380"
+              HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel Spacing="14">
+          <TextBlock Text="{Binding ShopName}" Classes="title"
+                     Foreground="{StaticResource Accent}" HorizontalAlignment="Center" />
+          <TextBlock Text="{Binding LblEnterPin}" Classes="muted" HorizontalAlignment="Center" />
+
+          <Border Classes="panel-flat" Padding="12" HorizontalAlignment="Stretch">
+            <TextBlock Text="{Binding PinMask}" FontSize="{StaticResource FontMoney}"
+                       FontWeight="Bold" HorizontalAlignment="Center"
+                       FontFamily="Consolas, Cascadia Mono, monospace" MinHeight="40" />
+          </Border>
+
+          <TextBlock Text="{Binding LockMessage}" Foreground="{StaticResource Danger}"
+                     HorizontalAlignment="Center" IsVisible="{Binding HasLockMessage}"
+                     TextWrapping="Wrap" MaxWidth="320" />
+
+          <UniformGrid Columns="3" Width="300">
+            <Button Classes="key" Content="1" Command="{Binding PinDigitCommand}" CommandParameter="1" />
+            <Button Classes="key" Content="2" Command="{Binding PinDigitCommand}" CommandParameter="2" />
+            <Button Classes="key" Content="3" Command="{Binding PinDigitCommand}" CommandParameter="3" />
+            <Button Classes="key" Content="4" Command="{Binding PinDigitCommand}" CommandParameter="4" />
+            <Button Classes="key" Content="5" Command="{Binding PinDigitCommand}" CommandParameter="5" />
+            <Button Classes="key" Content="6" Command="{Binding PinDigitCommand}" CommandParameter="6" />
+            <Button Classes="key" Content="7" Command="{Binding PinDigitCommand}" CommandParameter="7" />
+            <Button Classes="key" Content="8" Command="{Binding PinDigitCommand}" CommandParameter="8" />
+            <Button Classes="key" Content="9" Command="{Binding PinDigitCommand}" CommandParameter="9" />
+            <Button Classes="key" Content="⌫" Command="{Binding PinBackspaceCommand}" />
+            <Button Classes="key" Content="0" Command="{Binding PinDigitCommand}" CommandParameter="0" />
+            <Button Classes="key" Content="✓" Command="{Binding SignInCommand}" />
+          </UniformGrid>
+
+          <Button Classes="primary" Content="{Binding LblSignIn}"
+                  Command="{Binding SignInCommand}" HorizontalAlignment="Stretch" />
         </StackPanel>
-      </Grid>
+      </Border>
     </Border>
-
-    <!-- Status -->
-    <Border DockPanel.Dock="Bottom" Background="#ffffff" Padding="14,8"
-            BorderBrush="#d0d5dd" BorderThickness="0,1,0,0">
-      <TextBlock Text="{Binding StatusText}" Foreground="#5b6472" FontSize="12"
-                 TextTrimming="CharacterEllipsis" />
-    </Border>
-
-    <!-- Module rail — single language per UiLanguage -->
-    <Border DockPanel.Dock="Left" Width="118" Background="#f4f6f8" Padding="8,10"
-            BorderBrush="#d0d5dd" BorderThickness="0,0,1,0">
-      <StackPanel>
-        <Button Classes="pos-nav" Classes.active="{Binding IsSellNav}"
-                Content="{Binding NavSell}" Command="{Binding GoSellCommand}" Height="64" FontSize="15" />
-        <Button Classes="pos-nav" Classes.active="{Binding IsOrdersNav}"
-                Content="{Binding NavOrders}" Command="{Binding GoOrdersCommand}" Height="64" FontSize="15" />
-        <Button Classes="pos-nav" Classes.active="{Binding IsOnlineNav}"
-                Content="{Binding NavOnline}" Command="{Binding GoOnlineCommand}" Height="64" FontSize="15" />
-        <Button Classes="pos-nav" Classes.active="{Binding IsCustomersNav}"
-                Content="{Binding NavCustomers}" Command="{Binding GoCustomersCommand}" Height="64" FontSize="14" />
-        <Button Classes="pos-nav" Classes.active="{Binding IsSettingsNav}"
-                Content="{Binding NavSettings}" Command="{Binding GoSettingsCommand}"
-                Height="64" FontSize="15" Margin="0,12,0,0" />
-      </StackPanel>
-    </Border>
-
-    <!-- Workspace -->
-    <Border Background="#e8eaed" Padding="8">
-      <ContentControl Content="{Binding CurrentPage}" />
-    </Border>
-  </DockPanel>
+  </Grid>
 </Window>

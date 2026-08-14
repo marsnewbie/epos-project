@@ -1,4 +1,4 @@
-using Avalonia;
+﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Layout;
@@ -43,10 +43,9 @@ public static class UiPrompt
         };
 
         var ok = new Button { Content = UiText.Ok, Width = 140, Height = 48 };
-        ok.Classes.Add("pos-action");
-        ok.Classes.Add("pos-cash");
+        ok.Classes.Add("cash");
         var cancel = new Button { Content = UiText.Cancel, Width = 120, Height = 48 };
-        cancel.Classes.Add("pos-nav");
+        cancel.Classes.Add("btn");
         ok.Click += (_, _) => { result = true; dlg.Close(); };
         cancel.Click += (_, _) => dlg.Close();
 
@@ -88,7 +87,7 @@ public static class UiPrompt
             FontSize = 20,
             MinHeight = 48,
         };
-        box.Classes.Add("pos-field");
+        box.Classes.Add("field");
         if (password) box.PasswordChar = '•';
 
         var dlg = new Window
@@ -102,10 +101,9 @@ public static class UiPrompt
         };
 
         var ok = new Button { Content = UiText.Ok, Width = 120, Height = 48 };
-        ok.Classes.Add("pos-action");
-        ok.Classes.Add("pos-cash");
+        ok.Classes.Add("cash");
         var cancel = new Button { Content = UiText.Cancel, Width = 120, Height = 48 };
-        cancel.Classes.Add("pos-nav");
+        cancel.Classes.Add("btn");
         ok.Click += (_, _) => { result = box.Text; dlg.Close(); };
         cancel.Click += (_, _) => dlg.Close();
         box.KeyDown += (_, e) =>
