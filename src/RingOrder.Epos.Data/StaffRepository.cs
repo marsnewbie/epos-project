@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using RingOrder.Epos.Domain;
 
 namespace RingOrder.Epos.Data;
@@ -11,7 +11,7 @@ public sealed class StaffRepository
 
     public int CountActive()
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM staff WHERE is_active=1";
         return Convert.ToInt32(cmd.ExecuteScalar());
@@ -19,7 +19,7 @@ public sealed class StaffRepository
 
     public List<StaffMember> ListAll(bool activeOnly = true)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = Select + (activeOnly ? " WHERE is_active=1" : "") + " ORDER BY name";
         var list = new List<StaffMember>();
@@ -30,7 +30,7 @@ public sealed class StaffRepository
 
     public StaffMember? GetById(string id)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = Select + " WHERE id=$id";
         cmd.Parameters.AddWithValue("$id", id);
@@ -52,7 +52,7 @@ public sealed class StaffRepository
 
     public void Upsert(StaffMember staff)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
             INSERT INTO staff(id,name,role,pin_hash,pin_salt,must_change_pin,is_active,created_at)
@@ -79,7 +79,7 @@ public sealed class StaffRepository
     public void SetPin(string staffId, string pin)
     {
         var (hash, salt) = PinHasher.Hash(pin);
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText =
             "UPDATE staff SET pin_hash=$h, pin_salt=$s, must_change_pin=0 WHERE id=$id";
@@ -113,7 +113,7 @@ public sealed class AuditRepository
 
     public void Record(AuditEntry entry)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
             INSERT INTO audit_log(id,staff_id,shift_id,action,subject_id,detail,at)
@@ -131,7 +131,7 @@ public sealed class AuditRepository
 
     public List<AuditEntry> Recent(int take = 200)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText =
             "SELECT id,staff_id,shift_id,action,subject_id,detail,at FROM audit_log ORDER BY at DESC LIMIT $n";

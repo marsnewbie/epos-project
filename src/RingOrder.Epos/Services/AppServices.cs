@@ -1,4 +1,4 @@
-using RingOrder.Epos.Data;
+﻿using RingOrder.Epos.Data;
 using RingOrder.Epos.Domain;
 using RingOrder.Epos.Hardware;
 using RingOrder.Epos.Online;
@@ -19,13 +19,12 @@ public sealed class AppServices
     public ShiftRepository Shifts { get; }
     public AuditRepository Audit { get; }
     public BundleImporter BundleImporter { get; }
+    public PrintDeviceRepository PrintDevices { get; }
+    public PrintQueue PrintQueue { get; }
     public PosSession Session { get; }
     public PrintService Print { get; }
     public OnlineOrderPoller OnlinePoller { get; }
     public SimulatedCallerId CallerId { get; }
-    public WindowsEscPosPrinter KitchenPrinter { get; }
-    public WindowsEscPosPrinter FrontPrinter { get; }
-    public ICashDrawer CashDrawer { get; }
     public ManualCardTerminal CardTerminal { get; }
 
     private AppSettings _cachedSettings;
@@ -48,20 +47,20 @@ public sealed class AppServices
         Staff = new StaffRepository(Db);
         Shifts = new ShiftRepository(Db);
         Audit = new AuditRepository(Db);
-        BundleImporter = new BundleImporter(Menu, Settings, Staff);
+        PrintDevices = new PrintDeviceRepository(Db);
+        BundleImporter = new BundleImporter(Menu, Settings, Staff, PrintDevices);
         Session = new PosSession(Staff, Shifts, Audit);
         ProvisionIfNeeded();
 
         _cachedSettings = Settings.Load();
 
-        KitchenPrinter = new WindowsEscPosPrinter(_cachedSettings.KitchenPrinterName, () => _cachedSettings);
-        FrontPrinter = new WindowsEscPosPrinter(_cachedSettings.FrontPrinterName, () => _cachedSettings);
-        CashDrawer = new EscPosCashDrawer(() => _cachedSettings.FrontPrinterName);
         CardTerminal = new ManualCardTerminal();
         CallerId = new SimulatedCallerId();
         OnlinePoller = new OnlineOrderPoller();
         OnlinePoller.Configure(OnlineOrderPollerOptions.FromSettings(_cachedSettings));
         Print = new PrintService(this);
+        PrintQueue = new PrintQueue(PrintJobs, PrintDevices, m => Console.WriteLine($"[print] {m}"));
+        PrintQueue.Start();
     }
 
     public static AppServices Start()
@@ -111,8 +110,6 @@ public sealed class AppServices
     {
         Settings.Save(settings);
         _cachedSettings = settings;
-        KitchenPrinter.SetName(settings.KitchenPrinterName);
-        FrontPrinter.SetName(settings.FrontPrinterName);
         OnlinePoller.Configure(OnlineOrderPollerOptions.FromSettings(settings));
     }
 
@@ -120,157 +117,5 @@ public sealed class AppServices
     {
         _cachedSettings = Settings.Load();
         return _cachedSettings;
-    }
-}
-
-public sealed class PrintService
-{
-    private readonly AppServices _app;
-
-    public PrintService(AppServices app) => _app = app;
-
-    public async Task<PrintJob> PrintKitchenAsync(PosOrder order, bool isReprint = false, bool unsentOnly = false, bool isVoid = false)
-    {
-        var settings = _app.GetSettings();
-        var job = new PrintJob
-        {
-            OrderId = order.Id,
-            OrderNumber = order.OrderNumber,
-            Channel = PrintJobChannel.Kitchen,
-            Status = PrintJobStatus.Claimed,
-            PayloadText = isVoid ? $"void:{order.OrderNumber}" : unsentOnly ? $"kitchen-new:{order.OrderNumber}" : $"kitchen:{order.OrderNumber}",
-        };
-        _app.PrintJobs.Insert(job);
-
-        try
-        {
-            var printUnsent = unsentOnly && !isReprint && !isVoid;
-            var bytes = TicketRenderer.RenderKitchen(order, settings, unsentOnly: printUnsent, isVoid: isVoid);
-            await _app.KitchenPrinter.PrintRawAsync(bytes);
-            job.Status = PrintJobStatus.Printed;
-            job.PrintedAt = DateTimeOffset.Now;
-            job.Attempts++;
-            _app.PrintJobs.Update(job);
-
-            if (!isVoid)
-            {
-                var now = DateTimeOffset.Now;
-                foreach (var line in order.Lines)
-                {
-                    if (printUnsent && line.KitchenSent) continue;
-                    line.KitchenSent = true;
-                    line.KitchenSentAt ??= now;
-                }
-                order.KitchenPrinted = true;
-                // Never change business status on reprint; never un-hold via print
-                if (!isReprint && order.Status is PosOrderStatus.Draft or PosOrderStatus.Open)
-                    order.Status = PosOrderStatus.Sent;
-            }
-
-            order.UpdatedAt = DateTimeOffset.Now;
-            _app.Orders.Upsert(order);
-            return job;
-        }
-        catch (Exception ex)
-        {
-            job.Status = PrintJobStatus.Failed;
-            job.Error = ex.Message;
-            job.Attempts++;
-            _app.PrintJobs.Update(job);
-            throw;
-        }
-    }
-
-    public async Task VoidOrderAsync(PosOrder order, string reason, bool printKitchen)
-    {
-        order.Status = PosOrderStatus.Voided;
-        order.VoidReason = reason;
-        order.UpdatedAt = DateTimeOffset.Now;
-        // Keep tenders for audit; AmountPaid remains visible on voided order detail
-        if (order.AmountPaid > 0)
-            order.Notes = string.IsNullOrWhiteSpace(order.Notes)
-                ? $"VOID after paid £{order.AmountPaid:0.00} — refund manually if needed"
-                : $"{order.Notes}\nVOID after paid £{order.AmountPaid:0.00} — refund manually if needed";
-        _app.Orders.Upsert(order);
-        if (printKitchen && order.KitchenPrinted)
-            await PrintKitchenAsync(order, isVoid: true);
-    }
-
-    public async Task<PrintJob> PrintFrontAsync(PosOrder order)
-    {
-        var settings = _app.GetSettings();
-        var job = new PrintJob
-        {
-            OrderId = order.Id,
-            OrderNumber = order.OrderNumber,
-            Channel = PrintJobChannel.Front,
-            Status = PrintJobStatus.Claimed,
-            PayloadText = $"front:{order.OrderNumber}",
-        };
-        _app.PrintJobs.Insert(job);
-
-        try
-        {
-            var bytes = TicketRenderer.RenderFront(order, settings);
-            await _app.FrontPrinter.PrintRawAsync(bytes);
-            job.Status = PrintJobStatus.Printed;
-            job.PrintedAt = DateTimeOffset.Now;
-            job.Attempts++;
-            _app.PrintJobs.Update(job);
-
-            order.FrontPrinted = true;
-            order.UpdatedAt = DateTimeOffset.Now;
-            _app.Orders.Upsert(order);
-            return job;
-        }
-        catch (Exception ex)
-        {
-            job.Status = PrintJobStatus.Failed;
-            job.Error = ex.Message;
-            job.Attempts++;
-            _app.PrintJobs.Update(job);
-            throw;
-        }
-    }
-
-    public async Task HandleOnlineOrderAsync(PosOrder incoming)
-    {
-        var existing = !string.IsNullOrWhiteSpace(incoming.OnlineExternalId)
-            ? _app.Orders.GetByOnlineExternalId(incoming.OnlineExternalId!)
-            : null;
-
-        if (existing is not null)
-        {
-            // Idempotent: already have this online order
-            incoming = existing;
-        }
-        else
-        {
-            if (string.IsNullOrWhiteSpace(incoming.OrderNumber))
-                incoming.OrderNumber = _app.Settings.AllocateOrderNumber();
-            _app.Orders.Upsert(incoming);
-        }
-
-        var settings = _app.GetSettings();
-        if (settings.AutoKitchenPrintOnline && !incoming.KitchenPrinted)
-        {
-            await PrintKitchenAsync(incoming);
-        }
-
-        if (!incoming.OnlineAcked)
-        {
-            try
-            {
-                await _app.OnlinePoller.AckPrintedAsync(incoming.OrderNumber);
-                incoming.OnlineAcked = true;
-                incoming.UpdatedAt = DateTimeOffset.Now;
-                _app.Orders.Upsert(incoming);
-            }
-            catch (Exception ex)
-            {
-                // Do not loop-reprint: kitchen already done; ack can retry later.
-                Console.WriteLine($"[Online] Ack failed for {incoming.OrderNumber}: {ex.Message}");
-            }
-        }
     }
 }

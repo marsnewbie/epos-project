@@ -1,4 +1,4 @@
-namespace RingOrder.Epos.Domain;
+﻿namespace RingOrder.Epos.Domain;
 
 /// <summary>
 /// How the customer receives the food. Independent of <see cref="OrderChannel"/>:
@@ -82,17 +82,18 @@ public enum ShiftStatus
     Closed,
 }
 
-public enum PrintJobChannel
-{
-    Kitchen,
-    Front,
-}
-
 public enum PrintJobStatus
 {
+    /// <summary>Queued, waiting for its device's worker.</summary>
     Pending,
+
+    /// <summary>A worker has it. Prevents two passes printing it twice.</summary>
     Claimed,
+
+    /// <summary>Paper came out.</summary>
     Printed,
+
+    /// <summary>The attempt failed. Retried until MaxAttempts, then shown to staff.</summary>
     Failed,
 }
 

@@ -275,7 +275,7 @@ public partial class OrdersViewModel : ViewModelBase
         if (SelectedOrder is null) return;
         try
         {
-            await _app.Print.PrintFrontAsync(SelectedOrder);
+            await _app.Print.PrintReceiptAsync(SelectedOrder);
             _setStatus($"Reprinted front {SelectedOrder.OrderNumber}");
             Refresh();
         }

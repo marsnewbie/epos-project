@@ -208,7 +208,7 @@ public partial class MainViewModel : ViewModelBase
             return;
         try
         {
-            await _app.CashDrawer.OpenAsync();
+            await _app.Print.OpenDrawerAsync();
             StatusText = UiText.Pick("Cash drawer opened", "钱箱已打开");
         }
         catch (Exception ex)
@@ -329,17 +329,21 @@ public partial class MainViewModel : ViewModelBase
     /// </summary>
     private void RefreshStatusLights()
     {
-        var settings = _app.GetSettings();
-        var queues = new[] { settings.FrontPrinterName, settings.KitchenPrinterName }
-            .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
+        // Reads the device registry, and counts a printer as unhealthy if the
+        // queue reported a fault on it — a printer that answers but keeps
+        // rejecting tickets is not working, whatever the connection says.
+        var devices = _app.PrintDevices.GetDevices(enabledOnly: true);
+        var faults = _app.PrintQueue.Faults;
+        var working = devices.Count(d => !faults.ContainsKey(d.Id) && IsReachable(d));
 
-        var reachable = queues.Count(RawPrinter.CanOpen);
-        PrintersHealthy = queues.Count > 0 && reachable == queues.Count;
-        PrinterLabel = queues.Count == 0
+        PrintersHealthy = devices.Count > 0 && working == devices.Count;
+        PrinterLabel = devices.Count == 0
             ? UiText.Pick("No printer", "未设打印机")
-            : $"{reachable}/{queues.Count}";
+            : $"{working}/{devices.Count}";
+
+        var waiting = _app.PrintJobs.CountWaiting();
+        if (waiting > 0)
+            PrinterLabel += UiText.Pick($" · {waiting} waiting", $" · {waiting} 待打");
 
         WebOn = _app.OnlinePoller.IsRunning;
         WebLabel = WebOn
@@ -349,6 +353,15 @@ public partial class MainViewModel : ViewModelBase
             ? UiText.Pick("Pull orders from the shop website", "从店铺网站拉取订单")
             : _app.OnlinePoller.LastStatus;
     }
+
+    /// <summary>
+    /// Cheap enough for a status light. Only the Windows queue is checked
+    /// synchronously; network and serial devices are judged by whether the
+    /// queue has been able to print to them, because a two-second connect
+    /// attempt has no business running on the UI thread.
+    /// </summary>
+    private static bool IsReachable(PrintDevice device) =>
+        device.Transport != PrintTransport.WindowsQueue || RawPrinter.CanOpen(device.Address);
 
     [RelayCommand]
     private async Task ToggleWebOrdersAsync()

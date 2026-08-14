@@ -11,7 +11,7 @@ public sealed class SettingsRepository
 
     public AppSettings Load()
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT value FROM settings WHERE key=$k";
         cmd.Parameters.AddWithValue("$k", Key);
@@ -23,7 +23,7 @@ public sealed class SettingsRepository
 
     public void Save(AppSettings settings)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
             INSERT INTO settings(key, value) VALUES($k, $v)

@@ -28,13 +28,13 @@ public class BundleImportTests : IDisposable
         var settings = new SettingsRepository(_db);
         var staff = new StaffRepository(_db);
         _bundle = BundleImporter.Read(BundlePath);
-        new BundleImporter(_menu, settings, staff).Import(_bundle);
+        new BundleImporter(_menu, settings, staff, new PrintDeviceRepository(_db)).Import(_bundle);
     }
 
     [Fact]
     public void Imports_the_bundle_without_warnings()
     {
-        var report = new BundleImporter(_menu, new SettingsRepository(_db), new StaffRepository(_db))
+        var report = new BundleImporter(_menu, new SettingsRepository(_db), new StaffRepository(_db), new PrintDeviceRepository(_db))
             .Import(_bundle);
         Assert.Empty(report.Warnings);
     }
@@ -124,7 +124,7 @@ public class BundleImportTests : IDisposable
     public void Reimport_is_idempotent()
     {
         var before = _menu.CountItems();
-        new BundleImporter(_menu, new SettingsRepository(_db), new StaffRepository(_db)).Import(_bundle);
+        new BundleImporter(_menu, new SettingsRepository(_db), new StaffRepository(_db), new PrintDeviceRepository(_db)).Import(_bundle);
         Assert.Equal(before, _menu.CountItems());
     }
 

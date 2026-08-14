@@ -326,3 +326,60 @@ watching the screen at the moment an order lands, so a notification that fades
 has not notified anyone.
 
 55 tests, app boots.
+
+---
+
+## 2026-08-15 — Printing becomes an architecture
+
+Four layers, so that a shop with four printers of three kinds never has any of
+that reach the sale.
+
+**Transports**: Windows queue, raw TCP 9100, serial (which is how a paired
+Bluetooth printer appears on Windows), and file for support. TCP printers are
+also asked for paper and cover status, which the spooler cannot report.
+
+**A device registry** replaces two printer names in settings — transport,
+address, paper width, encoding, and which one the drawer hangs off.
+
+**Routing rules** match document, print class, service type and channel to a
+device with copies and a fallback. Every matching rule fires, because a dish
+printing at the wok and again on the packing bench is a shop asking for two
+copies, not a conflict. `PrintRouting` is pure and has nine tests covering the
+shapes shops actually ask for.
+
+**A real queue**: jobs are rows carrying their rendered bytes, one worker per
+device, retry with backoff, five attempts then held for deliberate reprint, and
+anything left mid-print by a crash is requeued at startup. Queueing cannot fail
+for want of paper — a kitchen printer switched off at 6pm must not stop the till
+taking money at 6:01.
+
+A nuance recorded because it reads as a contradiction of "paper is the truth": a
+ticket is marked sent when **queued**, not when paper appears. Waiting for paper
+would let two people send the same lines twice while the first job retries, and
+the queue is durable. The rule still governs the job's own status, which is what
+the reprint list and the printer light read.
+
+**Settings, Hardware is now a printer list**: add, name, choose the transport,
+type the address with a hint that changes per transport, mark which one has the
+drawer, test it, remove it. Testing reaches the device, asks its status where it
+can, then puts paper through it — all three, because a printer can answer on the
+network with its cover open.
+
+### A defect this uncovered
+
+Background print workers immediately produced `cannot start a transaction within
+a transaction`. `EposDb` cached **one** SQLite connection for the whole
+application, which was invisible while a single thread touched the database and
+wrong the moment anything ran in the background.
+
+Fixed properly rather than papered over: `Open()` hands out a pooled connection
+per call and the caller disposes it, with WAL for concurrent readers and
+`busy_timeout` so a second writer waits its turn instead of failing. This is the
+standard pattern for SQLite in a multi-threaded process, and the previous design
+would have failed on a merchant's machine the first time a printer was slow.
+
+The dev database was rebuilt from the bundle rather than adapted in code. No
+merchant has an install, and a settings-to-devices upgrade path would have been
+dead code for every shop that will ever exist.
+
+64 tests.

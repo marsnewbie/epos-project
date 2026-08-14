@@ -1,10 +1,11 @@
 ﻿<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RingOrder.Epos.ViewModels"
+             xmlns:conv="using:RingOrder.Epos.Converters"
              x:Class="RingOrder.Epos.Views.SettingsView"
              x:Name="Root"
              x:DataType="vm:SettingsViewModel"
-             Background="#e8eaed">
+             Background="{StaticResource Page}">
   <Grid ColumnDefinitions="168,*" Margin="4">
     <Border Classes="panel" CornerRadius="8" Padding="8" Margin="0,0,8,0">
       <StackPanel>
@@ -45,11 +46,75 @@
 
         <Border Classes="panel" CornerRadius="8" Padding="16" IsVisible="{Binding IsHardware}">
           <StackPanel Spacing="4">
-            <TextBlock Text="Hardware / 硬件" FontWeight="Bold" FontSize="18" Foreground="#1c1917" Margin="0,0,0,8" />
-            <TextBox Classes="field" Watermark="Kitchen printer queue" Text="{Binding KitchenPrinter}" />
-            <TextBox Classes="field" Watermark="Front printer queue" Text="{Binding FrontPrinter}" />
+            <TextBlock Text="Printers" Classes="title" Margin="0,0,0,4" />
+            <TextBlock Text="{Binding PrinterHint}" Classes="muted" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+            <ItemsControl ItemsSource="{Binding Printers}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:PrinterRow">
+                  <Border Classes="panel-flat" Padding="12" Margin="0,0,0,10">
+                    <StackPanel Spacing="6">
+                      <Grid ColumnDefinitions="*,170,Auto">
+                        <TextBox Classes="field" Watermark="Name, e.g. Kitchen" Text="{Binding Name}" Margin="0,0,8,0" />
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding DataContext.Transports, ElementName=Root}"
+                                  SelectedItem="{Binding Transport}" Height="44"
+                                  HorizontalAlignment="Stretch" Margin="0,0,8,0" />
+                        <CheckBox Grid.Column="2" IsChecked="{Binding IsEnabled}" Content="On"
+                                  VerticalAlignment="Center" />
+                      </Grid>
+
+                      <TextBox Classes="field" Watermark="{Binding AddressHint}" Text="{Binding Address}" />
+
+                      <Grid ColumnDefinitions="Auto,Auto,*">
+                        <CheckBox IsChecked="{Binding HasCashDrawer}" Content="Cash drawer plugs in here"
+                                  Margin="0,0,16,0" />
+                        <TextBlock Grid.Column="1" Text="{Binding PaperWidth, StringFormat={}{0}mm}"
+                                   Classes="muted" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="2" Text="{Binding Status}" TextWrapping="Wrap"
+                                   Margin="12,0,0,0" VerticalAlignment="Center"
+                                   Foreground="{StaticResource InkMuted}" />
+                      </Grid>
+
+                      <Grid ColumnDefinitions="*,*,*">
+                        <Button Classes="btn" Content="Save" Margin="0,0,6,0"
+                                Command="{Binding DataContext.SavePrinterCommand, ElementName=Root}"
+                                CommandParameter="{Binding}" />
+                        <Button Grid.Column="1" Classes="primary" Content="Test print" Margin="0,0,6,0"
+                                Command="{Binding DataContext.TestPrinterCommand, ElementName=Root}"
+                                CommandParameter="{Binding}" />
+                        <Button Grid.Column="2" Classes="btn" Content="Remove"
+                                Command="{Binding DataContext.DeletePrinterCommand, ElementName=Root}"
+                                CommandParameter="{Binding}" />
+                      </Grid>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Button Classes="btn" Content="+ Add printer" Command="{Binding AddPrinterCommand}"
+                    HorizontalAlignment="Left" Width="200" Margin="0,0,0,16" />
+
+            <TextBlock Text="What prints where" Classes="title" Margin="0,8,0,4" />
+            <TextBlock Text="Rules run in order and every match fires, so a dish can print at the wok and again on the packing bench."
+                       Classes="muted" TextWrapping="Wrap" Margin="0,0,0,8" />
+            <ItemsControl ItemsSource="{Binding Routes}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:RouteRow">
+                  <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+                    <TextBlock Text="{Binding Summary}" VerticalAlignment="Center"
+                               Opacity="{Binding IsEnabled, Converter={x:Static conv:BoolToOpacityConverter.Instance}}" />
+                    <Button Grid.Column="1" Classes="btn" Content="On / off" Width="120"
+                            Command="{Binding DataContext.ToggleRouteCommand, ElementName=Root}"
+                            CommandParameter="{Binding}" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <TextBlock Text="Ticket options" Classes="title" Margin="0,16,0,4" />
             <TextBox Classes="field" Watermark="Encoding gbk|gb18030|utf8" Text="{Binding PrintEncoding}" />
-            <CheckBox IsChecked="{Binding PrintChineseAsRaster}" Content="Print Chinese as image (GlPrinter80)" Foreground="#1c1917" Margin="0,4" />
+            <CheckBox IsChecked="{Binding PrintChineseAsRaster}" Content="Print Chinese as an image (safer on cheap printers)" Foreground="#1c1917" Margin="0,4" />
             <CheckBox IsChecked="{Binding OpenDrawerOnCash}" Content="Open drawer on cash pay" Foreground="#1c1917" Margin="0,4" />
             <CheckBox IsChecked="{Binding SendKitchenOnPay}" Content="Also print kitchen on Pay if not yet sent" Foreground="#1c1917" Margin="0,4" />
             <CheckBox IsChecked="{Binding PrintFrontOnPay}" Content="Print front receipt on pay" Foreground="#1c1917" Margin="0,4" />

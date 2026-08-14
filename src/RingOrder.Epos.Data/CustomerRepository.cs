@@ -12,7 +12,7 @@ public sealed class CustomerRepository
     public void Upsert(Customer c)
     {
         c.UpdatedAt = DateTimeOffset.Now;
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
             INSERT INTO customers(id,name,phone,phone_digits,notes,addresses_json,created_at,updated_at)
@@ -39,7 +39,7 @@ public sealed class CustomerRepository
     /// </summary>
     public Customer? FindByPhone(string phone)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT * FROM customers WHERE phone_digits=$p LIMIT 1";
         cmd.Parameters.AddWithValue("$p", NormalizePhone(phone));
@@ -61,7 +61,7 @@ public sealed class CustomerRepository
 
     public List<Customer> ListAll()
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT * FROM customers ORDER BY updated_at DESC";
         var list = new List<Customer>();

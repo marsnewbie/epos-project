@@ -1130,7 +1130,7 @@ public partial class TillViewModel : ViewModelBase
 
             if (settings.OpenDrawerOnCash)
             {
-                try { await _app.CashDrawer.OpenAsync(); }
+                try { await _app.Print.OpenDrawerAsync(); }
                 catch { /* optional */ }
             }
 
@@ -1139,7 +1139,7 @@ public partial class TillViewModel : ViewModelBase
                 try
                 {
                     if (settings.PrintFrontOnPay)
-                        await _app.Print.PrintFrontAsync(order);
+                        await _app.Print.PrintReceiptAsync(order);
                 }
                 catch (Exception printEx)
                 {
@@ -1226,7 +1226,7 @@ public partial class TillViewModel : ViewModelBase
                 try
                 {
                     if (settings.PrintFrontOnPay)
-                        await _app.Print.PrintFrontAsync(order);
+                        await _app.Print.PrintReceiptAsync(order);
                 }
                 catch (Exception printEx)
                 {
@@ -1317,7 +1317,7 @@ public partial class TillViewModel : ViewModelBase
             var order = PersistTicket(_ticket.Status is PosOrderStatus.Sent ? PosOrderStatus.Sent : PosOrderStatus.Open);
             UpdatePaymentLabel(order);
             _app.Orders.Upsert(order);
-            await _app.Print.PrintFrontAsync(order);
+            await _app.Print.PrintReceiptAsync(order);
             PanelStatus = UiText.Pick(
                 $"Interim receipt · due £{order.BalanceDue:0.00}",
                 $"中途收据 · 待收 £{order.BalanceDue:0.00}");

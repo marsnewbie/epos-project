@@ -22,7 +22,9 @@ public class MigrationTests : IDisposable
         var applied = db.Migrate();
 
         Assert.Equal(SchemaMigrations.All.Select(m => m.Version), applied);
-        Assert.Equal(SchemaMigrations.LatestVersion, SchemaMigrations.CurrentVersion(db.Open()));
+
+        using var conn = db.Open();
+        Assert.Equal(SchemaMigrations.LatestVersion, SchemaMigrations.CurrentVersion(conn));
     }
 
     [Fact]

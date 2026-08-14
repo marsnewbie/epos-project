@@ -1,13 +1,28 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.Data.Sqlite;
 
 namespace RingOrder.Epos.Data;
 
+/// <summary>
+/// The till's database.
+/// <para>
+/// <see cref="Open"/> hands out a fresh pooled connection every time and the
+/// caller disposes it. The alternative — one cached connection shared by
+/// everything — worked only while a single thread touched the database, and
+/// broke the moment print workers ran in the background: two transactions on
+/// one connection is an error, and it surfaces as a kitchen ticket that never
+/// prints.
+/// </para>
+/// <para>
+/// WAL lets readers and one writer work at once; <c>busy_timeout</c> makes a
+/// second writer wait its turn instead of failing instantly. Connection
+/// pooling makes this cheap.
+/// </para>
+/// </summary>
 public sealed class EposDb : IDisposable
 {
     private readonly string _connectionString;
     private readonly string _path;
-    private SqliteConnection? _conn;
 
     public EposDb(string? path = null)
     {
@@ -16,23 +31,22 @@ public sealed class EposDb : IDisposable
         {
             DataSource = _path,
             Mode = SqliteOpenMode.ReadWriteCreate,
-            Cache = SqliteCacheMode.Shared,
+            Pooling = true,
         }.ToString();
     }
 
     public string Path => _path;
 
+    /// <summary>An open connection. The caller owns it and must dispose it.</summary>
     public SqliteConnection Open()
     {
-        if (_conn is { State: System.Data.ConnectionState.Open })
-            return _conn;
-
-        _conn = new SqliteConnection(_connectionString);
-        _conn.Open();
-        using var pragma = _conn.CreateCommand();
-        pragma.CommandText = "PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;";
+        var conn = new SqliteConnection(_connectionString);
+        conn.Open();
+        using var pragma = conn.CreateCommand();
+        pragma.CommandText =
+            "PRAGMA foreign_keys=ON; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;";
         pragma.ExecuteNonQuery();
-        return _conn;
+        return conn;
     }
 
     /// <summary>
@@ -41,7 +55,7 @@ public sealed class EposDb : IDisposable
     /// </summary>
     public IReadOnlyList<int> Migrate(Action<string>? log = null)
     {
-        var conn = Open();
+        using var conn = Open();
         var from = SchemaMigrations.CurrentVersion(conn);
         if (from >= SchemaMigrations.LatestVersion)
             return [];
@@ -64,7 +78,7 @@ public sealed class EposDb : IDisposable
     /// </summary>
     public string BackupTo(string destinationPath)
     {
-        var conn = Open();
+        using var conn = Open();
         if (File.Exists(destinationPath)) File.Delete(destinationPath);
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "VACUUM INTO $dest";
@@ -84,7 +98,12 @@ public sealed class EposDb : IDisposable
         return dest;
     }
 
-    public void Dispose() => _conn?.Dispose();
+    /// <summary>
+    /// Nothing is held open, so this only clears the pool — which matters in
+    /// tests, where the file is deleted straight afterwards and Windows will
+    /// not let go of a handle a pooled connection still owns.
+    /// </summary>
+    public void Dispose() => SqliteConnection.ClearPool(new SqliteConnection(_connectionString));
 }
 
 public static class JsonUtil

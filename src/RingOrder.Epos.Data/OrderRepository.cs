@@ -18,7 +18,7 @@ public sealed class OrderRepository
     public void Upsert(PosOrder order)
     {
         LinePricing.RecalculateOrder(order);
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var tx = conn.BeginTransaction();
 
         using (var cmd = conn.CreateCommand())
@@ -91,7 +91,7 @@ public sealed class OrderRepository
 
     public List<PosOrder> GetToday(OrderChannel? channel = null)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         var sql = "SELECT * FROM orders WHERE created_at>=$start";
         if (channel is not null)
@@ -106,7 +106,7 @@ public sealed class OrderRepository
 
     public List<PosOrder> GetForShift(string shiftId)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT * FROM orders WHERE shift_id=$s ORDER BY created_at DESC";
         cmd.Parameters.AddWithValue("$s", shiftId);
@@ -115,7 +115,7 @@ public sealed class OrderRepository
 
     public List<PosOrder> GetRecentByChannel(OrderChannel channel, int take = 50)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT * FROM orders WHERE channel=$ch ORDER BY created_at DESC LIMIT $n";
         cmd.Parameters.AddWithValue("$ch", channel.ToString());
@@ -140,7 +140,7 @@ public sealed class OrderRepository
 
     private PosOrder? QueryOne(string sql, string parameter)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         cmd.Parameters.AddWithValue("$p", parameter);
@@ -162,7 +162,7 @@ public sealed class OrderRepository
     private void AttachChildren(List<PosOrder> orders)
     {
         var byId = orders.ToDictionary(o => o.Id, StringComparer.Ordinal);
-        var conn = _db.Open();
+        using var conn = _db.Open();
 
         using (var cmd = conn.CreateCommand())
         {

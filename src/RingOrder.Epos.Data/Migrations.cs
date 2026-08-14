@@ -22,6 +22,7 @@ public static class SchemaMigrations
     [
         new(1, "initial", InitialSchema),
         new(2, "order_discount_reason", OrderDiscountReason),
+        new(3, "print_devices_and_routing", PrintDevicesAndRouting),
     ];
 
     /// <summary>
@@ -30,6 +31,68 @@ public static class SchemaMigrations
     /// </summary>
     private const string OrderDiscountReason = """
         ALTER TABLE orders ADD COLUMN discount_reason TEXT;
+        """;
+
+    /// <summary>
+    /// Printers become a registry with routing rules, and the job queue gains
+    /// what it needs to survive a restart: the rendered bytes, the device it is
+    /// for, and when to try again.
+    /// <para>
+    /// The old print_jobs table is dropped rather than migrated. It held a
+    /// one-line description of a job that had already printed — history of an
+    /// event, not work outstanding — and no shop has one worth keeping.
+    /// </para>
+    /// </summary>
+    private const string PrintDevicesAndRouting = """
+        CREATE TABLE print_devices (
+          id             TEXT PRIMARY KEY,
+          name           TEXT NOT NULL,
+          transport      TEXT NOT NULL,
+          address        TEXT NOT NULL,
+          paper_width_mm INTEGER NOT NULL DEFAULT 80,
+          encoding       TEXT NOT NULL DEFAULT 'gbk',
+          cjk_as_raster  INTEGER NOT NULL DEFAULT 1,
+          has_cash_drawer INTEGER NOT NULL DEFAULT 0,
+          is_enabled     INTEGER NOT NULL DEFAULT 1,
+          sort_order     INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE print_routes (
+          id                  TEXT PRIMARY KEY,
+          sort_order          INTEGER NOT NULL DEFAULT 0,
+          is_enabled          INTEGER NOT NULL DEFAULT 1,
+          document            TEXT NOT NULL,
+          print_class         TEXT,
+          service_type        TEXT,
+          channel             TEXT,
+          device_id           TEXT NOT NULL,
+          copies              INTEGER NOT NULL DEFAULT 1,
+          fallback_device_id  TEXT
+        );
+
+        CREATE INDEX idx_print_routes_device ON print_routes(device_id);
+
+        DROP TABLE print_jobs;
+
+        CREATE TABLE print_jobs (
+          id              TEXT PRIMARY KEY,
+          order_id        TEXT NOT NULL,
+          order_number    TEXT NOT NULL,
+          device_id       TEXT NOT NULL,
+          document        TEXT NOT NULL,
+          template        TEXT NOT NULL,
+          copies          INTEGER NOT NULL DEFAULT 1,
+          status          TEXT NOT NULL,
+          payload         BLOB NOT NULL,
+          attempts        INTEGER NOT NULL DEFAULT 0,
+          error           TEXT,
+          next_attempt_at TEXT,
+          created_at      TEXT NOT NULL,
+          printed_at      TEXT
+        );
+
+        CREATE INDEX idx_print_jobs_pending ON print_jobs(status, device_id, next_attempt_at);
+        CREATE INDEX idx_print_jobs_order ON print_jobs(order_id);
         """;
 
     public static int LatestVersion => All.Max(m => m.Version);

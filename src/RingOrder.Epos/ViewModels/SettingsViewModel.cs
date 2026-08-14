@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RingOrder.Epos.Data;
 using RingOrder.Epos.Domain;
+using RingOrder.Epos.Hardware;
 using RingOrder.Epos.Services;
 
 namespace RingOrder.Epos.ViewModels;
@@ -26,6 +27,9 @@ public partial class SettingsViewModel : ViewModelBase
     public ObservableCollection<QuickNoteEditRow> NoteRows { get; } = [];
     public ObservableCollection<CategoryAdminRow> MenuCategories { get; } = [];
     public ObservableCollection<StaffRow> StaffMembers { get; } = [];
+    public ObservableCollection<PrinterRow> Printers { get; } = [];
+    public ObservableCollection<RouteRow> Routes { get; } = [];
+    public PrintTransport[] Transports { get; } = Enum.GetValues<PrintTransport>();
     public StaffRole[] StaffRoles { get; } = Enum.GetValues<StaffRole>();
     public OptionTypeChoice[] OptionTypeChoices { get; } = OptionGroupEditorVm.TypeChoices;
 
@@ -79,6 +83,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private StaffRole _newStaffRole = StaffRole.Cashier;
     [ObservableProperty] private string _staffHint = "";
     [ObservableProperty] private string _webTestResult = "";
+    [ObservableProperty] private string _printerHint = "";
     [ObservableProperty] private string _callerIdMode = "simulate";
     [ObservableProperty] private string _callerIdCom = "COM3";
     [ObservableProperty] private bool _callerIdEnabled;
@@ -195,6 +200,7 @@ public partial class SettingsViewModel : ViewModelBase
         OnlinePollingEnabled = s.OnlinePollingEnabled;
         DefaultDeliveryFeeText = s.DefaultDeliveryFee.ToString("0.##");
         ReloadStaff();
+        ReloadPrinters();
         CallerIdEnabled = s.CallerIdEnabled;
         CallerIdMode = s.CallerIdMode;
         CallerIdCom = s.CallerIdComPort;
@@ -974,16 +980,134 @@ public partial class SettingsViewModel : ViewModelBase
     [RelayCommand]
     private async Task TestPrintAsync()
     {
-        Save();
+        var device = Printers.FirstOrDefault(p => p.IsEnabled)?.Device;
+        if (device is null)
+        {
+            _setStatus(UiText.Pick("Add a printer first", "请先添加打印机"));
+            return;
+        }
+        await TestPrinterAsync(Printers.First(p => p.Device.Id == device.Id));
+    }
+
+    // ── Printers ────────────────────────────────────────────────────────────
+
+    private void ReloadPrinters()
+    {
+        Printers.Clear();
+        foreach (var device in _app.PrintDevices.GetDevices())
+            Printers.Add(new PrinterRow(device));
+
+        var map = _app.PrintDevices.GetDeviceMap();
+        Routes.Clear();
+        foreach (var route in _app.PrintDevices.GetRoutes())
+            Routes.Add(new RouteRow(route, map));
+
+        PrinterHint = Printers.Count == 0
+            ? UiText.Pick(
+                "No printers yet. Add the counter printer first — it is the one the cash drawer plugs into.",
+                "还没有打印机。先加前台那台——钱箱是插在它上面的。")
+            : UiText.Pick(
+                "Kitchen printers are best on the network: no Windows spooler to jam, and the printer can report that it is out of paper.",
+                "后厨打印机建议走网口：不经过 Windows 打印后台，而且能报告缺纸。");
+    }
+
+    [RelayCommand]
+    private async Task AddPrinterAsync()
+    {
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditSettings, UiText.Pick("Add printer", "添加打印机")))
+            return;
+
+        var device = new PrintDevice
+        {
+            Name = UiText.Pick($"Printer {Printers.Count + 1}", $"打印机 {Printers.Count + 1}"),
+            HasCashDrawer = Printers.Count == 0,
+        };
+        _app.PrintDevices.UpsertDevice(device, Printers.Count);
+
+        // A shop with one printer and no rules still has to print, so the first
+        // device gets the defaults rather than a working till that prints nothing.
+        if (_app.PrintDevices.GetRoutes().Count == 0)
+            foreach (var route in PrintRouting.DefaultRoutes(_app.PrintDevices.GetDevices()))
+                _app.PrintDevices.UpsertRoute(route);
+
+        ReloadPrinters();
+        _setStatus(UiText.Pick("Printer added — set its connection, then test it", "已添加打印机 — 填写连接方式后测试"));
+    }
+
+    [RelayCommand]
+    private void SavePrinter(PrinterRow? row)
+    {
+        if (row is null) return;
+        _app.PrintDevices.UpsertDevice(row.ToDomain(), Printers.IndexOf(row));
+        _app.Session.Record("printer.save", row.Device.Id, $"{row.Device.Name} {row.Device.Transport} {row.Device.Address}");
+        ReloadPrinters();
+        _setStatus(UiText.Pick($"Saved {row.Device.Name}", $"已保存 {row.Device.Name}"));
+    }
+
+    [RelayCommand]
+    private async Task DeletePrinterAsync(PrinterRow? row)
+    {
+        if (row is null) return;
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditSettings, UiText.Pick("Remove printer", "删除打印机")))
+            return;
+        if (!await UiPrompt.ConfirmAsync(
+                UiText.Pick("Remove printer?", "删除打印机？"),
+                UiText.Pick(
+                    $"Remove {row.Device.Name}? Any rule that sends tickets to it is removed too, so check what is left prints.",
+                    $"删除 {row.Device.Name}？指向它的出单规则会一并删除，请确认剩下的规则仍能出单。")))
+            return;
+
+        _app.PrintDevices.DeleteDevice(row.Device.Id);
+        ReloadPrinters();
+        _setStatus(UiText.Pick("Printer removed", "打印机已删除"));
+    }
+
+    /// <summary>
+    /// Reach the printer, then put paper through it. Both matter: a device can
+    /// answer on the network and still have an open cover.
+    /// </summary>
+    [RelayCommand]
+    private async Task TestPrinterAsync(PrinterRow? row)
+    {
+        if (row is null) return;
+        var device = row.ToDomain();
+        _app.PrintDevices.UpsertDevice(device, Printers.IndexOf(row));
+
+        row.Status = UiText.Pick("Checking…", "检查中…");
+        row.StatusIsGood = false;
+
+        var transport = PrintTransports.For(device.Transport);
+        if (!await transport.IsReachableAsync(device))
+        {
+            row.Status = UiText.Pick("Cannot reach it — check the address", "连不上 — 请检查地址");
+            return;
+        }
+
+        if (transport is TcpPrintTransport tcp && await tcp.QueryStatusAsync(device) is { } status && !status.IsReady)
+        {
+            row.Status = UiText.Pick($"Reached it, but {status.Describe()}", $"能连上，但{(status.OutOfPaper ? "缺纸" : "开盖")}");
+            return;
+        }
+
         try
         {
-            await _app.KitchenPrinter.PrintTestPageAsync();
-            _setStatus($"Test print → {KitchenPrinter}");
+            await _app.Print.TestDeviceAsync(device);
+            row.Status = UiText.Pick("Test page sent — check the paper", "已送出测试页 — 请看纸");
+            row.StatusIsGood = true;
         }
         catch (Exception ex)
         {
-            _setStatus($"Test print failed: {ex.Message}");
+            row.Status = ex.Message;
         }
+    }
+
+    [RelayCommand]
+    private void ToggleRoute(RouteRow? row)
+    {
+        if (row is null) return;
+        row.Route.IsEnabled = !row.Route.IsEnabled;
+        _app.PrintDevices.UpsertRoute(row.Route);
+        ReloadPrinters();
     }
 
     [RelayCommand]
@@ -994,7 +1118,7 @@ public partial class SettingsViewModel : ViewModelBase
         Save();
         try
         {
-            await _app.CashDrawer.OpenAsync();
+            await _app.Print.OpenDrawerAsync();
             _setStatus("Drawer pulse sent");
         }
         catch (Exception ex)

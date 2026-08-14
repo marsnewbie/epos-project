@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using RingOrder.Epos.Domain;
 
 namespace RingOrder.Epos.Data;
@@ -34,7 +34,7 @@ public sealed class ShiftRepository
 
     public Shift? GetOpen(string? terminalId = null)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = Select + " WHERE status='Open'"
             + (terminalId is null ? "" : " AND terminal_id=$t")
@@ -46,7 +46,7 @@ public sealed class ShiftRepository
 
     public Shift? GetById(string id)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = Select + " WHERE id=$id";
         cmd.Parameters.AddWithValue("$id", id);
@@ -56,7 +56,7 @@ public sealed class ShiftRepository
 
     public List<Shift> Recent(int take = 30)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = Select + " ORDER BY number DESC LIMIT $n";
         cmd.Parameters.AddWithValue("$n", take);
@@ -68,7 +68,7 @@ public sealed class ShiftRepository
 
     public Shift Open(string staffId, decimal openingFloat, string? terminalId = null)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var next = conn.CreateCommand();
         next.CommandText = "SELECT COALESCE(MAX(number), 0) + 1 FROM shifts";
         var number = Convert.ToInt32(next.ExecuteScalar());
@@ -98,7 +98,7 @@ public sealed class ShiftRepository
 
     public void Upsert(Shift shift)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
             INSERT INTO shifts(id,number,status,terminal_id,opened_by_staff_id,opened_at,
@@ -131,7 +131,7 @@ public sealed class ShiftRepository
 
     public void RecordCashMovement(CashMovement movement)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
             INSERT INTO cash_movements(id,shift_id,staff_id,amount_pence,reason,at)
@@ -153,7 +153,7 @@ public sealed class ShiftRepository
     /// </summary>
     public ShiftTotals GetTotals(Shift shift)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
 
         decimal SumPayments(string tenderTypes)
         {

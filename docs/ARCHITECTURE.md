@@ -1,4 +1,4 @@
-# Architecture
+﻿# Architecture
 
 ## The shape
 
@@ -121,15 +121,34 @@ said.
 
 ## Printing
 
-Today: two Windows print queues, ESC/POS bytes written raw, CJK rendered as a
-raster bitmap because font handling on cheap Windows-driver printers is not
-reliable. The ticket layout is good and is the baseline to preserve.
+Four layers, and the separation is what lets a shop have four printers of three
+different kinds without any of it reaching the sale.
 
-The redesign this is heading for — device registry, routing by print class,
-per-device queues with retry, and TCP/serial transports alongside Windows
-queues — is described in [DEPLOYMENT.md](DEPLOYMENT.md) under hardware, and is
-not built yet. What exists must not be broken on the way there: a shop's kitchen
-ticket is the one output nobody can work around.
+**Transport** — Windows queue (USB and anything with a driver), raw TCP 9100
+(network, and the only kind that can be asked whether it has paper), serial
+(including a paired Bluetooth printer's virtual COM port), and file for support.
+Kitchen printers should be wired: Bluetooth drops, sleeps and loses its pairing,
+and re-pairing during service is not a thing anyone should have to do.
+
+**Devices** — a registry, not two names in settings. Each carries its transport,
+address, paper width, encoding and whether the drawer hangs off it.
+
+**Routing** — rules matching (document, print class, service type, channel) to a
+device, with copies and a fallback. Rules are matched in order and *every* match
+fires, because a dish printing at the wok and again on the packing bench is a
+shop asking for two copies, not a conflict. `PrintRouting` is pure, so the rules
+are testable without a printer — the only way they get tested often.
+
+**Queue** — jobs are rows carrying their rendered bytes, with a worker per
+device, retry with backoff, and recovery of anything a crash left half-printed.
+Queueing cannot fail for want of paper, which is the point: a kitchen printer
+switched off at 6pm must not stop the till taking money at 6:01.
+
+One nuance worth stating because it looks like a contradiction. A ticket is
+marked sent when it is **queued**, not when paper appears — waiting for paper
+would let two people send the same lines twice while the first job retries. "The
+paper is the truth" governs the *job's* status, which is what the reprint list
+and the printer light read.
 
 ## What is deliberately absent
 

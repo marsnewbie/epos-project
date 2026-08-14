@@ -13,7 +13,7 @@ public sealed class MenuRepository
 
     public List<TaxClass> GetTaxClasses()
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT id,name,rate_basis_points FROM tax_classes ORDER BY rate_basis_points DESC,name";
         var list = new List<TaxClass>();
@@ -25,7 +25,7 @@ public sealed class MenuRepository
 
     public void ReplaceTaxClasses(IEnumerable<TaxClass> classes)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var tx = conn.BeginTransaction();
         using (var clear = conn.CreateCommand())
         {
@@ -50,7 +50,7 @@ public sealed class MenuRepository
 
     public int CountItems()
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM menu_items";
         return Convert.ToInt32(cmd.ExecuteScalar());
@@ -58,7 +58,7 @@ public sealed class MenuRepository
 
     public List<Category> GetCategories(bool visibleOnly = true)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText =
             "SELECT id,name,translation,description,sort_order,is_visible,print_class,tax_class_id FROM categories"
@@ -86,7 +86,7 @@ public sealed class MenuRepository
 
     public void UpsertCategory(Category c)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
             INSERT INTO categories(id,name,translation,description,sort_order,is_visible,print_class,tax_class_id)
@@ -113,7 +113,7 @@ public sealed class MenuRepository
 
     public void SetCategoryVisible(string id, bool visible)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "UPDATE categories SET is_visible=$v WHERE id=$id";
         cmd.Parameters.AddWithValue("$v", visible ? 1 : 0);
@@ -123,7 +123,7 @@ public sealed class MenuRepository
 
     public int CountItemsInCategory(string categoryId)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM menu_items WHERE category_id=$c";
         cmd.Parameters.AddWithValue("$c", categoryId);
@@ -132,7 +132,7 @@ public sealed class MenuRepository
 
     public void DeleteCategory(string id)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "DELETE FROM categories WHERE id=$id";
         cmd.Parameters.AddWithValue("$id", id);
@@ -144,7 +144,7 @@ public sealed class MenuRepository
     /// <summary>The whole catalogue, keyed by id. Small enough to read per query.</summary>
     public Dictionary<string, OptionGroup> GetOptionGroups()
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         var groups = new Dictionary<string, OptionGroup>(StringComparer.Ordinal);
 
         using (var cmd = conn.CreateCommand())
@@ -192,7 +192,7 @@ public sealed class MenuRepository
 
     public void UpsertOptionGroup(OptionGroup group)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var tx = conn.BeginTransaction();
         WriteOptionGroup(conn, tx, group);
         tx.Commit();
@@ -200,7 +200,7 @@ public sealed class MenuRepository
 
     public void DeleteOptionGroup(string groupId)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var tx = conn.BeginTransaction();
         foreach (var sql in new[]
                  {
@@ -221,7 +221,7 @@ public sealed class MenuRepository
     /// <summary>Dishes that reference a group — shown before editing or deleting it.</summary>
     public List<string> GetItemNamesUsingGroup(string groupId)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = """
             SELECT i.name FROM menu_item_option_groups l
@@ -239,7 +239,7 @@ public sealed class MenuRepository
 
     public List<MenuItem> GetItems(string? categoryId = null, bool availableOnly = true)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         var sql = ItemSelect + " WHERE 1=1";
         if (availableOnly) sql += " AND is_available=1";
@@ -262,7 +262,7 @@ public sealed class MenuRepository
 
     public MenuItem? GetItem(string id)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = ItemSelect + " WHERE id=$id";
         cmd.Parameters.AddWithValue("$id", id);
@@ -304,7 +304,7 @@ public sealed class MenuRepository
     /// </summary>
     public void UpsertItem(MenuItem item)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var tx = conn.BeginTransaction();
         foreach (var group in item.OptionGroups.Where(g => g.Choices.Count > 0))
             WriteOptionGroup(conn, tx, group);
@@ -314,7 +314,7 @@ public sealed class MenuRepository
 
     public void SetItemAvailable(string id, bool available)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "UPDATE menu_items SET is_available=$a WHERE id=$id";
         cmd.Parameters.AddWithValue("$a", available ? 1 : 0);
@@ -324,7 +324,7 @@ public sealed class MenuRepository
 
     public void UpdateItemPrice(string id, decimal price)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "UPDATE menu_items SET base_price_pence=$p WHERE id=$id";
         cmd.Parameters.AddWithValue("$p", Money.ToPence(price));
@@ -334,7 +334,7 @@ public sealed class MenuRepository
 
     public void DeleteItem(string id)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var tx = conn.BeginTransaction();
         foreach (var sql in new[]
                  {
@@ -357,7 +357,7 @@ public sealed class MenuRepository
         IEnumerable<OptionGroup> optionGroups,
         IEnumerable<MenuItem> items)
     {
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var tx = conn.BeginTransaction();
 
         using (var clear = conn.CreateCommand())
@@ -430,7 +430,7 @@ public sealed class MenuRepository
         var catalogue = GetOptionGroups();
         var byId = items.ToDictionary(i => i.Id, StringComparer.Ordinal);
 
-        var conn = _db.Open();
+        using var conn = _db.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText =
             "SELECT item_id,group_id,sort_order,show_when_json FROM menu_item_option_groups ORDER BY item_id,sort_order";

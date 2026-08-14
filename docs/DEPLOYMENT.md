@@ -1,4 +1,4 @@
-# Getting it onto a merchant's PC, and keeping it there
+﻿# Getting it onto a merchant's PC, and keeping it there
 
 The product is not finished when it runs. It is finished when a shop we have
 never visited can be brought live in an afternoon, and a fix can reach two
@@ -114,7 +114,7 @@ undermine the till on its own schedule:
 - Fixed IP or reservation for network printers
 - Note which printer is which, physically, on the machine
 
-## Hardware plan — designed, not built
+## Hardware — built
 
 The current till drives two Windows print queues. A real shop has more than two
 devices and not all of them are USB.
@@ -139,9 +139,13 @@ restart, so one printer out of paper cannot stop the till taking money. With a
 fallback device, so a dead kitchen printer means the front one prints the ticket
 with a banner rather than the order being lost.
 
-**Status.** TCP printers can be asked whether they have paper and whether the
-cover is open. That is a real difference from every till that only finds out when
-the customer complains.
+**Status.** TCP printers are asked whether they have paper and whether the cover
+is open, and the answer appears when you test the printer in Settings. That is a
+real difference from a till that finds out when the customer complains.
+
+**What is left:** a reprint screen for jobs that ran out of attempts, and a route
+editor in Settings — rules can be switched on and off there today, but adding one
+for a third station still means editing the shop bundle.
 
 ## Licensing — undecided
 

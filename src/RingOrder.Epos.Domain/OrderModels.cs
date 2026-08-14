@@ -206,17 +206,3 @@ public sealed class CustomerAddress
     public string Postcode { get; set; } = "";
     public bool IsDefault { get; set; }
 }
-
-public sealed class PrintJob
-{
-    public string Id { get; set; } = Guid.NewGuid().ToString("N");
-    public string OrderId { get; set; } = "";
-    public string OrderNumber { get; set; } = "";
-    public PrintJobChannel Channel { get; set; }
-    public PrintJobStatus Status { get; set; } = PrintJobStatus.Pending;
-    public string? PayloadText { get; set; }
-    public string? Error { get; set; }
-    public int Attempts { get; set; }
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.Now;
-    public DateTimeOffset? PrintedAt { get; set; }
-}

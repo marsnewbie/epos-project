@@ -6,14 +6,29 @@ namespace RingOrder.Epos.Hardware;
 
 public static class TicketRenderer
 {
-    public static byte[] RenderKitchen(PosOrder order, AppSettings settings, bool unsentOnly = false, bool isVoid = false)
+    private static EscPosTicketBuilder NewBuilder(string encoding, bool raster, PrintDevice? device) =>
+        device is null
+            ? new EscPosTicketBuilder(encoding, raster)
+            : new EscPosTicketBuilder(device.Encoding, device.CjkAsRaster, device.Columns);
+
+    /// <summary>
+    /// The kitchen ticket. <paramref name="device"/> decides paper width,
+    /// encoding and whether Chinese is rasterised, because a shop's printers
+    /// are rarely identical — an 80mm counter machine and a 58mm handheld take
+    /// the same ticket laid out differently.
+    /// </summary>
+    public static byte[] RenderKitchen(PosOrder order, AppSettings settings, bool unsentOnly = false,
+        bool isVoid = false, PrintDevice? device = null, IReadOnlyList<CartLine>? onlyLines = null)
     {
         var enc = string.IsNullOrWhiteSpace(settings.PrintEncoding) ? "gbk" : settings.PrintEncoding;
         var raster = settings.PrintChineseAsRaster;
-        var b = new EscPosTicketBuilder(enc, rasterCjk: raster);
+        var b = NewBuilder(enc, raster, device);
         var shop = string.IsNullOrWhiteSpace(settings.ShopName) ? "KITCHEN" : settings.ShopName;
-        var lines = unsentOnly ? order.Lines.Where(l => !l.KitchenSent).ToList() : order.Lines.ToList();
-        if (lines.Count == 0) lines = order.Lines.ToList();
+        // onlyLines is what this device is responsible for: the wok printer
+        // gets the wok's dishes, not the whole order.
+        var source = onlyLines?.ToList() ?? order.Lines.ToList();
+        var lines = unsentOnly ? source.Where(l => !l.KitchenSent).ToList() : source;
+        if (lines.Count == 0) lines = source;
 
         b.Center().Normal().Bold(true).Line(shop.ToUpperInvariant()).Bold(false).Left();
         if (isVoid)
@@ -123,10 +138,10 @@ public static class TicketRenderer
         return b.Build();
     }
 
-    public static byte[] RenderFront(PosOrder order, AppSettings settings)
+    public static byte[] RenderFront(PosOrder order, AppSettings settings, PrintDevice? device = null)
     {
         var enc = string.IsNullOrWhiteSpace(settings.PrintEncoding) ? "gbk" : settings.PrintEncoding;
-        var b = new EscPosTicketBuilder(enc, rasterCjk: settings.PrintChineseAsRaster);
+        var b = NewBuilder(enc, settings.PrintChineseAsRaster, device);
         var interim = !order.IsFullyPaid;
         b.Center().KitchenLine(settings.ShopName, large: true);
         b.Normal().Line(settings.ShopAddress);
@@ -183,10 +198,10 @@ public static class TicketRenderer
         return b.Build();
     }
 
-    public static byte[] RenderTestPage(string printerName, AppSettings settings)
+    public static byte[] RenderTestPage(string printerName, AppSettings settings, PrintDevice? device = null)
     {
         var enc = string.IsNullOrWhiteSpace(settings.PrintEncoding) ? "gbk" : settings.PrintEncoding;
-        var b = new EscPosTicketBuilder(enc, rasterCjk: settings.PrintChineseAsRaster);
+        var b = NewBuilder(enc, settings.PrintChineseAsRaster, device);
         b.Center().KitchenLine(string.IsNullOrWhiteSpace(settings.ShopName) ? "RingOrder EPOS" : settings.ShopName, large: true);
         b.Normal().Line("Printer test").Left().Separator();
         b.Line($"Printer: {printerName}");

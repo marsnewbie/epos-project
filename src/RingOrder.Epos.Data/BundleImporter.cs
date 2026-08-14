@@ -31,12 +31,18 @@ public sealed class BundleImporter
     private readonly MenuRepository _menu;
     private readonly SettingsRepository _settings;
     private readonly StaffRepository _staff;
+    private readonly PrintDeviceRepository _printers;
 
-    public BundleImporter(MenuRepository menu, SettingsRepository settings, StaffRepository staff)
+    public BundleImporter(
+        MenuRepository menu,
+        SettingsRepository settings,
+        StaffRepository staff,
+        PrintDeviceRepository printers)
     {
         _menu = menu;
         _settings = settings;
         _staff = staff;
+        _printers = printers;
     }
 
     public static ShopBundle Read(string path)
@@ -191,6 +197,7 @@ public sealed class BundleImporter
         ApplyToSettings(settings, bundle, secrets);
         _settings.Save(settings);
 
+        ImportPrinters(bundle, warnings);
         var staffCount = SeedStaff(bundle, warnings);
 
         return new ImportReport(
@@ -202,6 +209,88 @@ public sealed class BundleImporter
             bundle.QuickNotes.Count,
             staffCount,
             warnings);
+    }
+
+    /// <summary>
+    /// Printers and routing. Replaced wholesale on import, like the menu: a
+    /// bundle describes a shop's hardware as we set it up, and a shop that has
+    /// since moved a printer re-runs setup rather than merging by hand.
+    /// </summary>
+    private void ImportPrinters(ShopBundle bundle, List<string> warnings)
+    {
+        if (bundle.Printing.Devices.Count == 0)
+        {
+            warnings.Add("bundle defines no printers; add them in Settings before the shop opens");
+            return;
+        }
+
+        var devices = bundle.Printing.Devices.Select(d => new PrintDevice
+        {
+            Id = string.IsNullOrWhiteSpace(d.Id) ? Guid.NewGuid().ToString("N") : d.Id,
+            Name = d.Name,
+            Transport = Enum.TryParse<PrintTransport>(d.Transport.Replace("-", ""), ignoreCase: true, out var t)
+                ? t
+                : PrintTransport.WindowsQueue,
+            Address = d.Address ?? "",
+            PaperWidthMm = d.PaperWidthMm,
+            Encoding = d.Encoding,
+            CjkAsRaster = d.CjkAsRaster,
+            HasCashDrawer = d.HasCashDrawer,
+        }).ToList();
+
+        var deviceIds = devices.Select(d => d.Id).ToHashSet(StringComparer.Ordinal);
+
+        var routes = new List<PrintRoute>();
+        var order = 0;
+        foreach (var def in bundle.Printing.Routes)
+        {
+            if (!deviceIds.Contains(def.DeviceId))
+            {
+                warnings.Add($"print rule targets '{def.DeviceId}', which is not a printer in this bundle");
+                continue;
+            }
+
+            if (def.FallbackDeviceId is { } fallback && !deviceIds.Contains(fallback))
+            {
+                warnings.Add($"print rule falls back to '{fallback}', which is not a printer in this bundle");
+                def.FallbackDeviceId = null;
+            }
+
+            routes.Add(new PrintRoute
+            {
+                SortOrder = order++,
+                Document = ResolveDocument(def.When.Document, def.Template),
+                PrintClass = def.When.PrintClass,
+                ServiceType = Enum.TryParse<ServiceType>(def.When.ServiceType, ignoreCase: true, out var st)
+                    ? st
+                    : null,
+                Channel = Enum.TryParse<OrderChannel>(def.When.Channel, ignoreCase: true, out var ch)
+                    ? ch
+                    : null,
+                DeviceId = def.DeviceId,
+                Copies = Math.Clamp(def.Copies, 1, 9),
+                FallbackDeviceId = def.FallbackDeviceId,
+            });
+        }
+
+        if (routes.Count == 0)
+        {
+            routes = PrintRouting.DefaultRoutes(devices).ToList();
+            warnings.Add("bundle defines no print rules; kitchen and receipt defaults were applied");
+        }
+
+        _printers.ReplaceAll(devices, routes);
+    }
+
+    private static PrintDocument ResolveDocument(string? document, string? template)
+    {
+        var value = document ?? template ?? "kitchen";
+        return value.ToLowerInvariant() switch
+        {
+            "receipt" or "front" => PrintDocument.Receipt,
+            "report" => PrintDocument.Report,
+            _ => PrintDocument.Kitchen,
+        };
     }
 
     private static void ApplyToSettings(AppSettings settings, ShopBundle bundle, ShopSecrets? secrets)
