@@ -1,6 +1,6 @@
 # Hardware
 
-All devices go through `MagicWok.Epos.Hardware` interfaces. Settings bind concrete drivers.
+All devices go through `RingOrder.Epos.Hardware` interfaces. Settings bind concrete drivers.
 
 ## Receipt / kitchen printers
 

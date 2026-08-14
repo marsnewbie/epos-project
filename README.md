@@ -3,7 +3,7 @@
 Windows takeaway / restaurant front-of-house EPOS for Magic Wok (and future clone shops).
 
 **Stack:** .NET 8 + Avalonia 11.2 desktop.  
-**Data:** local SQLite at `%APPDATA%\MagicWok.Epos\data.sqlite`.  
+**Data:** local SQLite at `%APPDATA%\RingOrder.Epos\data.sqlite`.  
 **Online orders:** JSON pull `/api/print/epos/next` (same claim queue as handheld GcAnyOrder). Default base: `https://magicwoksite.vercel.app`. Operator chooses which device polls.  
 **Website repo:** [`magicwok-birmingham-website`](https://github.com/marsnewbie/magicwoksite) — separate GitHub; do not push EPOS commits there.
 
@@ -12,7 +12,7 @@ Windows takeaway / restaurant front-of-house EPOS for Magic Wok (and future clon
 ```powershell
 cd C:\Projects\magicwok-epos
 dotnet restore
-dotnet run --project src/MagicWok.Epos
+dotnet run --project src/RingOrder.Epos
 ```
 
 Requirements: .NET 8 SDK, Windows x64, printer queue **GlPrinter80** for print tests.

@@ -5,8 +5,8 @@
 ```powershell
 cd C:\Projects\magicwok-epos
 $env:NUGET_PACKAGES = "$env:USERPROFILE\.nuget\packages"
-dotnet build MagicWok.Epos.sln -c Release
-dotnet run --project src/MagicWok.Epos
+dotnet build RingOrder.Epos.sln -c Release
+dotnet run --project src/RingOrder.Epos
 ```
 
 ## P0 — Ticket lifecycle (must pass)

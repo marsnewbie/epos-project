@@ -10,13 +10,13 @@
 ## Solution layout
 
 ```
-MagicWok.Epos.sln
+RingOrder.Epos.sln
 src/
-  MagicWok.Epos/              # Avalonia UI (MVVM)
-  MagicWok.Epos.Domain/       # Orders, menu, shifts, customers
-  MagicWok.Epos.Hardware/     # HAL: printers, drawer, CID, payment
-  MagicWok.Epos.Online/       # Website getorder / callback client
-  MagicWok.Epos.Data/         # SQLite + repositories
+  RingOrder.Epos/              # Avalonia UI (MVVM)
+  RingOrder.Epos.Domain/       # Orders, menu, shifts, customers
+  RingOrder.Epos.Hardware/     # HAL: printers, drawer, CID, payment
+  RingOrder.Epos.Online/       # Website getorder / callback client
+  RingOrder.Epos.Data/         # SQLite + repositories
 ```
 
 ## Runtime flow
@@ -56,8 +56,8 @@ Online URL seed for this shop: base `https://magicwoksite.vercel.app` (see `docs
 
 ## Data path
 
-`%APPDATA%\MagicWok.Epos\data.sqlite`
+`%APPDATA%\RingOrder.Epos\data.sqlite`
 
 ## Menu seed
 
-Embedded resources in `MagicWok.Epos.Data/Seed/` (copied from website `src/data/seed/live/`, restaurant JSON stripped of print secrets). On first launch, if `menu_items` is empty, `MenuSeeder` imports categories + items and fills shop name/address defaults.
+Embedded resources in `RingOrder.Epos.Data/Seed/` (copied from website `src/data/seed/live/`, restaurant JSON stripped of print secrets). On first launch, if `menu_items` is empty, `MenuSeeder` imports categories + items and fills shop name/address defaults.

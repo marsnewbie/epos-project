@@ -1,0 +1,322 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RingOrder.Epos.ViewModels"
+             x:Class="RingOrder.Epos.Views.SettingsView"
+             x:Name="Root"
+             x:DataType="vm:SettingsViewModel"
+             Background="#e8eaed">
+  <Grid ColumnDefinitions="168,*" Margin="4">
+    <Border Classes="pos-panel" CornerRadius="8" Padding="8" Margin="0,0,8,0">
+      <StackPanel>
+        <Button Classes="pos-nav" Classes.active="{Binding IsShop}" Content="{Binding LblSecShop}" Command="{Binding GoSectionCommand}" CommandParameter="Shop" />
+        <Button Classes="pos-nav" Classes.active="{Binding IsMenu}" Content="{Binding LblSecMenu}" Command="{Binding GoSectionCommand}" CommandParameter="Menu" />
+        <Button Classes="pos-nav" Classes.active="{Binding IsNotes}" Content="{Binding LblSecNotes}" Command="{Binding GoSectionCommand}" CommandParameter="Notes" />
+        <Button Classes="pos-nav" Classes.active="{Binding IsDelivery}" Content="{Binding LblSecDelivery}" Command="{Binding GoSectionCommand}" CommandParameter="Delivery" />
+        <Button Classes="pos-nav" Classes.active="{Binding IsHardware}" Content="{Binding LblSecHardware}" Command="{Binding GoSectionCommand}" CommandParameter="Hardware" />
+        <Button Classes="pos-nav" Classes.active="{Binding IsStaff}" Content="{Binding LblSecStaff}" Command="{Binding GoSectionCommand}" CommandParameter="Staff" />
+        <Button Classes="pos-nav" Classes.active="{Binding IsShift}" Content="{Binding LblSecShift}" Command="{Binding GoSectionCommand}" CommandParameter="Shift" />
+        <Button Classes="pos-nav" Classes.active="{Binding IsOnline}" Content="{Binding LblSecOnline}" Command="{Binding GoSectionCommand}" CommandParameter="Online" Margin="0,12,0,0" />
+        <Button Classes="pos-action pos-cash" Content="{Binding LblSave}" Command="{Binding SaveCommand}" Height="52" Margin="0,16,0,0" />
+        <TextBlock Text="{Binding LblUiLangNote}" Classes="pos-muted" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0" />
+      </StackPanel>
+    </Border>
+
+    <ScrollViewer Grid.Column="1">
+      <Panel>
+      <StackPanel MaxWidth="820" IsVisible="{Binding !IsMenu}">
+
+        <Border Classes="pos-panel" CornerRadius="8" Padding="16" IsVisible="{Binding IsShop}">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Shop / 店铺" FontWeight="Bold" FontSize="18" Foreground="#1c1917" Margin="0,0,0,8" />
+            <TextBox Classes="pos-field" Watermark="Shop name" Text="{Binding ShopName}" />
+            <TextBox Classes="pos-field" Watermark="Address" Text="{Binding ShopAddress}" />
+            <TextBox Classes="pos-field" Watermark="Postcode" Text="{Binding ShopPostcode}" />
+            <TextBox Classes="pos-field" Watermark="Phone" Text="{Binding ShopPhone}" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="pos-panel" CornerRadius="8" Padding="16" IsVisible="{Binding IsDelivery}">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Delivery / 外卖费" FontWeight="Bold" FontSize="18" Foreground="#1c1917" Margin="0,0,0,8" />
+            <TextBox Classes="pos-field" Watermark="Default delivery fee £" Text="{Binding DefaultDeliveryFeeText}" />
+            <TextBlock Text="Advanced postcode bands can be added later." Foreground="#5b6472" FontSize="12" Margin="0,8,0,0" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="pos-panel" CornerRadius="8" Padding="16" IsVisible="{Binding IsHardware}">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Hardware / 硬件" FontWeight="Bold" FontSize="18" Foreground="#1c1917" Margin="0,0,0,8" />
+            <TextBox Classes="pos-field" Watermark="Kitchen printer queue" Text="{Binding KitchenPrinter}" />
+            <TextBox Classes="pos-field" Watermark="Front printer queue" Text="{Binding FrontPrinter}" />
+            <TextBox Classes="pos-field" Watermark="Encoding gbk|gb18030|utf8" Text="{Binding PrintEncoding}" />
+            <CheckBox IsChecked="{Binding PrintChineseAsRaster}" Content="Print Chinese as image (GlPrinter80)" Foreground="#1c1917" Margin="0,4" />
+            <CheckBox IsChecked="{Binding OpenDrawerOnCash}" Content="Open drawer on cash pay" Foreground="#1c1917" Margin="0,4" />
+            <CheckBox IsChecked="{Binding SendKitchenOnPay}" Content="Also print kitchen on Pay if not yet sent" Foreground="#1c1917" Margin="0,4" />
+            <CheckBox IsChecked="{Binding PrintFrontOnPay}" Content="Print front receipt on pay" Foreground="#1c1917" Margin="0,4" />
+            <CheckBox IsChecked="{Binding PrintVoidKitchenTicket}" Content="Print VOID kitchen ticket on void" Foreground="#1c1917" Margin="0,4" />
+            <TextBlock Text="Caller ID" FontWeight="SemiBold" Foreground="#c2410c" Margin="0,12,0,4" />
+            <CheckBox IsChecked="{Binding CallerIdEnabled}" Content="Enable Caller ID" Foreground="#1c1917" />
+            <TextBox Classes="pos-field" Watermark="Mode: simulate | serial" Text="{Binding CallerIdMode}" />
+            <TextBox Classes="pos-field" Watermark="COM port" Text="{Binding CallerIdCom}" />
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
+              <Button Classes="pos-action pos-send" Content="Test print" Command="{Binding TestPrintCommand}" Width="140" />
+              <Button Classes="pos-nav" Content="Open drawer (PIN)" Command="{Binding OpenDrawerCommand}" Width="160" Height="52" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Classes="pos-panel" CornerRadius="8" Padding="16" IsVisible="{Binding IsStaff}">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Staff / PIN" FontWeight="Bold" FontSize="18" Foreground="#1c1917" Margin="0,0,0,8" />
+            <TextBlock Text="Manager PIN protects Void, Open drawer, and 86." Foreground="#5b6472" FontSize="12" Margin="0,0,0,8" />
+            <TextBox Classes="pos-field" Watermark="Manager PIN" Text="{Binding ManagerPin}" PasswordChar="•" />
+            <TextBox Classes="pos-field" Watermark="Cashier PIN (optional)" Text="{Binding CashierPin}" PasswordChar="•" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="pos-panel" CornerRadius="8" Padding="16" IsVisible="{Binding IsShift}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Today summary / 今日汇总" FontWeight="Bold" FontSize="18" Foreground="#1c1917" />
+            <TextBox Text="{Binding ShiftSummary}" IsReadOnly="True" AcceptsReturn="True" Classes="pos-field" MinHeight="180" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="pos-panel" CornerRadius="8" Padding="16" IsVisible="{Binding IsNotes}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Quick notes / 快捷备注" FontWeight="Bold" FontSize="18" Foreground="#1c1917" />
+            <Grid ColumnDefinitions="*,*,Auto,Auto">
+              <TextBox Classes="pos-field" Watermark="English" Text="{Binding NewNoteEn}" Margin="0,0,6,0" />
+              <TextBox Grid.Column="1" Classes="pos-field" Watermark="厨房中文" Text="{Binding NewNoteZh}" Margin="0,0,6,0" />
+              <Button Grid.Column="2" Classes="pos-action pos-send" Content="Add" Command="{Binding AddNoteCommand}" Width="80" Height="40" />
+            </Grid>
+            <ItemsControl ItemsSource="{Binding NoteRows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:QuickNoteEditRow">
+                  <Grid ColumnDefinitions="*,*,Auto" Margin="0,4">
+                    <TextBox Classes="pos-field" Text="{Binding En}" Margin="0,0,6,0" />
+                    <TextBox Grid.Column="1" Classes="pos-field" Text="{Binding Zh}" Margin="0,0,6,0" />
+                    <Button Grid.Column="2" Classes="pos-nav" Content="Del"
+                            Command="{Binding DataContext.RemoveNoteCommand, ElementName=Root}"
+                            CommandParameter="{Binding}" Width="64" Height="40" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="Save settings to apply notes on Sell." Foreground="#5b6472" FontSize="12" />
+          </StackPanel>
+        </Border>
+
+        <Border Classes="pos-panel" CornerRadius="8" Padding="16" IsVisible="{Binding IsOnline}">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Online (Advanced) / 线上" FontWeight="Bold" FontSize="18" Foreground="#1c1917" Margin="0,0,0,4" />
+            <TextBlock Text="Copy a / u / p from website Admin → Print. Stored locally only."
+                       FontSize="12" Foreground="#5b6472" TextWrapping="Wrap" Margin="0,0,0,8" />
+            <TextBox Classes="pos-field" Watermark="Base URL" Text="{Binding OnlineBaseUrl}" />
+            <Button Classes="pos-nav" Content="Apply base URL → endpoints" Command="{Binding ApplyBaseUrlCommand}"
+                    HorizontalAlignment="Left" Width="260" Height="40" Margin="0,0,0,8" />
+            <TextBox Classes="pos-field" Watermark="Next URL" Text="{Binding OrderServerUrl}" />
+            <TextBox Classes="pos-field" Watermark="Ack URL" Text="{Binding PrintedUrl}" />
+            <TextBox Classes="pos-field" Watermark="Res ID (a)" Text="{Binding OnlineResId}" />
+            <TextBox Classes="pos-field" Watermark="Username (u)" Text="{Binding OnlineUsername}" />
+            <TextBox Classes="pos-field" Watermark="Password (p)" Text="{Binding OnlinePassword}" PasswordChar="•" />
+            <TextBox Classes="pos-field" Watermark="Poll interval seconds" Text="{Binding PollIntervalText}" />
+            <CheckBox IsChecked="{Binding OnlinePollingEnabled}" Content="Enable polling on startup" Foreground="#1c1917" Margin="0,4" />
+            <CheckBox IsChecked="{Binding AutoKitchenPrintOnline}" Content="Auto kitchen print online orders" Foreground="#1c1917" Margin="0,4" />
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+
+      <!-- Menu operations: categories · dishes · full editor -->
+      <Border Classes="pos-panel" CornerRadius="8" Padding="12" IsVisible="{Binding IsMenu}">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,10">
+              <TextBlock Text="{Binding LblMenuOpsTitle}" FontWeight="Bold" FontSize="18" Foreground="#1c1917" />
+              <TextBlock Text="{Binding LblMenuOpsHint}"
+                         Foreground="#5b6472" FontSize="12" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding MenuInfo}" Foreground="#5b6472" FontSize="11" />
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBox Classes="pos-field" Watermark="Search # / name" Text="{Binding MenuSearch}" Margin="0,0,8,0" />
+                <Button Grid.Column="1" Classes="pos-nav" Content="{Binding LblReimport}"
+                        Command="{Binding ReimportMenuCommand}" MinWidth="140" Height="40" />
+              </Grid>
+            </StackPanel>
+
+            <Grid ColumnDefinitions="170,210,*" MinHeight="520">
+              <!-- Categories -->
+              <Border Background="#f4f6f8" CornerRadius="8" Padding="8" Margin="0,0,8,0">
+                <DockPanel>
+                  <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,8">
+                    <TextBlock Text="{Binding LblCategories}" FontWeight="SemiBold" Foreground="#c2410c" />
+                    <Button Classes="pos-action pos-send" Content="{Binding LblAddCategory}" Command="{Binding AddCategoryCommand}" Height="40" />
+                    <Grid ColumnDefinitions="*,*,*" >
+                      <Button Classes="pos-nav" Content="{Binding LblEdit}" Command="{Binding BeginEditCategoryCommand}" Height="36" Margin="0,0,4,0" />
+                      <Button Grid.Column="1" Classes="pos-nav" Content="{Binding LblHideShow}" Command="{Binding ToggleCategoryVisibleCommand}"
+                              CommandParameter="{Binding SelectedMenuCategory}" Height="36" Margin="0,0,4,0" />
+                      <Button Grid.Column="2" Classes="pos-nav" Content="{Binding LblDelete}" Command="{Binding DeleteCategoryCommand}" Height="36" />
+                    </Grid>
+                  </StackPanel>
+                  <ListBox Classes="pos-ticket" ItemsSource="{Binding MenuCategories}" SelectedItem="{Binding SelectedMenuCategory}">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:CategoryAdminRow">
+                        <StackPanel Margin="6,6">
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="#1c1917" TextWrapping="Wrap" FontSize="13" />
+                          <TextBlock Text="{Binding VisibilityText}" FontSize="11" Foreground="#5b6472" />
+                        </StackPanel>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </DockPanel>
+              </Border>
+
+              <!-- Dishes -->
+              <Border Grid.Column="1" Background="#f4f6f8" CornerRadius="8" Padding="8" Margin="0,0,8,0">
+                <DockPanel>
+                  <StackPanel DockPanel.Dock="Top" Spacing="6" Margin="0,0,0,8">
+                    <TextBlock Text="{Binding LblDishes}" FontWeight="SemiBold" Foreground="#c2410c" />
+                    <Button Classes="pos-action pos-cash" Content="{Binding LblAddDish}" Command="{Binding AddDishCommand}" Height="40" />
+                  </StackPanel>
+                  <ListBox Classes="pos-ticket" ItemsSource="{Binding MenuRows}" SelectedItem="{Binding SelectedMenuItem}">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate x:DataType="vm:MenuEditRow">
+                        <StackPanel Margin="6,6">
+                          <TextBlock Text="{Binding Label}" FontWeight="SemiBold" Foreground="#1c1917" TextWrapping="Wrap" FontSize="13" />
+                          <TextBlock FontSize="11" Foreground="#5b6472">
+                            <Run Text="{Binding Item.BasePrice, StringFormat={}£{0:0.00}}" />
+                            <Run Text=" · " />
+                            <Run Text="{Binding StatusText}" />
+                            <Run Text=" · " />
+                            <Run Text="{Binding OptionsBadge}" />
+                          </TextBlock>
+                        </StackPanel>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+                </DockPanel>
+              </Border>
+
+              <!-- Editor pane -->
+              <Border Grid.Column="2" Background="#f4f6f8" CornerRadius="8" Padding="12">
+                <Panel>
+                  <!-- Category editor -->
+                  <StackPanel IsVisible="{Binding EditingCategory}" Spacing="8" MaxWidth="420">
+                    <TextBlock Text="Edit category" FontWeight="Bold" FontSize="16" Foreground="#1c1917" />
+                    <TextBox Classes="pos-field" Watermark="Name" Text="{Binding CategoryEditName}" />
+                    <TextBox Classes="pos-field" Watermark="Sort order" Text="{Binding CategoryEditSort}" />
+                    <CheckBox IsChecked="{Binding CategoryEditVisible}" Content="Visible on Sell screen" Foreground="#1c1917" />
+                    <Button Classes="pos-action pos-cash" Content="Save category" Command="{Binding SaveCategoryCommand}" Width="180" />
+                  </StackPanel>
+
+                  <!-- Dish editor -->
+                  <DockPanel IsVisible="{Binding HasDishEditor}">
+                    <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
+                      <Button Classes="pos-action pos-cash" Content="{Binding LblSaveDish}" Command="{Binding SaveDishCommand}" Width="130" Height="48" />
+                      <Button Classes="pos-nav" Content="{Binding LblDuplicate}" Command="{Binding DuplicateDishCommand}" Width="100" Height="48" />
+                      <Button Classes="pos-nav" Content="{Binding Lbl86}" Command="{Binding Toggle86CurrentCommand}" Width="72" Height="48" />
+                      <Button Classes="pos-action pos-danger" Content="{Binding LblDelete}" Command="{Binding DeleteDishCommand}" Width="90" Height="48" />
+                    </StackPanel>
+                    <ScrollViewer>
+                      <StackPanel Spacing="8" Margin="0,0,8,0">
+                        <TextBlock Text="{Binding LblDishEditor}" FontWeight="Bold" FontSize="16" Foreground="#1c1917" />
+                        <TextBlock Text="{Binding DishEditor.ValidationMessage}" Foreground="#b91c1c" TextWrapping="Wrap" />
+                        <Grid ColumnDefinitions="*,*">
+                          <TextBox Classes="pos-field-sm" Watermark="Menu # (e.g. 54)" Text="{Binding DishEditor.MenuNumber}" Margin="0,0,6,0" />
+                          <ComboBox Grid.Column="1" ItemsSource="{Binding DishEditor.Categories}"
+                                    SelectedItem="{Binding DishEditor.SelectedCategory}"
+                                    PlaceholderText="Category" Height="34" />
+                        </Grid>
+                        <TextBox Classes="pos-field-sm" Watermark="Front name (English)" Text="{Binding DishEditor.Name}" />
+                        <TextBox Classes="pos-field-sm" Watermark="Kitchen name (中文 · print)" Text="{Binding DishEditor.KitchenName}" />
+                        <Grid ColumnDefinitions="*,80">
+                          <TextBox Classes="pos-field-sm" Watermark="Price £" Text="{Binding DishEditor.PriceText}" Margin="0,0,6,0" />
+                          <TextBox Grid.Column="1" Classes="pos-field-sm" Watermark="Sort" Text="{Binding DishEditor.SortOrderText}" />
+                        </Grid>
+                        <CheckBox IsChecked="{Binding DishEditor.IsAvailable}" Content="On sale (uncheck = 86)" Foreground="#1c1917" />
+                        <TextBox Classes="pos-field-sm" Watermark="Description / staff hint" Text="{Binding DishEditor.Description}" />
+
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,12,0,4">
+                          <TextBlock Text="{Binding LblOptionGroups}" FontWeight="Bold" Foreground="#c2410c" VerticalAlignment="Center" />
+                          <Button Grid.Column="1" Classes="pos-nav" Content="{Binding LblAddGroup}" Command="{Binding AddOptionGroupCommand}"
+                                  MinWidth="90" Height="36" />
+                        </Grid>
+                        <TextBlock Text="Single = pick one · Multi = checkbox with min/max · Conditional = show when another choice picked"
+                                   Foreground="#5b6472" FontSize="11" TextWrapping="Wrap" />
+
+                        <ItemsControl ItemsSource="{Binding DishEditor.Groups}">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:OptionGroupEditorVm">
+                              <Border Background="#ffffff" CornerRadius="8" Padding="10" Margin="0,0,0,10"
+                                      BorderBrush="#d0d5dd" BorderThickness="1">
+                                <StackPanel Spacing="6">
+                                  <Grid ColumnDefinitions="*,Auto">
+                                    <TextBox Classes="pos-field-sm" Text="{Binding Name}" Watermark="Group name" Margin="0,0,6,0" />
+                                    <Button Grid.Column="1" Classes="pos-nav" Content="{Binding DataContext.LblRemove, ElementName=Root}"
+                                            Command="{Binding DataContext.RemoveOptionGroupCommand, ElementName=Root}"
+                                            CommandParameter="{Binding}" Width="80" Height="34" FontSize="11" Margin="0" />
+                                  </Grid>
+                                  <Grid ColumnDefinitions="*,Auto,70,70">
+                                    <ComboBox ItemsSource="{Binding DataContext.OptionTypeChoices, ElementName=Root}"
+                                              SelectedItem="{Binding SelectedType}" Height="34" Margin="0,0,6,0" />
+                                    <CheckBox Grid.Column="1" IsChecked="{Binding Required}"
+                                              Content="{Binding DataContext.LblRequired, ElementName=Root}"
+                                              Foreground="#1c1917" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <TextBox Grid.Column="2" Classes="pos-field-sm" Text="{Binding MinText}" Watermark="Min"
+                                             IsVisible="{Binding IsMulti}" Margin="0,0,4,0" />
+                                    <TextBox Grid.Column="3" Classes="pos-field-sm" Text="{Binding MaxText}" Watermark="Max"
+                                             IsVisible="{Binding IsMulti}" />
+                                  </Grid>
+                                  <TextBlock Text="Show when (conditional)" FontSize="11" Foreground="#5b6472" />
+                                  <ComboBox ItemsSource="{Binding ParentGroupOptions}" SelectedItem="{Binding SelectedShowWhen}"
+                                            Height="34" />
+                                  <Button Classes="pos-nav" Content="Refresh conditional list" Command="{Binding DataContext.RefreshShowWhenCommand, ElementName=Root}"
+                                          Height="32" HorizontalAlignment="Left" Width="180" FontSize="11" />
+
+                                  <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                                    <TextBlock Text="{Binding DataContext.LblChoices, ElementName=Root}" FontWeight="SemiBold" Foreground="#c2410c" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Classes="pos-nav" Content="{Binding DataContext.LblAddChoice, ElementName=Root}"
+                                            Command="{Binding DataContext.AddChoiceCommand, ElementName=Root}"
+                                            CommandParameter="{Binding}" MinWidth="90" Height="32" FontSize="11" />
+                                  </Grid>
+                                  <ItemsControl ItemsSource="{Binding Choices}">
+                                    <ItemsControl.ItemTemplate>
+                                      <DataTemplate x:DataType="vm:OptionChoiceEditorVm">
+                                        <Border Classes="pos-panel" CornerRadius="4" Padding="8" Margin="0,0,0,6">
+                                          <StackPanel Spacing="4">
+                                            <Grid ColumnDefinitions="*,*,56,Auto">
+                                              <TextBox Classes="pos-field-sm" Text="{Binding Label}" Watermark="Label" Margin="0,0,4,0" />
+                                              <TextBox Grid.Column="1" Classes="pos-field-sm" Text="{Binding KitchenName}" Watermark="中文" Margin="0,0,4,0" />
+                                              <TextBox Grid.Column="2" Classes="pos-field-sm" Text="{Binding PriceDeltaText}" Watermark="+£ / 0" Margin="0,0,4,0" />
+                                              <Button Grid.Column="3" Classes="pos-nav" Content="×"
+                                                      Command="{Binding DataContext.RemoveChoiceCommand, ElementName=Root}"
+                                                      CommandParameter="{Binding}" Width="36" Height="32" Margin="0" />
+                                            </Grid>
+                                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                              <CheckBox IsChecked="{Binding IsDefault}" Content="Default" Foreground="#5b6472" />
+                                              <CheckBox IsChecked="{Binding IsAvailable}" Content="Available" Foreground="#5b6472" />
+                                            </StackPanel>
+                                          </StackPanel>
+                                        </Border>
+                                      </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                  </ItemsControl>
+                                </StackPanel>
+                              </Border>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </StackPanel>
+                    </ScrollViewer>
+                  </DockPanel>
+
+                  <TextBlock Text="Select a category/dish, or create new." Foreground="#5b6472"
+                             HorizontalAlignment="Center" VerticalAlignment="Center"
+                             IsVisible="{Binding ShowEmptyEditorHint}" />
+                </Panel>
+              </Border>
+            </Grid>
+          </DockPanel>
+      </Border>
+      </Panel>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

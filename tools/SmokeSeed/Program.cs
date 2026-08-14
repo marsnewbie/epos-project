@@ -1,6 +1,6 @@
-﻿using MagicWok.Epos.Data;
+﻿using RingOrder.Epos.Data;
 
-var path = Path.Combine(Path.GetTempPath(), "magicwok-epos-smoke.sqlite");
+var path = Path.Combine(Path.GetTempPath(), "ringorder-epos-smoke.sqlite");
 if (File.Exists(path)) File.Delete(path);
 using var db = new EposDb(path);
 db.EnsureCreated();
