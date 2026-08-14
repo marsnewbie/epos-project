@@ -18,6 +18,7 @@
         <Button Classes="btn" Classes.on="{Binding IsStaff}" Content="{Binding LblSecStaff}" Command="{Binding GoSectionCommand}" CommandParameter="Staff" />
         <Button Classes="btn" Classes.on="{Binding IsShift}" Content="{Binding LblSecShift}" Command="{Binding GoSectionCommand}" CommandParameter="Shift" />
         <Button Classes="btn" Classes.on="{Binding IsOnline}" Content="{Binding LblSecOnline}" Command="{Binding GoSectionCommand}" CommandParameter="Online" Margin="0,12,0,0" />
+        <Button Classes="btn" Classes.on="{Binding IsTax}" Content="VAT" Command="{Binding GoSectionCommand}" CommandParameter="Tax" />
         <Button Classes="btn" Classes.on="{Binding IsSupport}" Content="Support" Command="{Binding GoSectionCommand}" CommandParameter="Support" />
         <Button Classes="cash" Content="{Binding LblSave}" Command="{Binding SaveCommand}" Height="52" Margin="0,16,0,0" />
         <TextBlock Text="{Binding LblUiLangNote}" Classes="muted" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0" />
@@ -230,6 +231,41 @@
               </ItemsControl>
             </ScrollViewer>
           </DockPanel>
+        </Border>
+
+        <Border Classes="panel" Padding="16" IsVisible="{Binding IsTax}">
+          <StackPanel Spacing="10">
+            <TextBlock Text="VAT" Classes="title" />
+            <TextBlock Text="{Binding TaxHint}" Classes="muted" TextWrapping="Wrap" />
+
+            <TextBox Classes="field" Watermark="VAT number — leave blank if not registered"
+                     Text="{Binding VatNumber}" />
+            <CheckBox IsChecked="{Binding PricesIncludeTax}"
+                      Content="Menu prices already include VAT (normal for UK retail)" />
+
+            <TextBlock Text="Rates" Classes="title" Margin="0,12,0,0" />
+            <ItemsControl ItemsSource="{Binding TaxClasses}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:TaxClassRow">
+                  <Grid ColumnDefinitions="160,*,120" Margin="0,0,0,6">
+                    <TextBlock Text="{Binding Id}" Classes="muted" VerticalAlignment="Center" />
+                    <TextBox Grid.Column="1" Classes="field" Text="{Binding Name}" Margin="0,0,8,0" />
+                    <NumericUpDown Grid.Column="2" Value="{Binding RatePercent}" Minimum="0" Maximum="100"
+                                   Increment="0.5" FormatString="0.##" Height="44" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Text="A dish takes its rate from its category unless it sets its own. Delivery follows the shop's default rate."
+                       Classes="muted" TextWrapping="Wrap" />
+
+            <TextBlock Text="Receipt footer" Classes="title" Margin="0,12,0,0" />
+            <TextBox Classes="field" Text="{Binding ReceiptFooter}" AcceptsReturn="True"
+                     MinHeight="90" Watermark="Thank you — see you again" />
+
+            <Button Classes="primary" Content="Save VAT settings" Command="{Binding SaveTaxCommand}"
+                    HorizontalAlignment="Left" Width="220" Margin="0,8,0,0" />
+          </StackPanel>
         </Border>
 
         <!--

@@ -30,6 +30,7 @@ public partial class SettingsViewModel : ViewModelBase
     public ObservableCollection<PrinterRow> Printers { get; } = [];
     public ObservableCollection<RouteRow> Routes { get; } = [];
     public ObservableCollection<PrintJob> FailedJobs { get; } = [];
+    public ObservableCollection<TaxClassRow> TaxClasses { get; } = [];
     public PrintTransport[] Transports { get; } = Enum.GetValues<PrintTransport>();
 
     /// <summary>Stations a category or dish can be sent to.</summary>
@@ -92,6 +93,11 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private string _staffHint = "";
     [ObservableProperty] private string _webTestResult = "";
     [ObservableProperty] private string _printerHint = "";
+    [ObservableProperty] private bool _isTax;
+    [ObservableProperty] private string _vatNumber = "";
+    [ObservableProperty] private bool _pricesIncludeTax = true;
+    [ObservableProperty] private string _taxHint = "";
+    [ObservableProperty] private string _receiptFooter = "";
     [ObservableProperty] private string _supportSummary = "";
     [ObservableProperty] private string _supportResult = "";
     [ObservableProperty] private bool _hasFailedJobs;
@@ -181,10 +187,12 @@ public partial class SettingsViewModel : ViewModelBase
         IsOnline = Section == "Online";
         IsShift = Section == "Shift";
         IsSupport = Section == "Support";
+        IsTax = Section == "Tax";
         if (IsMenu) ReloadMenuBrowser();
         if (IsNotes) ReloadNoteRows();
         if (IsShift) ReloadShift();
         if (IsSupport) ReloadSupport();
+        if (IsTax) ReloadTax();
     }
 
     public void Reload()
@@ -1010,6 +1018,50 @@ public partial class SettingsViewModel : ViewModelBase
             return;
         }
         await TestPrinterAsync(Printers.First(p => p.Device.Id == device.Id));
+    }
+
+    // ── Tax ─────────────────────────────────────────────────────────────────
+
+    private void ReloadTax()
+    {
+        var settings = _app.GetSettings();
+        VatNumber = settings.VatNumber;
+        PricesIncludeTax = settings.PricesIncludeTax;
+        ReceiptFooter = string.Join("\n", settings.ReceiptFooterLines);
+
+        TaxClasses.Clear();
+        foreach (var taxClass in _app.Menu.GetTaxClasses())
+            TaxClasses.Add(new TaxClassRow(taxClass));
+
+        TaxHint = string.IsNullOrWhiteSpace(VatNumber)
+            ? UiText.Pick(
+                "No VAT number, so receipts show no VAT — which is right for a shop under the registration threshold. Add the number when the shop registers.",
+                "未填 VAT 号，小票不显示税额——低于登记门槛的店本就该如此。店铺登记后再填。")
+            : UiText.Pick(
+                "Receipts show the VAT number and a breakdown by rate. UK takeaway: hot food is standard-rated, some cold food is zero-rated.",
+                "小票会显示 VAT 号和分税率明细。英国外卖：热食标准税率，部分冷食零税率。");
+    }
+
+    [RelayCommand]
+    private async Task SaveTaxAsync()
+    {
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditSettings, UiText.Pick("Change VAT settings", "修改税务设置")))
+            return;
+
+        var settings = _app.GetSettings();
+        settings.VatNumber = VatNumber.Trim();
+        settings.PricesIncludeTax = PricesIncludeTax;
+        settings.ReceiptFooterLines = ReceiptFooter
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+        _app.SaveSettings(settings);
+
+        _app.Menu.ReplaceTaxClasses(TaxClasses.Select(r => r.ToDomain()).ToList());
+        _app.Session.Record("settings.tax",
+            detail: $"VAT {(settings.VatNumber.Length == 0 ? "not registered" : settings.VatNumber)}");
+
+        ReloadTax();
+        _setStatus(UiText.Pick("VAT settings saved", "税务设置已保存"));
     }
 
     // ── Support ─────────────────────────────────────────────────────────────

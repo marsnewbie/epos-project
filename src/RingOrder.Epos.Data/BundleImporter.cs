@@ -300,6 +300,10 @@ public sealed class BundleImporter
         settings.ShopPostcode = bundle.Shop.Postcode ?? "";
         settings.ShopPhone = bundle.Shop.Phone ?? "";
         settings.UiLanguage = bundle.Locale.UiLanguage;
+        settings.VatNumber = bundle.Shop.VatNumber ?? "";
+        settings.PricesIncludeTax = bundle.Tax.PricesIncludeTax;
+        settings.DefaultTaxClassId = bundle.Tax.DefaultClassId;
+        settings.ReceiptFooterLines = bundle.Receipt.FooterLines;
 
         if (bundle.QuickNotes.Count > 0)
             settings.QuickNotes = bundle.QuickNotes;

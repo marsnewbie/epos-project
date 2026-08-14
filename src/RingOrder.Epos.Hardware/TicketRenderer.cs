@@ -138,7 +138,17 @@ public static class TicketRenderer
         return b.Build();
     }
 
-    public static byte[] RenderFront(PosOrder order, AppSettings settings, PrintDevice? device = null)
+    /// <summary>
+    /// The customer's receipt. <paramref name="taxClasses"/> is what the shop
+    /// has declared; VAT is only printed when the shop has a VAT number, since
+    /// most small takeaways are below the registration threshold and must not
+    /// show tax they cannot charge.
+    /// </summary>
+    public static byte[] RenderFront(
+        PosOrder order,
+        AppSettings settings,
+        PrintDevice? device = null,
+        IReadOnlyList<TaxClass>? taxClasses = null)
     {
         var enc = string.IsNullOrWhiteSpace(settings.PrintEncoding) ? "gbk" : settings.PrintEncoding;
         var b = NewBuilder(enc, settings.PrintChineseAsRaster, device);
@@ -146,6 +156,8 @@ public static class TicketRenderer
         b.Center().KitchenLine(settings.ShopName, large: true);
         b.Normal().Line(settings.ShopAddress);
         b.Line($"{settings.ShopPostcode}  {settings.ShopPhone}");
+        if (!string.IsNullOrWhiteSpace(settings.VatNumber))
+            b.Line($"VAT No: {settings.VatNumber}");
         b.Line(interim ? "*** INTERIM / NOT PAID IN FULL ***" : "RECEIPT").Left().Separator('=');
         b.Line($"Order {order.OrderNumber}");
         b.Line(order.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"));
@@ -163,6 +175,9 @@ public static class TicketRenderer
         if (order.DeliveryFee > 0) b.ColumnsAscii("Delivery", EscPos.Money(order.DeliveryFee));
         if (order.DiscountTotal > 0) b.ColumnsAscii("Discount", "-" + EscPos.Money(order.DiscountTotal));
         b.Large().Bold(true).ColumnsAscii("TOTAL", EscPos.Money(order.Total), cols: 24).Bold(false).Normal();
+
+        WriteVatSummary(b, order, settings, taxClasses);
+
         b.Separator('-');
         if (order.Tenders.Count == 0)
         {
@@ -194,8 +209,50 @@ public static class TicketRenderer
             else
                 b.Large().Bold(true).ColumnsAscii("PAID IN FULL", EscPos.Money(order.AmountPaid), cols: 24).Bold(false).Normal();
         }
-        b.Center().Line(interim ? "Not a final receipt" : "Thank you").FeedAndCut();
+        b.Separator('-').Center();
+        if (interim)
+        {
+            b.Line("Not a final receipt");
+        }
+        else if (settings.ReceiptFooterLines.Count > 0)
+        {
+            foreach (var footer in settings.ReceiptFooterLines.Where(f => !string.IsNullOrWhiteSpace(f)))
+                foreach (var wrapped in WrapLines(footer, EscPos.ColsFontA))
+                    b.Line(wrapped);
+        }
+        else
+        {
+            b.Line("Thank you");
+        }
+
+        b.FeedAndCut();
         return b.Build();
+    }
+
+    /// <summary>
+    /// The VAT block. Silent unless the shop is registered — a receipt claiming
+    /// VAT from a business that cannot charge it is worse than one that says
+    /// nothing at all.
+    /// </summary>
+    private static void WriteVatSummary(
+        EscPosTicketBuilder b,
+        PosOrder order,
+        AppSettings settings,
+        IReadOnlyList<TaxClass>? taxClasses)
+    {
+        if (string.IsNullOrWhiteSpace(settings.VatNumber) || taxClasses is not { Count: > 0 })
+            return;
+
+        var bands = TaxCalculator.Summarise(
+            order, taxClasses, settings.DefaultTaxClassId, settings.PricesIncludeTax);
+        if (bands.Count == 0) return;
+
+        b.Separator('-');
+        b.ColumnsAscii("Rate", "Net        VAT");
+        foreach (var band in bands)
+            b.ColumnsAscii(band.RateLabel, $"{EscPos.Money(band.Net),9}  {EscPos.Money(band.Vat),9}");
+
+        b.ColumnsAscii("Total VAT", EscPos.Money(TaxCalculator.TotalVat(bands)));
     }
 
     public static byte[] RenderTestPage(string printerName, AppSettings settings, PrintDevice? device = null)

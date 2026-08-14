@@ -121,6 +121,23 @@ the normal case — a shop re-plumbs a section, not forty dishes. Both are
 next week must not rewrite what last week's ticket said, and a line carrying a
 null station would match no routing rule at all.
 
+## VAT
+
+UK retail prices include VAT, so the arithmetic runs backwards from the gross: a
+£6.00 dish at 20% is £5.00 net and £1.00 VAT, not £6.00 plus £1.20. The other
+direction overstates a shop's takings by a fifth.
+
+A dish takes its band from its category unless it sets its own; delivery follows
+the shop's default band; an order-level discount is apportioned across the lines
+before VAT is worked out, because a discount reduces every band it touches.
+
+**Nothing about VAT is printed unless the shop has entered a VAT number.** Most
+small takeaways are below the registration threshold, and a receipt claiming VAT
+from a business that cannot charge it is worse than one that says nothing.
+
+`TaxCalculator` is pure, and its tests include the property that matters on a
+receipt: net plus VAT reconstructs the gross, for every penny from 1p to £50.
+
 ## Printing
 
 Four layers, and the separation is what lets a shop have four printers of three

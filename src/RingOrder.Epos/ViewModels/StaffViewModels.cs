@@ -151,3 +151,32 @@ public partial class RouteRow : ObservableObject
         return Route;
     }
 }
+
+/// <summary>One VAT band in Settings.</summary>
+public partial class TaxClassRow : ObservableObject
+{
+    public TaxClassRow(TaxClass taxClass)
+    {
+        Class = taxClass;
+        _name = taxClass.Name;
+        _ratePercent = taxClass.RateBasisPoints / 100m;
+    }
+
+    public TaxClass Class { get; }
+    public string Id => Class.Id;
+
+    [ObservableProperty] private string _name;
+
+    /// <summary>
+    /// Entered as a percentage because that is how a rate is quoted, and stored
+    /// as basis points so 20% is 2000 and never 0.19999999.
+    /// </summary>
+    [ObservableProperty] private decimal _ratePercent;
+
+    public TaxClass ToDomain()
+    {
+        Class.Name = Name.Trim();
+        Class.RateBasisPoints = (int)decimal.Round(RatePercent * 100m, 0, MidpointRounding.AwayFromZero);
+        return Class;
+    }
+}

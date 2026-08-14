@@ -9,6 +9,23 @@ public sealed class AppSettings
     public string ShopAddress { get; set; } = "";
     public string ShopPostcode { get; set; } = "";
     public string ShopPhone { get; set; } = "";
+
+    /// <summary>
+    /// Blank means the shop is not VAT registered, which most small takeaways
+    /// are not. Nothing about VAT is printed while it is blank: a receipt
+    /// claiming VAT from a business that cannot charge it is worse than one
+    /// that says nothing.
+    /// </summary>
+    public string VatNumber { get; set; } = "";
+
+    /// <summary>UK retail convention: the shelf price already contains the VAT.</summary>
+    public bool PricesIncludeTax { get; set; } = true;
+
+    /// <summary>Band used for delivery charges and for a line with none of its own.</summary>
+    public string DefaultTaxClassId { get; set; } = "hot-food";
+
+    /// <summary>Printed under the totals; the shop's own wording.</summary>
+    public List<string> ReceiptFooterLines { get; set; } = [];
     public string UiLanguage { get; set; } = "en"; // en | zh
 
     public string KitchenPrinterName { get; set; } = "GlPrinter80";

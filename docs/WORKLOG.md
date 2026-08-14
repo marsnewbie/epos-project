@@ -476,3 +476,36 @@ until something exercises the path between them.** Both times the missing link
 was invisible in the demo data.
 
 70 tests.
+
+---
+
+## 2026-08-15 — VAT, from the setting through to the receipt
+
+Tax classes had been threaded from the bundle to the order line since the
+schema rebuild, and nothing had ever computed a penny of tax. Closed end to end
+rather than left as another field nobody consumes.
+
+**The arithmetic runs backwards.** UK retail prices include VAT: £6.00 at 20% is
+£5.00 net and £1.00 VAT, not £6.00 plus £1.20. The other direction overstates a
+shop's takings by a fifth, which is the sort of error an accountant finds a year
+later.
+
+**A discount is apportioned across the bands** in proportion to line value
+before VAT is worked out — £2 off a half-hot, half-cold ticket takes £1 off each
+rather than all of it off the standard-rated half. Delivery follows the shop's
+default band, being ancillary to the food.
+
+**Nothing prints unless the shop is registered.** The VAT number being blank
+means the shop is below the threshold, which most small takeaways are. A receipt
+claiming VAT from a business that cannot charge it is worse than one that says
+nothing, so the whole block is silent until a number is entered.
+
+**Settings → VAT**: the number, whether prices include tax, the rates by band,
+and the receipt footer. The hint text changes with the state, so an unregistered
+shop is told that showing no VAT is correct rather than left wondering.
+
+Thirteen tests, including a property test that net plus VAT reconstructs the
+gross for every penny from 1p to £50 — the one thing a customer can check by
+looking at the paper.
+
+83 tests.

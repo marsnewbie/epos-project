@@ -104,7 +104,8 @@ public sealed class PrintService
 
         foreach (var target in targets)
         {
-            var payload = TicketRenderer.RenderFront(order, settings, target.Device);
+            var payload = TicketRenderer.RenderFront(
+                order, settings, target.Device, _app.Menu.GetTaxClasses());
             Enqueue(order, target, PrintDocument.Receipt, "receipt", payload);
         }
 
