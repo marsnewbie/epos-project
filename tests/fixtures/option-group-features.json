@@ -1,0 +1,696 @@
+{
+  "note": "Option-group feature fixtures, lifted out of the demo shop menu on 2026-08-14. These were the SMP-* sample dishes used to exercise radio / checkbox / min-max / conditional showWhen / meal-deal behaviour. Kept as test data, not as shop menu.",
+  "optionGroups": [
+    {
+      "id": "choose-sauce",
+      "name": "Choose Sauce",
+      "translation": null,
+      "type": "single",
+      "required": true,
+      "minSelections": null,
+      "maxSelections": null,
+      "choices": [
+        {
+          "id": "choose-sauce-1",
+          "label": "BBQ",
+          "translation": null,
+          "priceDeltaPence": 0,
+          "isDefault": true,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-sauce-2",
+          "label": "Curry",
+          "translation": null,
+          "priceDeltaPence": 0,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-sauce-3",
+          "label": "Salt & Pepper",
+          "translation": null,
+          "priceDeltaPence": 50,
+          "isDefault": false,
+          "isAvailable": true
+        }
+      ]
+    },
+    {
+      "id": "choose-protein-2",
+      "name": "Choose Protein",
+      "translation": null,
+      "type": "single",
+      "required": true,
+      "minSelections": null,
+      "maxSelections": null,
+      "choices": [
+        {
+          "id": "choose-protein-2-1",
+          "label": "Chicken",
+          "translation": null,
+          "priceDeltaPence": 0,
+          "isDefault": true,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-protein-2-2",
+          "label": "Beef",
+          "translation": null,
+          "priceDeltaPence": 50,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-protein-2-3",
+          "label": "King Prawn",
+          "translation": null,
+          "priceDeltaPence": 120,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-protein-2-4",
+          "label": "Tofu (V)",
+          "translation": null,
+          "priceDeltaPence": -50,
+          "isDefault": false,
+          "isAvailable": true
+        }
+      ]
+    },
+    {
+      "id": "add-extras",
+      "name": "Add Extras",
+      "translation": null,
+      "type": "multi",
+      "required": false,
+      "minSelections": 0,
+      "maxSelections": 3,
+      "choices": [
+        {
+          "id": "add-extras-1",
+          "label": "Extra Chips",
+          "translation": "薯条",
+          "priceDeltaPence": 200,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "add-extras-2",
+          "label": "Extra Rice",
+          "translation": "白饭",
+          "priceDeltaPence": 150,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "add-extras-3",
+          "label": "Extra Sauce",
+          "translation": "汁",
+          "priceDeltaPence": 100,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "add-extras-4",
+          "label": "Add Prawns",
+          "translation": "大虾",
+          "priceDeltaPence": 250,
+          "isDefault": false,
+          "isAvailable": true
+        }
+      ]
+    },
+    {
+      "id": "choose-2-sides",
+      "name": "Choose 2 Sides",
+      "translation": null,
+      "type": "multi",
+      "required": true,
+      "minSelections": 2,
+      "maxSelections": 2,
+      "choices": [
+        {
+          "id": "choose-2-sides-1",
+          "label": "Chips",
+          "translation": null,
+          "priceDeltaPence": 0,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-2-sides-2",
+          "label": "Fried Rice",
+          "translation": null,
+          "priceDeltaPence": 0,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-2-sides-3",
+          "label": "Chow Mein",
+          "translation": null,
+          "priceDeltaPence": 0,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-2-sides-4",
+          "label": "Side Salad",
+          "translation": null,
+          "priceDeltaPence": 50,
+          "isDefault": false,
+          "isAvailable": true
+        }
+      ]
+    },
+    {
+      "id": "choose-main-style",
+      "name": "Choose Main Style",
+      "translation": null,
+      "type": "single",
+      "required": true,
+      "minSelections": null,
+      "maxSelections": null,
+      "choices": [
+        {
+          "id": "choose-main-style-1",
+          "label": "Curry",
+          "translation": "咖喱",
+          "priceDeltaPence": 0,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-main-style-2",
+          "label": "Stir Fry",
+          "translation": "炒",
+          "priceDeltaPence": 0,
+          "isDefault": true,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-main-style-3",
+          "label": "Sweet & Sour",
+          "translation": "甜辣",
+          "priceDeltaPence": 0,
+          "isDefault": false,
+          "isAvailable": true
+        }
+      ]
+    },
+    {
+      "id": "spice-level",
+      "name": "Spice Level",
+      "translation": null,
+      "type": "single",
+      "required": true,
+      "minSelections": null,
+      "maxSelections": null,
+      "choices": [
+        {
+          "id": "spice-level-1",
+          "label": "Mild",
+          "translation": "轻度辣",
+          "priceDeltaPence": 0,
+          "isDefault": true,
+          "isAvailable": true
+        },
+        {
+          "id": "spice-level-2",
+          "label": "Medium",
+          "translation": "中等辣",
+          "priceDeltaPence": 0,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "spice-level-3",
+          "label": "Hot",
+          "translation": "重辣",
+          "priceDeltaPence": 0,
+          "isDefault": false,
+          "isAvailable": true
+        }
+      ]
+    },
+    {
+      "id": "choose-starter",
+      "name": "Choose Starter",
+      "translation": null,
+      "type": "single",
+      "required": true,
+      "minSelections": null,
+      "maxSelections": null,
+      "choices": [
+        {
+          "id": "choose-starter-1",
+          "label": "Spring Rolls",
+          "translation": null,
+          "priceDeltaPence": 0,
+          "isDefault": true,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-starter-2",
+          "label": "Spare Ribs",
+          "translation": null,
+          "priceDeltaPence": 100,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-starter-3",
+          "label": "Soup",
+          "translation": null,
+          "priceDeltaPence": 0,
+          "isDefault": false,
+          "isAvailable": true
+        }
+      ]
+    },
+    {
+      "id": "choose-main-course",
+      "name": "Choose Main Course",
+      "translation": null,
+      "type": "single",
+      "required": true,
+      "minSelections": null,
+      "maxSelections": null,
+      "choices": [
+        {
+          "id": "choose-main-course-1",
+          "label": "Chicken Curry",
+          "translation": null,
+          "priceDeltaPence": 0,
+          "isDefault": true,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-main-course-2",
+          "label": "Beef Black Bean",
+          "translation": null,
+          "priceDeltaPence": 0,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-main-course-3",
+          "label": "King Prawn Chow Mein",
+          "translation": null,
+          "priceDeltaPence": 150,
+          "isDefault": false,
+          "isAvailable": true
+        }
+      ]
+    },
+    {
+      "id": "rice-upgrade",
+      "name": "Rice Upgrade",
+      "translation": null,
+      "type": "single",
+      "required": false,
+      "minSelections": null,
+      "maxSelections": null,
+      "choices": [
+        {
+          "id": "rice-upgrade-1",
+          "label": "Boiled Rice (included)",
+          "translation": null,
+          "priceDeltaPence": 0,
+          "isDefault": true,
+          "isAvailable": true
+        },
+        {
+          "id": "rice-upgrade-2",
+          "label": "Egg Fried Rice",
+          "translation": null,
+          "priceDeltaPence": 100,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "rice-upgrade-3",
+          "label": "Special Fried Rice",
+          "translation": null,
+          "priceDeltaPence": 200,
+          "isDefault": false,
+          "isAvailable": true
+        }
+      ]
+    },
+    {
+      "id": "starter",
+      "name": "Starter",
+      "translation": null,
+      "type": "single",
+      "required": true,
+      "minSelections": null,
+      "maxSelections": null,
+      "choices": [
+        {
+          "id": "starter-1",
+          "label": "Spring Rolls",
+          "translation": "春卷",
+          "priceDeltaPence": 200,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "starter-2",
+          "label": "Pancakes",
+          "translation": "煎饼",
+          "priceDeltaPence": 100,
+          "isDefault": false,
+          "isAvailable": true
+        }
+      ]
+    },
+    {
+      "id": "main-course",
+      "name": "Main Course",
+      "translation": null,
+      "type": "single",
+      "required": true,
+      "minSelections": null,
+      "maxSelections": null,
+      "choices": [
+        {
+          "id": "main-course-1",
+          "label": "Chicken Chow Mein",
+          "translation": "鸡炒面",
+          "priceDeltaPence": 0,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "main-course-2",
+          "label": "Beef Fried Rice",
+          "translation": "牛炒面",
+          "priceDeltaPence": 0,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "main-course-3",
+          "label": "Pork Curry",
+          "translation": "猪咖喱",
+          "priceDeltaPence": 0,
+          "isDefault": false,
+          "isAvailable": true
+        }
+      ]
+    },
+    {
+      "id": "choose-chow-mein-option",
+      "name": "Choose Chow Mein Option",
+      "translation": null,
+      "type": "single",
+      "required": true,
+      "minSelections": null,
+      "maxSelections": null,
+      "choices": [
+        {
+          "id": "choose-chow-mein-option-1",
+          "label": "Thin",
+          "translation": "细",
+          "priceDeltaPence": 50,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-chow-mein-option-2",
+          "label": "Thick",
+          "translation": "粗",
+          "priceDeltaPence": 50,
+          "isDefault": false,
+          "isAvailable": true
+        }
+      ]
+    },
+    {
+      "id": "choose-spicy-options",
+      "name": "Choose Spicy Options",
+      "translation": null,
+      "type": "single",
+      "required": true,
+      "minSelections": null,
+      "maxSelections": null,
+      "choices": [
+        {
+          "id": "choose-spicy-options-1",
+          "label": "Mild",
+          "translation": "轻度辣",
+          "priceDeltaPence": 100,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "choose-spicy-options-2",
+          "label": "Hot",
+          "translation": "重辣",
+          "priceDeltaPence": 100,
+          "isDefault": false,
+          "isAvailable": true
+        }
+      ]
+    },
+    {
+      "id": "new-option-group",
+      "name": "New Option Group",
+      "translation": null,
+      "type": "single",
+      "required": true,
+      "minSelections": null,
+      "maxSelections": null,
+      "choices": [
+        {
+          "id": "new-option-group-1",
+          "label": "Chips",
+          "translation": "条",
+          "priceDeltaPence": 100,
+          "isDefault": false,
+          "isAvailable": true
+        },
+        {
+          "id": "new-option-group-2",
+          "label": "Boiled Rice",
+          "translation": "白饭",
+          "priceDeltaPence": 100,
+          "isDefault": false,
+          "isAvailable": true
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "id": "sample-simple",
+      "categoryId": "cat-sample",
+      "menuNumber": "SMP-1",
+      "name": "Sample: Simple Item (No Options)",
+      "translation": null,
+      "description": "Basic dish with fixed price — no customisation needed.",
+      "pricePence": 599,
+      "taxClassId": "hot-food",
+      "printClass": "kitchen",
+      "isAvailable": true,
+      "sortOrder": 1,
+      "optionGroups": []
+    },
+    {
+      "id": "sample-radio",
+      "categoryId": "cat-sample",
+      "menuNumber": "SMP-2",
+      "name": "Sample: Required Radio (Sauce Choice)",
+      "translation": null,
+      "description": "Customer must pick exactly one sauce.",
+      "pricePence": 650,
+      "taxClassId": "hot-food",
+      "printClass": "kitchen",
+      "isAvailable": true,
+      "sortOrder": 2,
+      "optionGroups": [
+        {
+          "groupId": "choose-sauce",
+          "sortOrder": 1
+        }
+      ]
+    },
+    {
+      "id": "sample-select-price",
+      "categoryId": "cat-sample",
+      "menuNumber": "SMP-3",
+      "name": "Sample: Select with Price Variants",
+      "translation": null,
+      "description": "Protein choice changes the price.",
+      "pricePence": 700,
+      "taxClassId": "hot-food",
+      "printClass": "kitchen",
+      "isAvailable": true,
+      "sortOrder": 3,
+      "optionGroups": [
+        {
+          "groupId": "choose-protein-2",
+          "sortOrder": 1
+        }
+      ]
+    },
+    {
+      "id": "sample-checkbox",
+      "categoryId": "cat-sample",
+      "menuNumber": "SMP-4",
+      "name": "Sample: Optional Checkbox Extras",
+      "translation": "咖喱鸡",
+      "description": "Pick 0–3 optional add-ons.",
+      "pricePence": 800,
+      "taxClassId": "hot-food",
+      "printClass": "kitchen",
+      "isAvailable": true,
+      "sortOrder": 4,
+      "optionGroups": [
+        {
+          "groupId": "add-extras",
+          "sortOrder": 1
+        }
+      ]
+    },
+    {
+      "id": "sample-required-checkbox",
+      "categoryId": "cat-sample",
+      "menuNumber": "SMP-5",
+      "name": "Sample: Required Checkbox (Pick 2 Sides)",
+      "translation": null,
+      "description": "Must select exactly 2 side dishes.",
+      "pricePence": 1000,
+      "taxClassId": "hot-food",
+      "printClass": "kitchen",
+      "isAvailable": true,
+      "sortOrder": 5,
+      "optionGroups": [
+        {
+          "groupId": "choose-2-sides",
+          "sortOrder": 1
+        }
+      ]
+    },
+    {
+      "id": "sample-conditional",
+      "categoryId": "cat-sample",
+      "menuNumber": "SMP-6",
+      "name": "Sample: Conditional Options",
+      "translation": "案例菜三",
+      "description": "Spice level only appears when Curry is selected as main.",
+      "pricePence": 750,
+      "taxClassId": "hot-food",
+      "printClass": "kitchen",
+      "isAvailable": true,
+      "sortOrder": 6,
+      "optionGroups": [
+        {
+          "groupId": "choose-main-style",
+          "sortOrder": 1
+        },
+        {
+          "groupId": "spice-level",
+          "sortOrder": 2,
+          "showWhen": {
+            "groupId": "choose-main-style",
+            "choiceIds": [
+              "choose-main-style-1"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "sample-combo",
+      "categoryId": "cat-sample",
+      "menuNumber": "SMP-7",
+      "name": "Sample: Meal Deal (Starter + Main)",
+      "translation": null,
+      "description": "Pick one starter and one main — bundled meal deal.",
+      "pricePence": 1200,
+      "taxClassId": "hot-food",
+      "printClass": "kitchen",
+      "isAvailable": true,
+      "sortOrder": 7,
+      "optionGroups": [
+        {
+          "groupId": "choose-starter",
+          "sortOrder": 1
+        },
+        {
+          "groupId": "choose-main-course",
+          "sortOrder": 2
+        },
+        {
+          "groupId": "rice-upgrade",
+          "sortOrder": 3
+        }
+      ]
+    },
+    {
+      "id": "sample-bundle",
+      "categoryId": "cat-sample",
+      "menuNumber": "SMP-8",
+      "name": "Sample: Fixed Bundle (No Options)",
+      "translation": null,
+      "description": "Pre-set combination box — fixed contents, fixed price.",
+      "pricePence": 1599,
+      "taxClassId": "hot-food",
+      "printClass": "kitchen",
+      "isAvailable": true,
+      "sortOrder": 8,
+      "optionGroups": []
+    },
+    {
+      "id": "mrx6l3sr-yxkil1f",
+      "categoryId": "cat-sample",
+      "menuNumber": "SMP-9",
+      "name": "Sample: Munchy Box ",
+      "translation": "盒餐",
+      "description": "Choose Starter, Main Course, Fried Rice/Chips",
+      "pricePence": 1970,
+      "taxClassId": "hot-food",
+      "printClass": "kitchen",
+      "isAvailable": false,
+      "sortOrder": 178,
+      "optionGroups": [
+        {
+          "groupId": "starter",
+          "sortOrder": 1
+        },
+        {
+          "groupId": "main-course",
+          "sortOrder": 2
+        },
+        {
+          "groupId": "choose-chow-mein-option",
+          "sortOrder": 3,
+          "showWhen": {
+            "groupId": "main-course",
+            "choiceIds": [
+              "main-course-1"
+            ]
+          }
+        },
+        {
+          "groupId": "choose-spicy-options",
+          "sortOrder": 4,
+          "showWhen": {
+            "groupId": "main-course",
+            "choiceIds": [
+              "main-course-3"
+            ]
+          }
+        },
+        {
+          "groupId": "new-option-group",
+          "sortOrder": 5
+        }
+      ]
+    }
+  ]
+}

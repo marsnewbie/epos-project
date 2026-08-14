@@ -1,0 +1,3277 @@
+{
+  "schemaVersion": 1,
+  "profileVersion": "2026-08-14.1",
+  "shop": {
+    "slug": "demo",
+    "name": "Magic Wok Chinese",
+    "address": "106 Warren Farm Road, Birmingham",
+    "postcode": "B44 0QN",
+    "phone": "0121 296 6775",
+    "email": null,
+    "vatNumber": null,
+    "allergyNotice": "Most dishes contain garlic, soya, gluten, cooking wine and sesame oil. Please tell us about any allergies before ordering."
+  },
+  "locale": {
+    "currency": "GBP",
+    "uiLanguage": "en",
+    "kitchenLanguage": "zh"
+  },
+  "tax": {
+    "pricesIncludeTax": true,
+    "classes": [
+      {
+        "id": "hot-food",
+        "name": "Hot food (standard)",
+        "rateBasisPoints": 2000
+      },
+      {
+        "id": "cold-food",
+        "name": "Cold food (zero)",
+        "rateBasisPoints": 0
+      },
+      {
+        "id": "drinks",
+        "name": "Drinks (standard)",
+        "rateBasisPoints": 2000
+      }
+    ],
+    "defaultClassId": "hot-food"
+  },
+  "serviceTypes": [
+    {
+      "id": "collection",
+      "name": "Collection",
+      "isDefault": true,
+      "priceTierId": "standard"
+    },
+    {
+      "id": "delivery",
+      "name": "Delivery",
+      "priceTierId": "standard"
+    },
+    {
+      "id": "eat-in",
+      "name": "Eat in",
+      "priceTierId": "eat-in"
+    }
+  ],
+  "priceTiers": [
+    {
+      "id": "standard",
+      "name": "Takeaway / delivery",
+      "isDefault": true
+    },
+    {
+      "id": "eat-in",
+      "name": "Eat in"
+    },
+    {
+      "id": "platform",
+      "name": "Third-party platform"
+    }
+  ],
+  "menu": {
+    "categories": [
+      {
+        "id": "cat-starters",
+        "name": "Starters",
+        "description": null,
+        "sortOrder": 1,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-soups",
+        "name": "Soups",
+        "description": null,
+        "sortOrder": 2,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-sweet-sour",
+        "name": "Sweet & Sour",
+        "description": null,
+        "sortOrder": 3,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-curry",
+        "name": "Curry Dishes",
+        "description": null,
+        "sortOrder": 4,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-duck",
+        "name": "Duck Dishes",
+        "description": null,
+        "sortOrder": 5,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-chicken",
+        "name": "Chicken Dishes",
+        "description": null,
+        "sortOrder": 6,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-beef",
+        "name": "Beef Dishes",
+        "description": null,
+        "sortOrder": 7,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-pork",
+        "name": "Roast Pork (Char Siu)",
+        "description": null,
+        "sortOrder": 8,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-seafood",
+        "name": "Seafood Dishes",
+        "description": null,
+        "sortOrder": 9,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-vegetarian",
+        "name": "Vegetarian Dishes",
+        "description": null,
+        "sortOrder": 10,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-egg-foo",
+        "name": "Egg Foo Yung",
+        "description": null,
+        "sortOrder": 11,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-noodles",
+        "name": "Noodle Dishes",
+        "description": null,
+        "sortOrder": 12,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-rice",
+        "name": "Rice Dishes",
+        "description": null,
+        "sortOrder": 13,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-thai",
+        "name": "Thai Menu",
+        "description": null,
+        "sortOrder": 14,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-specials",
+        "name": "Chef Specials",
+        "description": null,
+        "sortOrder": 15,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-set-menus",
+        "name": "Set Menus",
+        "description": null,
+        "sortOrder": 16,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-desserts",
+        "name": "Desserts",
+        "description": null,
+        "sortOrder": 17,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-sauces",
+        "name": "Sauces",
+        "description": null,
+        "sortOrder": 18,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-drinks",
+        "name": "Drinks",
+        "description": null,
+        "sortOrder": 19,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-sample",
+        "name": "⚙️ Sample Options (Demo)",
+        "description": "Demonstrates all option types for merchant reference",
+        "sortOrder": 20,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      },
+      {
+        "id": "cat-ms04vuzz-yrr4vcu",
+        "name": "New Category",
+        "description": "",
+        "sortOrder": 21,
+        "isVisible": true,
+        "printClass": "kitchen",
+        "taxClassId": "hot-food"
+      }
+    ],
+    "optionGroups": [
+      {
+        "id": "choose-drink",
+        "name": "Choose Drink",
+        "translation": null,
+        "type": "single",
+        "required": true,
+        "minSelections": null,
+        "maxSelections": null,
+        "choices": [
+          {
+            "id": "choose-drink-1",
+            "label": "Coke",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": true,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-drink-2",
+            "label": "Diet Coke",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-drink-3",
+            "label": "7up",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-drink-4",
+            "label": "Still Water",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-drink-5",
+            "label": "Fanta Orange",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          }
+        ]
+      },
+      {
+        "id": "choose-protein",
+        "name": "Choose Protein",
+        "translation": null,
+        "type": "single",
+        "required": true,
+        "minSelections": null,
+        "maxSelections": null,
+        "choices": [
+          {
+            "id": "choose-protein-1",
+            "label": "Chicken",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": true,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-protein-2",
+            "label": "Beef",
+            "translation": null,
+            "priceDeltaPence": 20,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-protein-3",
+            "label": "King Prawn",
+            "translation": null,
+            "priceDeltaPence": 60,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-protein-4",
+            "label": "Roast Duck",
+            "translation": null,
+            "priceDeltaPence": 30,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-protein-5",
+            "label": "Mixed Vegetable",
+            "translation": null,
+            "priceDeltaPence": -50,
+            "isDefault": false,
+            "isAvailable": true
+          }
+        ]
+      },
+      {
+        "id": "choose-size",
+        "name": "Choose Size",
+        "translation": null,
+        "type": "single",
+        "required": true,
+        "minSelections": null,
+        "maxSelections": null,
+        "choices": [
+          {
+            "id": "choose-size-1",
+            "label": "Large",
+            "translation": "大",
+            "priceDeltaPence": 100,
+            "isDefault": true,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-size-2",
+            "label": "Small",
+            "translation": "小",
+            "priceDeltaPence": 50,
+            "isDefault": false,
+            "isAvailable": true
+          }
+        ]
+      },
+      {
+        "id": "sauce",
+        "name": "Sauce",
+        "translation": null,
+        "type": "single",
+        "required": true,
+        "minSelections": null,
+        "maxSelections": null,
+        "choices": [
+          {
+            "id": "sauce-1",
+            "label": "BBQ",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": true,
+            "isAvailable": true
+          },
+          {
+            "id": "sauce-2",
+            "label": "Curry",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          }
+        ]
+      },
+      {
+        "id": "choose-drink-2",
+        "name": "Choose Drink",
+        "translation": null,
+        "type": "single",
+        "required": true,
+        "minSelections": null,
+        "maxSelections": null,
+        "choices": [
+          {
+            "id": "choose-drink-2-1",
+            "label": "Coke",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": true,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-drink-2-2",
+            "label": "Diet Coke",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          }
+        ]
+      },
+      {
+        "id": "size",
+        "name": "Size",
+        "translation": null,
+        "type": "single",
+        "required": true,
+        "minSelections": null,
+        "maxSelections": null,
+        "choices": [
+          {
+            "id": "size-1",
+            "label": "Half (12 Pancakes)",
+            "translation": "半",
+            "priceDeltaPence": 0,
+            "isDefault": true,
+            "isAvailable": true
+          },
+          {
+            "id": "size-2",
+            "label": "Whole (18 Pancakes)",
+            "translation": "全",
+            "priceDeltaPence": 1250,
+            "isDefault": false,
+            "isAvailable": true
+          }
+        ]
+      },
+      {
+        "id": "choose-protein-3",
+        "name": "Choose Protein",
+        "translation": null,
+        "type": "single",
+        "required": true,
+        "minSelections": null,
+        "maxSelections": null,
+        "choices": [
+          {
+            "id": "choose-protein-3-1",
+            "label": "Pork",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": true,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-protein-3-2",
+            "label": "Chicken",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-protein-3-3",
+            "label": "King Prawn",
+            "translation": null,
+            "priceDeltaPence": 80,
+            "isDefault": false,
+            "isAvailable": true
+          }
+        ]
+      },
+      {
+        "id": "choose-protein-4",
+        "name": "Choose Protein",
+        "translation": null,
+        "type": "single",
+        "required": true,
+        "minSelections": null,
+        "maxSelections": null,
+        "choices": [
+          {
+            "id": "choose-protein-4-1",
+            "label": "Chicken",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": true,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-protein-4-2",
+            "label": "Beef",
+            "translation": null,
+            "priceDeltaPence": 30,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-protein-4-3",
+            "label": "King Prawn",
+            "translation": null,
+            "priceDeltaPence": 110,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-protein-4-4",
+            "label": "Roast Duck",
+            "translation": null,
+            "priceDeltaPence": 80,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-protein-4-5",
+            "label": "Mixed Vegetable",
+            "translation": null,
+            "priceDeltaPence": 150,
+            "isDefault": false,
+            "isAvailable": true
+          }
+        ]
+      },
+      {
+        "id": "curry-type",
+        "name": "Curry Type",
+        "translation": null,
+        "type": "single",
+        "required": true,
+        "minSelections": null,
+        "maxSelections": null,
+        "choices": [
+          {
+            "id": "curry-type-1",
+            "label": "Green Curry",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": true,
+            "isAvailable": true
+          },
+          {
+            "id": "curry-type-2",
+            "label": "Red Curry",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          }
+        ]
+      },
+      {
+        "id": "choose-sauce-2",
+        "name": "Choose Sauce",
+        "translation": null,
+        "type": "single",
+        "required": true,
+        "minSelections": null,
+        "maxSelections": null,
+        "choices": [
+          {
+            "id": "choose-sauce-2-1",
+            "label": "BBQ",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": true,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-sauce-2-2",
+            "label": "Peking",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-sauce-2-3",
+            "label": "Honey",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-sauce-2-4",
+            "label": "Sweet & Sour",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          }
+        ]
+      },
+      {
+        "id": "choose-sauce-one-per-box",
+        "name": "Choose Sauce (one per box)",
+        "translation": null,
+        "type": "single",
+        "required": true,
+        "minSelections": null,
+        "maxSelections": null,
+        "choices": [
+          {
+            "id": "choose-sauce-one-per-box-1",
+            "label": "BBQ",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": true,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-sauce-one-per-box-2",
+            "label": "Capital",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-sauce-one-per-box-3",
+            "label": "Honey",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-sauce-one-per-box-4",
+            "label": "Sweet & Sour",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          },
+          {
+            "id": "choose-sauce-one-per-box-5",
+            "label": "Salt & Pepper",
+            "translation": null,
+            "priceDeltaPence": 0,
+            "isDefault": false,
+            "isAvailable": true
+          }
+        ]
+      }
+    ],
+    "items": [
+      {
+        "id": "S1",
+        "categoryId": "cat-specials",
+        "menuNumber": "S1",
+        "name": "Spicy Box",
+        "translation": null,
+        "description": "Salt & pepper chicken, chips, mini spring rolls, sweet & sour sauce",
+        "pricePence": 880,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "29",
+        "categoryId": "cat-sweet-sour",
+        "menuNumber": "29",
+        "name": "Sweet & Sour Chicken Balls",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "22",
+        "categoryId": "cat-soups",
+        "menuNumber": "22",
+        "name": "Chicken & Sweetcorn Soup",
+        "translation": null,
+        "description": null,
+        "pricePence": 450,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "103",
+        "categoryId": "cat-egg-foo",
+        "menuNumber": "103",
+        "name": "Special Egg Foo Yung",
+        "translation": null,
+        "description": "Prawns, Beef, Chicken & Pork",
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "50",
+        "categoryId": "cat-chicken",
+        "menuNumber": "50",
+        "name": "Chicken with Mushrooms",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "109",
+        "categoryId": "cat-noodles",
+        "menuNumber": "109",
+        "name": "Chicken Chow Mein",
+        "translation": null,
+        "description": null,
+        "pricePence": 680,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "143",
+        "categoryId": "cat-desserts",
+        "menuNumber": "143",
+        "name": "Banana Fritter",
+        "translation": null,
+        "description": null,
+        "pricePence": 350,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "80",
+        "categoryId": "cat-seafood",
+        "menuNumber": "80",
+        "name": "King Prawns with Mushrooms",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "95",
+        "categoryId": "cat-vegetarian",
+        "menuNumber": "95",
+        "name": "Mixed Vegetables",
+        "translation": null,
+        "description": null,
+        "pricePence": 550,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "153",
+        "categoryId": "cat-drinks",
+        "menuNumber": "153",
+        "name": "Can of Drink",
+        "translation": null,
+        "description": null,
+        "pricePence": 150,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": [
+          {
+            "groupId": "choose-drink",
+            "sortOrder": 1
+          }
+        ]
+      },
+      {
+        "id": "T1",
+        "categoryId": "cat-thai",
+        "menuNumber": "T1",
+        "name": "Fried Rice Thai Style",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": [
+          {
+            "groupId": "choose-protein",
+            "sortOrder": 1
+          }
+        ]
+      },
+      {
+        "id": "1",
+        "categoryId": "cat-starters",
+        "menuNumber": "1",
+        "name": "Mixed Hors D'oeuvres (For 2)",
+        "translation": null,
+        "description": null,
+        "pricePence": 950,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": [
+          {
+            "groupId": "choose-size",
+            "sortOrder": 1
+          },
+          {
+            "groupId": "sauce",
+            "sortOrder": 2,
+            "showWhen": {
+              "groupId": "choose-size",
+              "choiceIds": [
+                "choose-size-1"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "id": "35",
+        "categoryId": "cat-curry",
+        "menuNumber": "35",
+        "name": "Special Curry",
+        "translation": null,
+        "description": "Prawns, Beef, Chicken & Pork",
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "74",
+        "categoryId": "cat-pork",
+        "menuNumber": "74",
+        "name": "Roast Pork with Mushrooms",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "63",
+        "categoryId": "cat-beef",
+        "menuNumber": "63",
+        "name": "Beef with Mushrooms",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "43",
+        "categoryId": "cat-duck",
+        "menuNumber": "43",
+        "name": "Duck with Plum Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 750,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "set-a",
+        "categoryId": "cat-set-menus",
+        "menuNumber": "A",
+        "name": "Set Menu A (For 1)",
+        "translation": null,
+        "description": "Sweet & sour chicken, beef curry, egg fried rice, prawn crackers",
+        "pricePence": 1300,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "130",
+        "categoryId": "cat-rice",
+        "menuNumber": "130",
+        "name": "Boiled Rice",
+        "translation": null,
+        "description": null,
+        "pricePence": 320,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "145",
+        "categoryId": "cat-sauces",
+        "menuNumber": "145",
+        "name": "Curry Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 200,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 1,
+        "optionGroups": []
+      },
+      {
+        "id": "23",
+        "categoryId": "cat-soups",
+        "menuNumber": "23",
+        "name": "Chicken & Noodle Soup",
+        "translation": null,
+        "description": null,
+        "pricePence": 450,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "75",
+        "categoryId": "cat-pork",
+        "menuNumber": "75",
+        "name": "Roast Pork with Mixed Vegetables",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "44",
+        "categoryId": "cat-duck",
+        "menuNumber": "44",
+        "name": "Duck with Orange Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 750,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "131",
+        "categoryId": "cat-rice",
+        "menuNumber": "131",
+        "name": "Egg Fried Rice",
+        "translation": null,
+        "description": null,
+        "pricePence": 400,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "96",
+        "categoryId": "cat-vegetarian",
+        "menuNumber": "96",
+        "name": "Mushrooms with Bamboo Shoots & Water Chestnuts",
+        "translation": null,
+        "description": null,
+        "pricePence": 550,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "64",
+        "categoryId": "cat-beef",
+        "menuNumber": "64",
+        "name": "Beef with Cashew Nuts",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "154",
+        "categoryId": "cat-drinks",
+        "menuNumber": "154",
+        "name": "Bottle of Drink (1.25L)",
+        "translation": null,
+        "description": null,
+        "pricePence": 350,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": [
+          {
+            "groupId": "choose-drink-2",
+            "sortOrder": 1
+          }
+        ]
+      },
+      {
+        "id": "51",
+        "categoryId": "cat-chicken",
+        "menuNumber": "51",
+        "name": "Chicken with Cashew Nuts",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "36",
+        "categoryId": "cat-curry",
+        "menuNumber": "36",
+        "name": "Chicken Curry",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "30",
+        "categoryId": "cat-sweet-sour",
+        "menuNumber": "30",
+        "name": "Sweet & Sour Pork Balls",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "110",
+        "categoryId": "cat-noodles",
+        "menuNumber": "110",
+        "name": "Beef Chow Mein",
+        "translation": null,
+        "description": null,
+        "pricePence": 680,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "81",
+        "categoryId": "cat-seafood",
+        "menuNumber": "81",
+        "name": "King Prawns with Cashew Nuts",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "2",
+        "categoryId": "cat-starters",
+        "menuNumber": "2",
+        "name": "Aromatic Duck",
+        "translation": "香酥鸭",
+        "description": null,
+        "pricePence": 1350,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": [
+          {
+            "groupId": "size",
+            "sortOrder": 1
+          }
+        ]
+      },
+      {
+        "id": "T2",
+        "categoryId": "cat-thai",
+        "menuNumber": "T2",
+        "name": "Pad Thai",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": [
+          {
+            "groupId": "choose-protein",
+            "sortOrder": 1
+          }
+        ]
+      },
+      {
+        "id": "set-b",
+        "categoryId": "cat-set-menus",
+        "menuNumber": "B",
+        "name": "Set Menu B (For 2)",
+        "translation": null,
+        "description": "Sesame prawn toast, sweet & sour chicken balls, beef black bean, chicken chow mein, egg fried rice, prawn crackers",
+        "pricePence": 2450,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "S2",
+        "categoryId": "cat-specials",
+        "menuNumber": "S2",
+        "name": "Munchy Box",
+        "translation": null,
+        "description": "Spare ribs, chicken wings, salt & pepper chicken, chips, chicken balls, mini spring rolls, curry sauce",
+        "pricePence": 1600,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "104",
+        "categoryId": "cat-egg-foo",
+        "menuNumber": "104",
+        "name": "Chicken Egg Foo Yung",
+        "translation": null,
+        "description": null,
+        "pricePence": 680,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "144",
+        "categoryId": "cat-desserts",
+        "menuNumber": "144",
+        "name": "Pineapple Fritter",
+        "translation": null,
+        "description": null,
+        "pricePence": 350,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "146",
+        "categoryId": "cat-sauces",
+        "menuNumber": "146",
+        "name": "Sweet & Sour Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 180,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 2,
+        "optionGroups": []
+      },
+      {
+        "id": "132",
+        "categoryId": "cat-rice",
+        "menuNumber": "132",
+        "name": "Chicken Fried Rice",
+        "translation": null,
+        "description": null,
+        "pricePence": 680,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "S3",
+        "categoryId": "cat-specials",
+        "menuNumber": "S3",
+        "name": "Combination Tray (5 in 1)",
+        "translation": null,
+        "description": null,
+        "pricePence": 980,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "97",
+        "categoryId": "cat-vegetarian",
+        "menuNumber": "97",
+        "name": "Beansprouts",
+        "translation": null,
+        "description": null,
+        "pricePence": 550,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "37",
+        "categoryId": "cat-curry",
+        "menuNumber": "37",
+        "name": "Beef Curry",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "105",
+        "categoryId": "cat-egg-foo",
+        "menuNumber": "105",
+        "name": "Beef Egg Foo Yung",
+        "translation": null,
+        "description": null,
+        "pricePence": 680,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "45",
+        "categoryId": "cat-duck",
+        "menuNumber": "45",
+        "name": "Duck with Oyster Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 750,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "set-c",
+        "categoryId": "cat-set-menus",
+        "menuNumber": "C",
+        "name": "Set Menu C (For 3)",
+        "translation": null,
+        "description": "Aromatic duck half, spare ribs, sweet & sour king prawns, chicken curry, beef green pepper black bean, special fried rice, prawn crackers",
+        "pricePence": 3450,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "24",
+        "categoryId": "cat-soups",
+        "menuNumber": "24",
+        "name": "Chicken & Mushroom Soup",
+        "translation": null,
+        "description": null,
+        "pricePence": 450,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "147",
+        "categoryId": "cat-sauces",
+        "menuNumber": "147",
+        "name": "Satay Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 220,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "3",
+        "categoryId": "cat-starters",
+        "menuNumber": "3",
+        "name": "Yuk Sung",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": [
+          {
+            "groupId": "choose-protein-3",
+            "sortOrder": 1
+          }
+        ]
+      },
+      {
+        "id": "65",
+        "categoryId": "cat-beef",
+        "menuNumber": "65",
+        "name": "Beef with Black Bean Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "76",
+        "categoryId": "cat-pork",
+        "menuNumber": "76",
+        "name": "Roast Pork with Black Bean Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "82",
+        "categoryId": "cat-seafood",
+        "menuNumber": "82",
+        "name": "King Prawns with Black Bean Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "111",
+        "categoryId": "cat-noodles",
+        "menuNumber": "111",
+        "name": "King Prawn Chow Mein",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "52",
+        "categoryId": "cat-chicken",
+        "menuNumber": "52",
+        "name": "Chicken with Black Bean Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "31",
+        "categoryId": "cat-sweet-sour",
+        "menuNumber": "31",
+        "name": "Sweet & Sour King Prawn Balls",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": []
+      },
+      {
+        "id": "T3",
+        "categoryId": "cat-thai",
+        "menuNumber": "T3",
+        "name": "Pa Kin Mao",
+        "translation": null,
+        "description": null,
+        "pricePence": 750,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 3,
+        "optionGroups": [
+          {
+            "groupId": "choose-protein-4",
+            "sortOrder": 1
+          }
+        ]
+      },
+      {
+        "id": "32",
+        "categoryId": "cat-sweet-sour",
+        "menuNumber": "32",
+        "name": "Sweet & Sour Chicken Hong Kong Style",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": []
+      },
+      {
+        "id": "25",
+        "categoryId": "cat-soups",
+        "menuNumber": "25",
+        "name": "Hot & Sour Soup",
+        "translation": null,
+        "description": null,
+        "pricePence": 480,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": []
+      },
+      {
+        "id": "S4",
+        "categoryId": "cat-specials",
+        "menuNumber": "S4",
+        "name": "Combination Tray (4 in 1)",
+        "translation": null,
+        "description": null,
+        "pricePence": 660,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": []
+      },
+      {
+        "id": "133",
+        "categoryId": "cat-rice",
+        "menuNumber": "133",
+        "name": "Beef Fried Rice",
+        "translation": null,
+        "description": null,
+        "pricePence": 680,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": []
+      },
+      {
+        "id": "38",
+        "categoryId": "cat-curry",
+        "menuNumber": "38",
+        "name": "Roast Pork Curry",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": []
+      },
+      {
+        "id": "98",
+        "categoryId": "cat-vegetarian",
+        "menuNumber": "98",
+        "name": "Tofu with Black Bean Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 580,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": []
+      },
+      {
+        "id": "77",
+        "categoryId": "cat-pork",
+        "menuNumber": "77",
+        "name": "Roast Pork with Ginger & Spring Onion",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": []
+      },
+      {
+        "id": "106",
+        "categoryId": "cat-egg-foo",
+        "menuNumber": "106",
+        "name": "King Prawn Egg Foo Yung",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": []
+      },
+      {
+        "id": "46",
+        "categoryId": "cat-duck",
+        "menuNumber": "46",
+        "name": "Duck with Black Bean Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 750,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": []
+      },
+      {
+        "id": "83",
+        "categoryId": "cat-seafood",
+        "menuNumber": "83",
+        "name": "King Prawns with Ginger & Spring Onion",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": []
+      },
+      {
+        "id": "148",
+        "categoryId": "cat-sauces",
+        "menuNumber": "148",
+        "name": "BBQ Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 180,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": []
+      },
+      {
+        "id": "T4",
+        "categoryId": "cat-thai",
+        "menuNumber": "T4",
+        "name": "Thai Curry (Green or Red)",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": [
+          {
+            "groupId": "curry-type",
+            "sortOrder": 1
+          },
+          {
+            "groupId": "choose-protein",
+            "sortOrder": 2
+          }
+        ]
+      },
+      {
+        "id": "66",
+        "categoryId": "cat-beef",
+        "menuNumber": "66",
+        "name": "Beef with Ginger & Spring Onion",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": []
+      },
+      {
+        "id": "112",
+        "categoryId": "cat-noodles",
+        "menuNumber": "112",
+        "name": "Roast Pork Chow Mein",
+        "translation": null,
+        "description": null,
+        "pricePence": 680,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": []
+      },
+      {
+        "id": "4",
+        "categoryId": "cat-starters",
+        "menuNumber": "4",
+        "name": "Deep Fried Chicken Wings",
+        "translation": null,
+        "description": null,
+        "pricePence": 650,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": [
+          {
+            "groupId": "choose-sauce-2",
+            "sortOrder": 1
+          }
+        ]
+      },
+      {
+        "id": "53",
+        "categoryId": "cat-chicken",
+        "menuNumber": "53",
+        "name": "Chicken with Ginger & Spring Onion",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 4,
+        "optionGroups": []
+      },
+      {
+        "id": "T5",
+        "categoryId": "cat-thai",
+        "menuNumber": "T5",
+        "name": "Tom Yum Soup",
+        "translation": null,
+        "description": null,
+        "pricePence": 650,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": [
+          {
+            "groupId": "choose-protein",
+            "sortOrder": 1
+          }
+        ]
+      },
+      {
+        "id": "54",
+        "categoryId": "cat-chicken",
+        "menuNumber": "54",
+        "name": "Chicken with Mixed Vegetables",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "26",
+        "categoryId": "cat-soups",
+        "menuNumber": "26",
+        "name": "Wonton Soup",
+        "translation": null,
+        "description": null,
+        "pricePence": 500,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "67",
+        "categoryId": "cat-beef",
+        "menuNumber": "67",
+        "name": "Beef with Mixed Vegetables",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "47",
+        "categoryId": "cat-duck",
+        "menuNumber": "47",
+        "name": "Duck with Ginger & Spring Onion",
+        "translation": null,
+        "description": null,
+        "pricePence": 750,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "5",
+        "categoryId": "cat-starters",
+        "menuNumber": "5",
+        "name": "Sesame Prawn on Toast",
+        "translation": null,
+        "description": null,
+        "pricePence": 600,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "149",
+        "categoryId": "cat-sauces",
+        "menuNumber": "149",
+        "name": "Gravy Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 180,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "134",
+        "categoryId": "cat-rice",
+        "menuNumber": "134",
+        "name": "King Prawn Fried Rice",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "S5",
+        "categoryId": "cat-specials",
+        "menuNumber": "S5",
+        "name": "Combination Tray (3 in 1)",
+        "translation": null,
+        "description": null,
+        "pricePence": 500,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "39",
+        "categoryId": "cat-curry",
+        "menuNumber": "39",
+        "name": "King Prawn Curry",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "107",
+        "categoryId": "cat-egg-foo",
+        "menuNumber": "107",
+        "name": "Mixed Vegetable Egg Foo Yung",
+        "translation": null,
+        "description": null,
+        "pricePence": 580,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "113",
+        "categoryId": "cat-noodles",
+        "menuNumber": "113",
+        "name": "Special Chow Mein",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "99",
+        "categoryId": "cat-vegetarian",
+        "menuNumber": "99",
+        "name": "Tofu Szechuan Style",
+        "translation": null,
+        "description": null,
+        "pricePence": 580,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "33",
+        "categoryId": "cat-sweet-sour",
+        "menuNumber": "33",
+        "name": "Sweet & Sour Pork Hong Kong Style",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "78",
+        "categoryId": "cat-pork",
+        "menuNumber": "78",
+        "name": "Szechuan Roast Pork",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "84",
+        "categoryId": "cat-seafood",
+        "menuNumber": "84",
+        "name": "King Prawns with Mixed Vegetables",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 5,
+        "optionGroups": []
+      },
+      {
+        "id": "40",
+        "categoryId": "cat-curry",
+        "menuNumber": "40",
+        "name": "Mushroom Curry",
+        "translation": null,
+        "description": null,
+        "pricePence": 580,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "S6",
+        "categoryId": "cat-specials",
+        "menuNumber": "S6",
+        "name": "Combination Tray (2 in 1)",
+        "translation": null,
+        "description": null,
+        "pricePence": 450,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "135",
+        "categoryId": "cat-rice",
+        "menuNumber": "135",
+        "name": "Roast Pork Fried Rice",
+        "translation": null,
+        "description": null,
+        "pricePence": 680,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "114",
+        "categoryId": "cat-noodles",
+        "menuNumber": "114",
+        "name": "Mixed Vegetable Chow Mein",
+        "translation": null,
+        "description": null,
+        "pricePence": 580,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "108",
+        "categoryId": "cat-egg-foo",
+        "menuNumber": "108",
+        "name": "Plain Egg Foo Yung",
+        "translation": null,
+        "description": null,
+        "pricePence": 550,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "68",
+        "categoryId": "cat-beef",
+        "menuNumber": "68",
+        "name": "Shredded Chilli Beef",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "79",
+        "categoryId": "cat-pork",
+        "menuNumber": "79",
+        "name": "Kung Po Roast Pork",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "48",
+        "categoryId": "cat-duck",
+        "menuNumber": "48",
+        "name": "Duck with Mushrooms",
+        "translation": null,
+        "description": null,
+        "pricePence": 750,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "150",
+        "categoryId": "cat-sauces",
+        "menuNumber": "150",
+        "name": "Black Bean Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 200,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "100",
+        "categoryId": "cat-vegetarian",
+        "menuNumber": "100",
+        "name": "Tofu with Mixed Vegetables",
+        "translation": null,
+        "description": null,
+        "pricePence": 580,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "85",
+        "categoryId": "cat-seafood",
+        "menuNumber": "85",
+        "name": "Squid with Black Bean Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "34",
+        "categoryId": "cat-sweet-sour",
+        "menuNumber": "34",
+        "name": "Sweet & Sour King Prawns Hong Kong Style",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "27",
+        "categoryId": "cat-soups",
+        "menuNumber": "27",
+        "name": "Mixed Vegetable Soup",
+        "translation": null,
+        "description": null,
+        "pricePence": 420,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "6",
+        "categoryId": "cat-starters",
+        "menuNumber": "6",
+        "name": "Chicken Satay on Skewers",
+        "translation": null,
+        "description": null,
+        "pricePence": 650,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "55",
+        "categoryId": "cat-chicken",
+        "menuNumber": "55",
+        "name": "Shredded Chilli Chicken",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 6,
+        "optionGroups": []
+      },
+      {
+        "id": "115",
+        "categoryId": "cat-noodles",
+        "menuNumber": "115",
+        "name": "Singapore Chow Mein",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 7,
+        "optionGroups": []
+      },
+      {
+        "id": "56",
+        "categoryId": "cat-chicken",
+        "menuNumber": "56",
+        "name": "Kung Po Chicken",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 7,
+        "optionGroups": []
+      },
+      {
+        "id": "136",
+        "categoryId": "cat-rice",
+        "menuNumber": "136",
+        "name": "Mixed Vegetable Fried Rice",
+        "translation": null,
+        "description": null,
+        "pricePence": 580,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 7,
+        "optionGroups": []
+      },
+      {
+        "id": "7",
+        "categoryId": "cat-starters",
+        "menuNumber": "7",
+        "name": "Crispy Seaweed",
+        "translation": null,
+        "description": null,
+        "pricePence": 450,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 7,
+        "optionGroups": []
+      },
+      {
+        "id": "41",
+        "categoryId": "cat-curry",
+        "menuNumber": "41",
+        "name": "Mixed Vegetable Curry",
+        "translation": null,
+        "description": null,
+        "pricePence": 580,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 7,
+        "optionGroups": []
+      },
+      {
+        "id": "S7",
+        "categoryId": "cat-specials",
+        "menuNumber": "S7",
+        "name": "Salt & Pepper Chicken Tray",
+        "translation": null,
+        "description": null,
+        "pricePence": 650,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 7,
+        "optionGroups": []
+      },
+      {
+        "id": "69",
+        "categoryId": "cat-beef",
+        "menuNumber": "69",
+        "name": "Kung Po Beef",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 7,
+        "optionGroups": []
+      },
+      {
+        "id": "151",
+        "categoryId": "cat-sauces",
+        "menuNumber": "151",
+        "name": "Oyster Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 200,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 7,
+        "optionGroups": []
+      },
+      {
+        "id": "49",
+        "categoryId": "cat-duck",
+        "menuNumber": "49",
+        "name": "Duck with Mixed Vegetables",
+        "translation": null,
+        "description": null,
+        "pricePence": 750,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 7,
+        "optionGroups": []
+      },
+      {
+        "id": "28",
+        "categoryId": "cat-soups",
+        "menuNumber": "28",
+        "name": "Crab Meat & Sweetcorn Soup",
+        "translation": null,
+        "description": null,
+        "pricePence": 520,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 7,
+        "optionGroups": []
+      },
+      {
+        "id": "86",
+        "categoryId": "cat-seafood",
+        "menuNumber": "86",
+        "name": "Squid with Ginger & Spring Onion",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 7,
+        "optionGroups": []
+      },
+      {
+        "id": "101",
+        "categoryId": "cat-vegetarian",
+        "menuNumber": "101",
+        "name": "Stir Fried Broccoli",
+        "translation": null,
+        "description": null,
+        "pricePence": 550,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 7,
+        "optionGroups": []
+      },
+      {
+        "id": "57",
+        "categoryId": "cat-chicken",
+        "menuNumber": "57",
+        "name": "Satay Chicken",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 8,
+        "optionGroups": []
+      },
+      {
+        "id": "137",
+        "categoryId": "cat-rice",
+        "menuNumber": "137",
+        "name": "Singapore Fried Rice",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 8,
+        "optionGroups": []
+      },
+      {
+        "id": "8",
+        "categoryId": "cat-starters",
+        "menuNumber": "8",
+        "name": "Mini Vegetable Spring Rolls (10)",
+        "translation": null,
+        "description": null,
+        "pricePence": 480,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 8,
+        "optionGroups": []
+      },
+      {
+        "id": "87",
+        "categoryId": "cat-seafood",
+        "menuNumber": "87",
+        "name": "Squid with Salt & Pepper",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 8,
+        "optionGroups": []
+      },
+      {
+        "id": "116",
+        "categoryId": "cat-noodles",
+        "menuNumber": "116",
+        "name": "Chicken Vermicelli",
+        "translation": null,
+        "description": null,
+        "pricePence": 680,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 8,
+        "optionGroups": []
+      },
+      {
+        "id": "102",
+        "categoryId": "cat-vegetarian",
+        "menuNumber": "102",
+        "name": "Stir Fried Chinese Leaf",
+        "translation": null,
+        "description": null,
+        "pricePence": 550,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 8,
+        "optionGroups": []
+      },
+      {
+        "id": "152",
+        "categoryId": "cat-sauces",
+        "menuNumber": "152",
+        "name": "Chilli Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 250,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 8,
+        "optionGroups": []
+      },
+      {
+        "id": "S8",
+        "categoryId": "cat-specials",
+        "menuNumber": "S8",
+        "name": "Salt & Pepper Chips Tray",
+        "translation": null,
+        "description": null,
+        "pricePence": 500,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 8,
+        "optionGroups": []
+      },
+      {
+        "id": "70",
+        "categoryId": "cat-beef",
+        "menuNumber": "70",
+        "name": "Satay Beef",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 8,
+        "optionGroups": []
+      },
+      {
+        "id": "42",
+        "categoryId": "cat-curry",
+        "menuNumber": "42",
+        "name": "Tofu Curry",
+        "translation": null,
+        "description": null,
+        "pricePence": 580,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 8,
+        "optionGroups": []
+      },
+      {
+        "id": "138",
+        "categoryId": "cat-rice",
+        "menuNumber": "138",
+        "name": "Special Fried Rice",
+        "translation": null,
+        "description": null,
+        "pricePence": 750,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 9,
+        "optionGroups": []
+      },
+      {
+        "id": "117",
+        "categoryId": "cat-noodles",
+        "menuNumber": "117",
+        "name": "Beef Vermicelli",
+        "translation": null,
+        "description": null,
+        "pricePence": 680,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 9,
+        "optionGroups": []
+      },
+      {
+        "id": "88",
+        "categoryId": "cat-seafood",
+        "menuNumber": "88",
+        "name": "King Prawns with Oyster Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 9,
+        "optionGroups": []
+      },
+      {
+        "id": "9",
+        "categoryId": "cat-starters",
+        "menuNumber": "9",
+        "name": "Mini Chicken Spring Rolls (10)",
+        "translation": null,
+        "description": null,
+        "pricePence": 500,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 9,
+        "optionGroups": []
+      },
+      {
+        "id": "58",
+        "categoryId": "cat-chicken",
+        "menuNumber": "58",
+        "name": "Szechuan Chicken",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 9,
+        "optionGroups": []
+      },
+      {
+        "id": "71",
+        "categoryId": "cat-beef",
+        "menuNumber": "71",
+        "name": "Szechuan Beef",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 9,
+        "optionGroups": []
+      },
+      {
+        "id": "89",
+        "categoryId": "cat-seafood",
+        "menuNumber": "89",
+        "name": "King Prawns Szechuan Style",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 10,
+        "optionGroups": []
+      },
+      {
+        "id": "139",
+        "categoryId": "cat-rice",
+        "menuNumber": "139",
+        "name": "Chicken & Sweetcorn Fried Rice",
+        "translation": null,
+        "description": null,
+        "pricePence": 680,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 10,
+        "optionGroups": []
+      },
+      {
+        "id": "72",
+        "categoryId": "cat-beef",
+        "menuNumber": "72",
+        "name": "Beef with Green Pepper in Black Bean Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 10,
+        "optionGroups": []
+      },
+      {
+        "id": "59",
+        "categoryId": "cat-chicken",
+        "menuNumber": "59",
+        "name": "Lemon Chicken",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 10,
+        "optionGroups": []
+      },
+      {
+        "id": "10",
+        "categoryId": "cat-starters",
+        "menuNumber": "10",
+        "name": "Chicken Balls (10)",
+        "translation": null,
+        "description": null,
+        "pricePence": 600,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 10,
+        "optionGroups": []
+      },
+      {
+        "id": "118",
+        "categoryId": "cat-noodles",
+        "menuNumber": "118",
+        "name": "King Prawn Vermicelli",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 10,
+        "optionGroups": []
+      },
+      {
+        "id": "90",
+        "categoryId": "cat-seafood",
+        "menuNumber": "90",
+        "name": "King Prawns Kung Po Style",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 11,
+        "optionGroups": []
+      },
+      {
+        "id": "119",
+        "categoryId": "cat-noodles",
+        "menuNumber": "119",
+        "name": "Chicken Ho Fun",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 11,
+        "optionGroups": []
+      },
+      {
+        "id": "11",
+        "categoryId": "cat-starters",
+        "menuNumber": "11",
+        "name": "Prawn Toast",
+        "translation": null,
+        "description": null,
+        "pricePence": 550,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 11,
+        "optionGroups": []
+      },
+      {
+        "id": "73",
+        "categoryId": "cat-beef",
+        "menuNumber": "73",
+        "name": "Beef with Oyster Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 11,
+        "optionGroups": []
+      },
+      {
+        "id": "60",
+        "categoryId": "cat-chicken",
+        "menuNumber": "60",
+        "name": "Chicken with Green Pepper in Black Bean Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 11,
+        "optionGroups": []
+      },
+      {
+        "id": "140",
+        "categoryId": "cat-rice",
+        "menuNumber": "140",
+        "name": "Chicken & Mushroom Fried Rice",
+        "translation": null,
+        "description": null,
+        "pricePence": 680,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 11,
+        "optionGroups": []
+      },
+      {
+        "id": "12",
+        "categoryId": "cat-starters",
+        "menuNumber": "12",
+        "name": "Prawn Crackers",
+        "translation": null,
+        "description": null,
+        "pricePence": 280,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 12,
+        "optionGroups": []
+      },
+      {
+        "id": "91",
+        "categoryId": "cat-seafood",
+        "menuNumber": "91",
+        "name": "King Prawns Satay",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 12,
+        "optionGroups": []
+      },
+      {
+        "id": "120",
+        "categoryId": "cat-noodles",
+        "menuNumber": "120",
+        "name": "Beef Ho Fun",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 12,
+        "optionGroups": []
+      },
+      {
+        "id": "141",
+        "categoryId": "cat-rice",
+        "menuNumber": "141",
+        "name": "House Special Fried Rice",
+        "translation": null,
+        "description": null,
+        "pricePence": 830,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 12,
+        "optionGroups": []
+      },
+      {
+        "id": "61",
+        "categoryId": "cat-chicken",
+        "menuNumber": "61",
+        "name": "Chicken with Pineapple",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 12,
+        "optionGroups": []
+      },
+      {
+        "id": "13",
+        "categoryId": "cat-starters",
+        "menuNumber": "13",
+        "name": "Satay Chicken on Skewers",
+        "translation": null,
+        "description": null,
+        "pricePence": 680,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 13,
+        "optionGroups": []
+      },
+      {
+        "id": "92",
+        "categoryId": "cat-seafood",
+        "menuNumber": "92",
+        "name": "Squid with Mixed Vegetables",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 13,
+        "optionGroups": []
+      },
+      {
+        "id": "142",
+        "categoryId": "cat-rice",
+        "menuNumber": "142",
+        "name": "Yang Chow Fried Rice",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 13,
+        "optionGroups": []
+      },
+      {
+        "id": "121",
+        "categoryId": "cat-noodles",
+        "menuNumber": "121",
+        "name": "King Prawn Ho Fun",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 13,
+        "optionGroups": []
+      },
+      {
+        "id": "62",
+        "categoryId": "cat-chicken",
+        "menuNumber": "62",
+        "name": "Chicken with Oyster Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 13,
+        "optionGroups": []
+      },
+      {
+        "id": "93",
+        "categoryId": "cat-seafood",
+        "menuNumber": "93",
+        "name": "Squid Szechuan Style",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 14,
+        "optionGroups": []
+      },
+      {
+        "id": "14",
+        "categoryId": "cat-starters",
+        "menuNumber": "14",
+        "name": "Salt & Pepper Chips",
+        "translation": null,
+        "description": null,
+        "pricePence": 450,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 14,
+        "optionGroups": []
+      },
+      {
+        "id": "122",
+        "categoryId": "cat-noodles",
+        "menuNumber": "122",
+        "name": "Roast Pork Ho Fun",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 14,
+        "optionGroups": []
+      },
+      {
+        "id": "94",
+        "categoryId": "cat-seafood",
+        "menuNumber": "94",
+        "name": "Squid with Green Pepper in Black Bean Sauce",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 15,
+        "optionGroups": []
+      },
+      {
+        "id": "123",
+        "categoryId": "cat-noodles",
+        "menuNumber": "123",
+        "name": "Special Ho Fun",
+        "translation": null,
+        "description": null,
+        "pricePence": 750,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 15,
+        "optionGroups": []
+      },
+      {
+        "id": "15",
+        "categoryId": "cat-starters",
+        "menuNumber": "15",
+        "name": "Salt & Pepper Chicken",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 15,
+        "optionGroups": []
+      },
+      {
+        "id": "124",
+        "categoryId": "cat-noodles",
+        "menuNumber": "124",
+        "name": "Plain Chow Mein",
+        "translation": null,
+        "description": null,
+        "pricePence": 530,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 16,
+        "optionGroups": []
+      },
+      {
+        "id": "16",
+        "categoryId": "cat-starters",
+        "menuNumber": "16",
+        "name": "Salt & Pepper King Prawns",
+        "translation": null,
+        "description": null,
+        "pricePence": 750,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 16,
+        "optionGroups": []
+      },
+      {
+        "id": "17",
+        "categoryId": "cat-starters",
+        "menuNumber": "17",
+        "name": "Salt & Pepper Squid",
+        "translation": null,
+        "description": null,
+        "pricePence": 720,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 17,
+        "optionGroups": []
+      },
+      {
+        "id": "125",
+        "categoryId": "cat-noodles",
+        "menuNumber": "125",
+        "name": "Plain Ho Fun",
+        "translation": null,
+        "description": null,
+        "pricePence": 550,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 17,
+        "optionGroups": []
+      },
+      {
+        "id": "126",
+        "categoryId": "cat-noodles",
+        "menuNumber": "126",
+        "name": "Plain Vermicelli",
+        "translation": null,
+        "description": null,
+        "pricePence": 530,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 18,
+        "optionGroups": []
+      },
+      {
+        "id": "18",
+        "categoryId": "cat-starters",
+        "menuNumber": "18",
+        "name": "Salt & Pepper Chicken Wings",
+        "translation": null,
+        "description": null,
+        "pricePence": 680,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 18,
+        "optionGroups": []
+      },
+      {
+        "id": "19",
+        "categoryId": "cat-starters",
+        "menuNumber": "19",
+        "name": "Spare Ribs",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 19,
+        "optionGroups": [
+          {
+            "groupId": "choose-sauce-one-per-box",
+            "sortOrder": 1
+          }
+        ]
+      },
+      {
+        "id": "127",
+        "categoryId": "cat-noodles",
+        "menuNumber": "127",
+        "name": "Chicken Singapore Vermicelli",
+        "translation": null,
+        "description": null,
+        "pricePence": 700,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 19,
+        "optionGroups": []
+      },
+      {
+        "id": "128",
+        "categoryId": "cat-noodles",
+        "menuNumber": "128",
+        "name": "House Special Chow Mein",
+        "translation": null,
+        "description": null,
+        "pricePence": 900,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 20,
+        "optionGroups": []
+      },
+      {
+        "id": "20",
+        "categoryId": "cat-starters",
+        "menuNumber": "20",
+        "name": "Chicken Wings (8)",
+        "translation": null,
+        "description": null,
+        "pricePence": 650,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 20,
+        "optionGroups": []
+      },
+      {
+        "id": "129",
+        "categoryId": "cat-noodles",
+        "menuNumber": "129",
+        "name": "House Special Ho Fun",
+        "translation": null,
+        "description": null,
+        "pricePence": 900,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 21,
+        "optionGroups": []
+      },
+      {
+        "id": "21",
+        "categoryId": "cat-starters",
+        "menuNumber": "21",
+        "name": "Crispy Chicken Skin",
+        "translation": null,
+        "description": null,
+        "pricePence": 550,
+        "taxClassId": "hot-food",
+        "printClass": "kitchen",
+        "isAvailable": true,
+        "sortOrder": 21,
+        "optionGroups": []
+      }
+    ]
+  },
+  "quickNotes": [
+    {
+      "en": "No onion",
+      "zh": "不要葱"
+    },
+    {
+      "en": "No garlic",
+      "zh": "不要蒜"
+    },
+    {
+      "en": "No coriander",
+      "zh": "不要香菜"
+    },
+    {
+      "en": "No spicy",
+      "zh": "不要辣"
+    },
+    {
+      "en": "Mild spicy",
+      "zh": "少辣"
+    },
+    {
+      "en": "Extra spicy",
+      "zh": "多辣"
+    },
+    {
+      "en": "Less oil",
+      "zh": "少油"
+    },
+    {
+      "en": "Less salt",
+      "zh": "少盐"
+    },
+    {
+      "en": "Sauce separate",
+      "zh": "酱汁分开"
+    },
+    {
+      "en": "Urgent",
+      "zh": "急单"
+    },
+    {
+      "en": "No cutlery",
+      "zh": "不要餐具"
+    },
+    {
+      "en": "Cutlery please",
+      "zh": "要餐具"
+    },
+    {
+      "en": "Well done",
+      "zh": "煎透"
+    },
+    {
+      "en": "Soft",
+      "zh": "嫩一点"
+    }
+  ],
+  "delivery": {
+    "defaultFeePence": 0,
+    "zones": []
+  },
+  "printing": {
+    "devices": [
+      {
+        "id": "front-1",
+        "name": "Front counter",
+        "transport": "windows-queue",
+        "address": "GlPrinter80",
+        "paperWidthMm": 80,
+        "encoding": "gbk",
+        "cjkAsRaster": true,
+        "hasCashDrawer": true
+      },
+      {
+        "id": "kitchen-1",
+        "name": "Kitchen",
+        "transport": "windows-queue",
+        "address": "GlPrinter80",
+        "paperWidthMm": 80,
+        "encoding": "gbk",
+        "cjkAsRaster": true,
+        "hasCashDrawer": false
+      }
+    ],
+    "routes": [
+      {
+        "when": {
+          "printClass": "kitchen"
+        },
+        "deviceId": "kitchen-1",
+        "copies": 1,
+        "template": "kitchen",
+        "fallbackDeviceId": "front-1"
+      },
+      {
+        "when": {
+          "document": "receipt"
+        },
+        "deviceId": "front-1",
+        "copies": 1,
+        "template": "receipt"
+      }
+    ]
+  },
+  "channels": {
+    "counter": {
+      "enabled": true
+    },
+    "phone": {
+      "enabled": true
+    },
+    "web": {
+      "enabled": true,
+      "baseUrl": "https://magicwoksite.vercel.app",
+      "pollSeconds": 4,
+      "autoPrint": true,
+      "credentialsRef": "local"
+    },
+    "platform": {
+      "enabled": false,
+      "providers": []
+    }
+  },
+  "staff": [
+    {
+      "name": "Manager",
+      "role": "manager",
+      "pin": "1234",
+      "mustChangePin": true
+    }
+  ],
+  "receipt": {
+    "headerLines": [],
+    "footerLines": []
+  }
+}

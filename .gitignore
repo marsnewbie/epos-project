@@ -44,3 +44,7 @@ Desktop.ini
 *.local.json
 run-err.txt
 run-out.txt
+
+# Merchant shop data — bundles, source material and credentials stay on this
+# machine. The repo ships the product plus the demo shop under shops/ only.
+/ringorder-epos-shops/
