@@ -1,54 +1,51 @@
-# Magic Wok EPOS
+# RingOrder EPOS
 
-Windows takeaway / restaurant front-of-house EPOS for Magic Wok (and future clone shops).
+A Windows till for takeaways and restaurants. Counter, phone, website and
+marketplace orders on one screen; kitchen and receipt printing; cash, card,
+shifts and staff.
 
-**Stack:** .NET 8 + Avalonia 11.2 desktop.  
-**Data:** local SQLite at `%APPDATA%\RingOrder.Epos\data.sqlite`.  
-**Online orders:** JSON pull `/api/print/epos/next` (same claim queue as handheld GcAnyOrder). Default base: `https://magicwoksite.vercel.app`. Operator chooses which device polls.  
-**Website repo:** [`magicwok-birmingham-website`](https://github.com/marsnewbie/magicwoksite) — separate GitHub; do not push EPOS commits there.
+**One signed binary is installed in every shop. The entire difference between two
+merchants is one configuration file.** It works with no internet, no website and
+no account — a shop that has bought only the till is a first-class customer.
 
-## Quick start
+**Stack:** .NET 8 + Avalonia 11, local SQLite.
+**Repository:** https://github.com/marsnewbie/epos-project
 
-```powershell
-cd C:\Projects\magicwok-epos
-dotnet restore
+## Run it
+
+```bash
 dotnet run --project src/RingOrder.Epos
 ```
 
-Requirements: .NET 8 SDK, Windows x64, printer queue **GlPrinter80** for print tests.
+A fresh machine has no shop. Copy a bundle in first:
 
-First launch seeds the **full Magic Wok menu** (21 categories / ~179 items) from embedded live JSON, plus shop defaults and Online base URL.
+```bash
+cp shops/demo/shop.ringpos.json "$PROGRAMDATA/RingOrder/EPOS/profile/"
+```
 
-## Smoke test checklist
+First run creates the database, applies migrations and imports the bundle. Sign
+in with the seeded manager PIN — `1234` for the demo shop, which the staff list
+will keep telling you to change.
 
-1. **Sell** — browse categories, double-tap a dish (or pick options then *Add item*), use quick notes, Send kitchen / Pay cash / Pay card (manual).
-2. **Settings** — confirm printer `GlPrinter80`, *Save + test print*, open drawer if wired.
-3. **Settings → Online** — paste `a` / `u` / `p` from website Admin → Print (do not commit secrets). Optionally *Apply base URL*. Enable polling or use Online → *Poll once*.
-4. **Online** — with credentials + a pending website order, *Poll once* should upsert locally, kitchen-print, then ack `printed`.
-5. **Orders** — see today’s tickets; reprint kitchen / front.
-6. **Customers** — save phone/address; *Simulate call* jumps to Sell with match.
+Data lives in `%PROGRAMDATA%\RingOrder\EPOS\`: the database, the bundle it was
+provisioned from, backups and logs.
 
 ## Docs
 
+Start with **[AGENTS.md](AGENTS.md)** — the rules, the layout, and the things
+that look like rules but are not.
+
 | Doc | Content |
-|-----|---------|
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Solution layout, HAL, local DB |
-| [docs/PRODUCT.md](docs/PRODUCT.md) | POS modules, phone orders, ad-hoc, quick notes |
-| [docs/HARDWARE.md](docs/HARDWARE.md) | Printers, cash drawer, caller ID, payment |
-| [docs/ONLINE_ORDERS.md](docs/ONLINE_ORDERS.md) | Website getorder / callback integration |
-| [docs/MENU_AND_WEBSITE.md](docs/MENU_AND_WEBSITE.md) | Menu import vs website cart |
-| [docs/LESSONS_FROM_CLOUDPAS.md](docs/LESSONS_FROM_CLOUDPAS.md) | Pitfalls from earlier POS experiments |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Delivery slices |
-| [docs/TESTING.md](docs/TESTING.md) | Detailed test steps |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How the code is shaped and which decisions are load-bearing |
+| [docs/SHOP_BUNDLE.md](docs/SHOP_BUNDLE.md) | The configuration file, and putting a new shop live |
+| [docs/INTERFACE.md](docs/INTERFACE.md) | Interface and interaction rules |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Packaging, updates, backup, remote support, hardware plan |
+| [docs/TESTING.md](docs/TESTING.md) | What runs, and what to check by hand |
+| [docs/WORKLOG.md](docs/WORKLOG.md) | What changed and why |
 
-## GitHub
+## Shop data
 
-https://github.com/marsnewbie/magicwokepos.git
-
-## Reminder
-
-When you need real Magic Wok menu, option groups, print credentials, or order-field shapes, **open the website repo read-only**:
-
-`C:\Projects\magicwok-birmingham-website`
-
-Useful paths there: `src/data/seed/live/`, `src/types/index.ts`, `src/lib/print/`, `docs/gcanyorder/`.
+The repository carries the product and one demo shop. Real merchants live in
+`ringorder-epos-shops/`, which is git-ignored and holds their menus, source
+material and credentials. Back that folder up — ignored means unversioned.

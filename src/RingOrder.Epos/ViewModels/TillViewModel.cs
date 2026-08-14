@@ -6,7 +6,7 @@ using RingOrder.Epos.Services;
 
 namespace RingOrder.Epos.ViewModels;
 
-public partial class SellViewModel : ViewModelBase
+public partial class TillViewModel : ViewModelBase
 {
     private readonly AppServices _app;
     private readonly Action<string> _setStatus;
@@ -14,7 +14,7 @@ public partial class SellViewModel : ViewModelBase
     private PosOrder _ticket = new();
     private Dictionary<string, IReadOnlyList<string>> _pendingSelections = new();
 
-    public SellViewModel(AppServices app, Action<string> setStatus, Action? goOrders = null)
+    public TillViewModel(AppServices app, Action<string> setStatus, Action? goOrders = null)
     {
         _app = app;
         _setStatus = setStatus;
@@ -948,7 +948,7 @@ public partial class SellViewModel : ViewModelBase
                     $"Still due £{BalanceDue:0.00}. Ticket stays in Orders for continue pay.",
                     $"仍待收 £{BalanceDue:0.00}。订单保留在订单列表可续收。");
             else if (_ticket.Status is PosOrderStatus.Sent or PosOrderStatus.Held)
-                msg = UiText.Pick("Sent/held ticket stays in Orders. Clear the Sell screen?", "已送厨/挂单保留在订单。清空点单屏？");
+                msg = UiText.Pick("Sent/held ticket stays in Orders. Clear the till screen?", "已送厨/挂单保留在订单。清空点单屏？");
             else
                 msg = UiText.Pick("Clear current ticket?", "清空当前订单？");
 
@@ -1327,7 +1327,7 @@ public partial class SellViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// If staff leave Sell while the paid/change screen is up, finish settlement
+    /// If staff leave the till while the paid/change screen is up, finish settlement
     /// so they never return to a stuck Paid overlay.
     /// </summary>
     public void CompletePendingSettlement()
@@ -1355,7 +1355,7 @@ public partial class SellViewModel : ViewModelBase
         _blankAfterSettlementDismiss = false;
     }
 
-    /// <summary>Open an unpaid / held / reopened order from Orders into Sell.</summary>
+    /// <summary>Open an unpaid / held / reopened order from Orders into Till.</summary>
     public void LoadOrderForContinue(PosOrder order)
     {
         // Switching tickets ends any settlement overlay without wiping this order

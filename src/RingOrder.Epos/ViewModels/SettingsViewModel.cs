@@ -605,7 +605,7 @@ public partial class SettingsViewModel : ViewModelBase
         }
         if (!await UiPrompt.RequireAsync(_app, Permission.EditMenu, UiText.Pick("Delete dish", "删除菜品")))
             return;
-        if (!await UiPrompt.ConfirmAsync("Delete dish?", $"Delete “{DishEditor.Name}”? Orders history keeps past lines; Sell will no longer offer this dish."))
+        if (!await UiPrompt.ConfirmAsync("Delete dish?", $"Delete “{DishEditor.Name}”? Orders history keeps past lines; the till will no longer offer this dish."))
             return;
         _app.Menu.DeleteItem(DishEditor.ItemId);
         ClearDishEditor();

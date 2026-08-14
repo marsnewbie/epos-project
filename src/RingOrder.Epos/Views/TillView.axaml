@@ -3,9 +3,9 @@
              xmlns:vm="using:RingOrder.Epos.ViewModels"
              xmlns:domain="using:RingOrder.Epos.Domain"
              xmlns:conv="using:RingOrder.Epos.Converters"
-             x:Class="RingOrder.Epos.Views.SellView"
+             x:Class="RingOrder.Epos.Views.TillView"
              x:Name="Root"
-             x:DataType="vm:SellViewModel"
+             x:DataType="vm:TillViewModel"
              Background="{StaticResource Page}">
 
   <Grid>
@@ -494,7 +494,7 @@
     </Border>
   </Grid>
 
-  <!-- Full-screen settlement: must acknowledge before any Sell work continues -->
+  <!-- Full-screen settlement: must acknowledge before any till work continues -->
   <Border IsVisible="{Binding ShowChangeOverlay}" Background="#E0000000" ZIndex="100">
     <Border Background="#ffffff" CornerRadius="12" Padding="28" Margin="24"
             HorizontalAlignment="Center" VerticalAlignment="Center"

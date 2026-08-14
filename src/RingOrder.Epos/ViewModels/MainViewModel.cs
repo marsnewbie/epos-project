@@ -19,30 +19,30 @@ public partial class MainViewModel : ViewModelBase
     public MainViewModel(AppServices app)
     {
         _app = app;
-        Sell = new SellViewModel(app, SetStatus, () => GoOrders());
+        Till = new TillViewModel(app, SetStatus, () => GoOrders());
         Orders = new OrdersViewModel(app, SetStatus, order =>
         {
-            Sell.LoadOrderForContinue(order);
-            GoSell();
+            Till.LoadOrderForContinue(order);
+            GoTill();
         });
         Online = new OnlineViewModel(app, SetStatus);
         Customers = new CustomersViewModel(app, SetStatus, customer =>
         {
-            Sell.StartDeliveryForCustomer(customer);
-            GoSell();
+            Till.StartDeliveryForCustomer(customer);
+            GoTill();
         });
         SettingsVm = new SettingsViewModel(app, SetStatus, () =>
         {
-            Sell.ReloadQuickNotes();
-            Sell.RefreshMenu();
+            Till.ReloadQuickNotes();
+            Till.RefreshMenu();
             RefreshAllUiLanguage();
             ShopName = _app.GetSettings().ShopName;
         });
 
         ShopName = app.GetSettings().ShopName;
         RefreshSession();
-        CurrentPage = Sell;
-        NavKey = "sell";
+        CurrentPage = Till;
+        NavKey = "till";
         RefreshAllUiLanguage();
         StatusText = UiText.Pick(
             $"Ready · {app.Menu.CountItems()} dishes · {app.GetSettings().KitchenPrinterName}",
@@ -57,9 +57,9 @@ public partial class MainViewModel : ViewModelBase
         {
             Dispatcher.UIThread.Post(() =>
             {
-                Sell.ApplyCallerId(e.PhoneNumber);
+                Till.ApplyCallerId(e.PhoneNumber);
                 StatusText = UiText.Pick($"Caller ID: {e.PhoneNumber}", $"来电: {e.PhoneNumber}");
-                GoSell();
+                GoTill();
             });
         };
 
@@ -97,7 +97,7 @@ public partial class MainViewModel : ViewModelBase
         _ = BootstrapOnlineAsync();
     }
 
-    public SellViewModel Sell { get; }
+    public TillViewModel Till { get; }
     public OrdersViewModel Orders { get; }
     public OnlineViewModel Online { get; }
     public CustomersViewModel Customers { get; }
@@ -124,13 +124,13 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _lblCloseShift = "Close shift";
 
     [ObservableProperty] private ViewModelBase _currentPage = null!;
-    [ObservableProperty] private string _sectionTitle = "Sell";
+    [ObservableProperty] private string _sectionTitle = "Till";
     [ObservableProperty] private string _statusText = "";
     [ObservableProperty] private string _clockText = "";
     [ObservableProperty] private string _shopName = "";
-    [ObservableProperty] private string _navKey = "sell";
+    [ObservableProperty] private string _navKey = "till";
     [ObservableProperty] private string _onlineBadge = "";
-    [ObservableProperty] private string _navSell = "Sell";
+    [ObservableProperty] private string _navTill = "Till";
     [ObservableProperty] private string _navOrders = "Orders";
     [ObservableProperty] private string _navOnline = "Online";
     [ObservableProperty] private string _navCustomers = "Customers";
@@ -138,18 +138,18 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private string _lblLanguage = "中文";
     [ObservableProperty] private string _lblDrawer = "Drawer";
     [ObservableProperty] private string _languageHint = "";
-    [ObservableProperty] private bool _isSellNav = true;
+    [ObservableProperty] private bool _isTillNav = true;
     [ObservableProperty] private bool _isOrdersNav;
     [ObservableProperty] private bool _isOnlineNav;
     [ObservableProperty] private bool _isCustomersNav;
     [ObservableProperty] private bool _isSettingsNav;
 
     [RelayCommand]
-    private void GoSell() => Navigate("sell", Sell, UiText.NavSell, () =>
+    private void GoTill() => Navigate("till", Till, UiText.NavTill, () =>
     {
-        Sell.RefreshMenu();
-        Sell.RefreshUiLabels();
-        Sell.RefreshHeldList();
+        Till.RefreshMenu();
+        Till.RefreshUiLabels();
+        Till.RefreshHeldList();
     });
 
     [RelayCommand]
@@ -184,11 +184,11 @@ public partial class MainViewModel : ViewModelBase
 
     private void Navigate(string key, ViewModelBase page, string title, Action? onEnter = null)
     {
-        if (NavKey == "sell" && key != "sell")
-            Sell.CompletePendingSettlement();
+        if (NavKey == "till" && key != "till")
+            Till.CompletePendingSettlement();
 
         NavKey = key;
-        IsSellNav = key == "sell";
+        IsTillNav = key == "till";
         IsOrdersNav = key == "orders";
         IsOnlineNav = key == "online";
         IsCustomersNav = key == "customers";
@@ -225,7 +225,7 @@ public partial class MainViewModel : ViewModelBase
             "UI language: English (menu names unchanged)",
             "界面语言：中文（菜名不变）");
         // Re-enter current page so titles/lists refresh
-        if (IsSellNav) GoSell();
+        if (IsTillNav) GoTill();
         else if (IsOrdersNav) GoOrders();
         else if (IsOnlineNav) GoOnline();
         else if (IsCustomersNav) GoCustomers();
@@ -234,7 +234,7 @@ public partial class MainViewModel : ViewModelBase
 
     private void RefreshAllUiLanguage()
     {
-        NavSell = UiText.NavSell;
+        NavTill = UiText.NavTill;
         NavOrders = UiText.NavOrders;
         NavOnline = UiText.NavOnline;
         NavCustomers = UiText.NavCustomers;
@@ -247,7 +247,7 @@ public partial class MainViewModel : ViewModelBase
         LblOpenShift = UiText.Pick("Open shift", "开班");
         LblCloseShift = UiText.Pick("Close shift and count the drawer", "关班点钞");
         LanguageHint = UiText.UiLangNote;
-        Sell.RefreshUiLabels();
+        Till.RefreshUiLabels();
         Orders.RefreshUiLabels();
         Online.RefreshUiLabels();
         Customers.RefreshUiLabels();
@@ -302,7 +302,7 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     private void Lock()
     {
-        Sell.CompletePendingSettlement();
+        Till.CompletePendingSettlement();
         _app.Session.SignOut();
         PinEntry = "";
         IsLocked = true;

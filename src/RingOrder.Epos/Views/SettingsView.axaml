@@ -155,7 +155,7 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <TextBlock Text="Save settings to apply notes on Sell." Foreground="#5b6472" FontSize="12" />
+            <TextBlock Text="Save settings to apply notes on Till." Foreground="#5b6472" FontSize="12" />
           </StackPanel>
         </Border>
 
@@ -256,7 +256,7 @@
                     <TextBlock Text="Edit category" FontWeight="Bold" FontSize="16" Foreground="#1c1917" />
                     <TextBox Classes="field" Watermark="Name" Text="{Binding CategoryEditName}" />
                     <TextBox Classes="field" Watermark="Sort order" Text="{Binding CategoryEditSort}" />
-                    <CheckBox IsChecked="{Binding CategoryEditVisible}" Content="Visible on Sell screen" Foreground="#1c1917" />
+                    <CheckBox IsChecked="{Binding CategoryEditVisible}" Content="Visible on the till" Foreground="#1c1917" />
                     <Button Classes="cash" Content="Save category" Command="{Binding SaveCategoryCommand}" Width="180" />
                   </StackPanel>
 

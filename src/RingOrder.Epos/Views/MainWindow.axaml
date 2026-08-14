@@ -1,4 +1,4 @@
-<Window xmlns="https://github.com/avaloniaui"
+﻿<Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:RingOrder.Epos.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -89,8 +89,8 @@
       <Border DockPanel.Dock="Left" Width="112" Background="{StaticResource PanelAlt}"
               Padding="6,8" BorderBrush="{StaticResource Line}" BorderThickness="0,0,1,0">
         <StackPanel Spacing="4">
-          <Button Classes="rail" Classes.on="{Binding IsSellNav}"
-                  Content="{Binding NavSell}" Command="{Binding GoSellCommand}" />
+          <Button Classes="rail" Classes.on="{Binding IsTillNav}"
+                  Content="{Binding NavTill}" Command="{Binding GoTillCommand}" />
           <Button Classes="rail" Classes.on="{Binding IsOrdersNav}"
                   Content="{Binding NavOrders}" Command="{Binding GoOrdersCommand}" />
           <Button Classes="rail" Classes.on="{Binding IsOnlineNav}"

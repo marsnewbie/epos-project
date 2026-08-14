@@ -1,71 +1,77 @@
-# Testing (counter POS lifecycle)
+# Testing
 
-## Build
-
-```powershell
-cd C:\Projects\magicwok-epos
-$env:NUGET_PACKAGES = "$env:USERPROFILE\.nuget\packages"
-dotnet build RingOrder.Epos.sln -c Release
+```bash
+dotnet build RingOrder.Epos.sln
+dotnet test RingOrder.Epos.sln
 dotnet run --project src/RingOrder.Epos
 ```
 
-## P0 — Ticket lifecycle (must pass)
+Automated tests cover the arithmetic and the data. They cannot tell you whether
+a shift can be closed or a ticket can be paid, so the manual passes below are
+part of finishing a change, not an extra.
 
-1. **Sell** → add dishes → **SEND KITCHEN**  
-   - Kitchen prints  
-   - Ticket **stays** on the right with order # + **SENT**  
-   - Lines show **SENT** badge (dimmed)  
-2. Add another dish → button becomes **SEND NEW / 补打** → only new lines print (**ADDITIONS**)  
-3. **HOLD** → enter name/phone → ticket clears; Held chip appears → tap to resume  
-4. **CASH** keypad: Exact fills balance; ⌫ deletes; CLR clears; digit after Exact overwrites  
-5. **Partial cash**: no final receipt; badge DUE; Paid/Due on ticket; optional **Interim receipt**; kitchen only if new unsent lines  
-6. Kitchen ticket Payment line must say **PART PAID DUE £x** (not CASH as if settled)  
-7. **Split**: partial cash then Card (balance) → final receipt on full pay  
-8. Full pay → settlement overlay covers whole Sell (menu locked) → ticket stays visible → **Next order** blanks; leaving Sell also finishes settlement  
-9. **Orders** list shows Due/Paid; Unpaid filter excludes fully-paid reopen leftovers  
-10. **Reopen (PIN)** while Paid overlay was up → overlay clears, ticket + lines visible, badge REOPEN; add dish → Due; send/pay balance  
-11. Held reprint kitchen must **not** un-hold the ticket  
-12. After pay, **New/Clear** must never leave a stuck Paid screen (overlay gone; blank ticket usable)
+## What the tests cover
 
-## P1 — Sell speed
+| Area | Why it is tested |
+|---|---|
+| Money conversion | A till whose day does not add up is not a till |
+| Option engine | Required, optional, pick-two, conditional reveal, meal deals — using the fixtures that used to be sample dishes on the demo menu |
+| Bundle import | The demo shop's menu must survive import exactly: counts, prices to the penny, every group reference, every conditional |
+| Tender and shift arithmetic | Partial payment, split tender, expected cash, variance, sequential shift numbers |
+| Permissions and PIN hashing | Who may do what, and that a PIN is not recoverable from what is stored |
+| Migrations | A database written by an older release still opens, still has its orders, and gains its new columns |
 
-1. Dish **#** box + Enter/Add → adds by menu number  
-2. Quick notes bind to last/selected **unsent** line; prompt if empty ticket  
-3. **Phone order** / Customers → **Start order** fills ticket  
-4. **DEL** without address → Send/Pay blocked  
-5. **TABLE** without table # → Send/Pay blocked  
-6. Cash pad → Exact / £10/20/50 → change shown; tender amount stored  
+The migration test seeds the old database with raw SQL matching that version's
+schema. Using today's repository would test nothing, because it already knows
+about columns the old release never had.
 
-## P2 — Settings
+## Manual pass — the money
 
-1. Left sections: Shop / Menu / Notes / Delivery / Hardware / Staff / Shift / Online  
-2. **Menu operations**  
-   - **+ Category** → rename (Edit) → Hide/Show → Sell category strip updates  
-   - **+ Dish** → set # / name / price → **Save dish** → appears on Sell  
-   - **+ Group** (Single or Multi with min/max) → **+ Choice** with +£ or 0 → Save dish  
-   - Conditional: second group **Show when** = first group choice (e.g. Curry → spice) → Sell reveals after pick  
-   - Multi max: select up to max on Sell; cannot exceed (SMP-4 style)  
-   - **86** hides from Sell; **Duplicate** copies groups with remapped ids  
-   - Delete dish/category requires Manager PIN; category delete blocked if dishes remain  
-3. **Quick notes**: add/edit → Save → appears on Sell  
-4. **Hardware**: “Also print kitchen on Pay if not yet sent” matches Pay behaviour (Send always prints)  
-5. **Staff**: change Manager PIN → Void/Drawer require new PIN  
-6. **Shift**: today’s cash/card/online totals  
+Do this one after any change to payment, shifts or printing.
 
-## P3 — Online + safety
+1. Sign in. Open a shift with a float of £100.
+2. Ring two dishes. Send to the kitchen — **the ticket stays on screen**.
+3. Add another dish. The button offers to send only the new one, and the ticket
+   prints marked as an addition.
+4. Take £5 cash against a £20 ticket. Ticket stays open, balance shows £15, no
+   final receipt.
+5. Take the balance on card. Now it settles, and the receipt prints.
+6. Ring another ticket, £12.40, tender £20. Change shows £7.60, large, and stays
+   until acknowledged.
+7. Apply a discount — try `5` and `10%`, and check the reason is demanded.
+8. Close the shift. It asks what you counted **before** it shows what it expected.
+   Check the variance is what you would work out on paper.
 
-1. **Online**: big **ONLINE ON/OFF**; Poll once / Test under **Advanced**  
-2. Top **Drawer** requires Manager PIN  
-3. **Language toggle** (top bar): switches UI chrome only (nav/buttons/filters) — one language at a time; dish names stay English + kitchen Chinese  
-4. Light theme: white panels, dark text, readable under counter lighting  
+## Manual pass — who did it
 
-## Online poller (unchanged protocol)
+1. Sign in as a cashier. Try to void an order.
+2. A supervisor PIN is asked for; the ticket is still there afterwards.
+3. Sign in as a manager. Void an order — no second challenge.
+4. Settings → Staff: add someone, reuse an existing PIN (refused), switch the
+   last manager off (refused).
 
-1. Settings → Online: paste a/u/p → Save  
-2. Online → ON → place website order → kitchen + ack (`ak=Accepted`)  
-3. Do not run GcAnyOrder phone at the same time  
+## Manual pass — the menu
 
-## Hardware
+1. Settings → Menu: change a shared option group from one dish. The status line
+   names the other dishes it changed.
+2. Sell: a dish with a conditional group only reveals it for the triggering
+   choice, and does not demand it otherwise.
+3. Mark a dish sold out. It greys **in place** on the grid rather than
+   disappearing.
+4. Paging: page 2 of a category is the same page 2 after switching away and back.
 
-- Queue name exact: `GlPrinter80`  
-- Test print: Settings → Hardware  
+## Manual pass — provisioning
+
+Worth doing before any release, because it is what every new merchant does first.
+
+1. Move `%PROGRAMDATA%\RingOrder\EPOS\data.sqlite` aside.
+2. Start the app. It imports the bundle from `profile/` and logs what it found.
+3. Check the counts against the bundle, and that there were no warnings.
+4. With no bundle either, the till should say it needs setting up — not fail, and
+   certainly not show another shop's menu.
+
+## Printing
+
+Needs the hardware, so it is checked when a printer is attached. Kitchen ticket
+with Chinese and English, a receipt, the drawer, and a test page that shows the
+paper width. **Paper out of the machine is the pass; a status column is not.**

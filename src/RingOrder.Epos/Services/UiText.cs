@@ -1,4 +1,4 @@
-using RingOrder.Epos.Domain;
+﻿using RingOrder.Epos.Domain;
 
 namespace RingOrder.Epos.Services;
 
@@ -26,7 +26,7 @@ public static class UiText
     // Rail labels. "Till" is what the trade calls the screen you take an order
     // and take the money on, and it does not collide with "Orders" the way
     // "Order" would.
-    public static string NavSell => Pick("Till", "收银台");
+    public static string NavTill => Pick("Till", "收银台");
     public static string NavOrders => Pick("Orders", "订单");
     public static string NavOnline => Pick("Web orders", "网单");
     public static string NavCustomers => Pick("Customers", "顾客");
@@ -45,7 +45,7 @@ public static class UiText
         Pick($"{name} is not allowed to {action.ToLowerInvariant()}.",
              $"{name} 没有「{action}」的权限。");
 
-    // ── Sell ───────────────────────────────────────────────────────
+    // ── Till ───────────────────────────────────────────────────────
     public static string Search => Pick("Search dishes", "搜索菜品");
     public static string DishNumber => Pick("Menu #", "菜号");
     public static string AddByNumber => Pick("Add", "添加");
@@ -103,7 +103,7 @@ public static class UiText
     public static string FilterHeld => Pick("Held", "挂单");
     public static string FilterPaid => Pick("Paid", "已付");
     public static string OrderDetail => Pick("Order detail", "订单详情");
-    public static string OpenOnSell => Pick("Open on Sell", "续单改菜");
+    public static string OpenOnSell => Pick("Open on the till", "续单改菜");
     public static string ReprintKitchen => Pick("Reprint kitchen", "重打厨房");
     public static string ReprintFront => Pick("Reprint receipt", "重打小票");
     public static string VoidOrder => Pick("Void (PIN)", "作废 (PIN)");
@@ -130,7 +130,7 @@ public static class UiText
     public static string StartOrder => Pick("Start order", "开单");
     public static string CallerIdSim => Pick("Caller ID simulate", "来电模拟");
     public static string CallerIdHint =>
-        Pick("Fills Sell ticket with matched customer", "匹配顾客并填入点单");
+        Pick("Fills the till ticket with the matched customer", "匹配顾客并填入点单");
     public static string SimulateCall => Pick("Simulate incoming call", "模拟来电");
 
     // ── Settings sections ──────────────────────────────────────────

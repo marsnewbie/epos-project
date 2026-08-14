@@ -241,3 +241,47 @@ nothing.
 
 Still to do: payment on its own screen; Web orders folded into Orders; Settings
 sections for printers-as-devices, tax, receipt layout, backup and diagnostics.
+
+---
+
+## 2026-08-15 — Documentation, and tidying the shape of the code
+
+Written for the case where the next session starts cold, which it will.
+
+**The old documentation was deleted, not amended.** Seven of the eight files
+described the product as it was before the rebuild: menu pulled from the
+website, seed compiled into the binary, `%APPDATA%`, a shared manager PIN, a
+schema built by `EnsureCreated`. A document that is confidently wrong costs more
+than no document, because it is believed.
+
+What replaced them:
+
+| Doc | Settles |
+|---|---|
+| `AGENTS.md` | The rules, the layout, and a table of things that look like rules but are not |
+| `docs/ARCHITECTURE.md` | The shape of the code and which decisions are load-bearing |
+| `docs/SHOP_BUNDLE.md` | The bundle format, and the runbook for putting a shop live |
+| `docs/INTERFACE.md` | Interface rules, the vocabulary on the buttons, and why each word |
+| `docs/DEPLOYMENT.md` | Packaging, signing, update policy, backup, remote support, hardware plan |
+| `docs/TESTING.md` | What runs automatically, and the manual passes that catch what it cannot |
+
+`DEPLOYMENT.md` marks every section **decided**, **proposed** or **not built**,
+because the packaging and signing choices are real spending decisions and a
+future reader must not mistake a plan for a fact. The candidates — Velopack for
+packaging, Azure Trusted Signing for the certificate — are written down as
+candidates, with a note to re-check their terms.
+
+**Code layout.** Four grab-bag files were split so a name says what is inside:
+`EscPos.cs` gave up `TicketRenderer` and `RawPrinter`; `OrderRepository.cs` gave
+up the print-job and customer repositories; `MenuRepository.cs` gave up settings;
+and `PageViewModels.cs` — a name that describes nothing — became
+`OrdersViewModel`, `OnlineViewModel` and `CustomersViewModel`.
+
+**Sell became Till.** The rail has said "Till" since the interface work; the
+code still said `SellViewModel`. Two names for one screen is how a codebase
+starts lying to the next person reading it.
+
+One thing worth recording as a method note: cleaning unused `using` directives
+with a clever heuristic dropped ones that were needed, because the probe list
+did not know about `Customer`, `PrintJob` or `AppSettings`. The compiler already
+knows this answer exactly. Do not guess at something a tool can tell you.
