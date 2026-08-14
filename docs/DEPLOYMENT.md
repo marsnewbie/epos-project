@@ -68,15 +68,23 @@ with a full menu in it.
 **Provisioning is a file.** First run imports `profile/*.ringpos.json`. No
 bundle and no data means the till says it needs setting up.
 
-## Backup — not built
+## Backup — built, except off-site
 
-Nightly `VACUUM INTO` into `backups/`, with retention, plus an off-site copy for
-shops that want it. `EposDb.BackupTo` already exists and is used by the migration
-path; what is missing is the schedule and the restore tool.
+A `daily-<date>.sqlite` is written into `backups/` on the first startup of each
+day and re-checked hourly, keeping fourteen days. The hourly re-check matters:
+a shop that closes before midnight would never be caught by a 3am schedule, and
+one that never turns the till off would never be caught by a startup-only one.
 
-The failure to design against is mundane: a cheap PC's disk dies and the shop
-loses its order history and its customer phone book. Nobody thinks about this
+`VACUUM INTO` reads through the write-ahead log, so unlike copying the file it
+cannot capture a half-written page. Three tests cover it, including taking a
+backup while orders are being written.
+
+The failure this exists for is mundane: a cheap PC's disk dies and the shop
+loses its order history and its customer phone book. Nobody thinks about it
 until the morning it happens.
+
+**Still missing:** an off-site copy, and a restore tool. Restoring today means
+stopping the till and copying a file over `data.sqlite`.
 
 ## Supporting a shop remotely — partly built
 
@@ -87,17 +95,26 @@ at the shop's own desktop. What that person needs:
 whether Windows can open each queue. An import report naming exactly what a
 bundle contained.
 
-**Not built, and wanted in this order:**
+**Built:**
 
-1. **Rolling log file.** Errors currently go to the console, which is invisible
-   on an installed copy. Everything else waits on this.
-2. **A diagnostics screen** in Settings: version, shop, schema version, printer
-   reachability, disk space, database integrity, last poll, last backup — and an
-   "export diagnostics" button that produces one file to send us.
-3. **Support scripts** shipped beside the app, so the same checks can be run
-   without the UI: status, printer test, backup now, export diagnostics, set
-   version.
-4. **Heartbeat** — each till reporting version, printer health, last Z report and
+- **A dated log file** under `logs/`, thirty days kept. Every startup, migration,
+  provisioning report, print failure and crash lands there. Writes are
+  synchronous under a lock — see the worklog for why the buffered version was a
+  mistake.
+- **Settings → Support**: version, machine, data folder, schema version, shop,
+  printer health, queue depth, web-order status, last backup, and the log
+  folder — on one screen, so nobody has to ask a merchant to read a version
+  number down the phone. Plus **Export diagnostics**, which writes all of that
+  and the recent log into one file to send us, and **Back up now**.
+- **A reprint list** for tickets a printer gave up on, with the error against
+  each. Deliberate, never automatic: a queue that retries forever is how a
+  kitchen ends up with forty copies of one order.
+
+**Still wanted, in this order:**
+
+1. **Support scripts** beside the app, so the same checks run without the UI:
+   status, printer test, backup now, export diagnostics, set version.
+2. **Heartbeat** — each till reporting version, printer health, last Z report and
    error count to a dashboard of ours. Opt-in, no personal data. Somewhere around
    twenty shops this stops being a luxury: it turns "an angry phone call" into
    "we already knew".
@@ -107,7 +124,9 @@ bundle contained.
 A checklist that goes with every install, because Windows will otherwise
 undermine the till on its own schedule:
 
-- Auto-start the app on login; restart it if it dies
+- Auto-start the app on login; restart it if it dies. **Only one till per PC** —
+  the app now refuses a second instance, because two of them sharing a database
+  would double-print and disagree about the shift
 - Suppress Windows Update reboots during trading hours
 - Disable sleep and USB selective suspend — a sleeping USB printer is a lost ticket
 - Set the printer spooler to restart on failure

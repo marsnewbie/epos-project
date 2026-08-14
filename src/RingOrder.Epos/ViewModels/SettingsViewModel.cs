@@ -29,6 +29,7 @@ public partial class SettingsViewModel : ViewModelBase
     public ObservableCollection<StaffRow> StaffMembers { get; } = [];
     public ObservableCollection<PrinterRow> Printers { get; } = [];
     public ObservableCollection<RouteRow> Routes { get; } = [];
+    public ObservableCollection<PrintJob> FailedJobs { get; } = [];
     public PrintTransport[] Transports { get; } = Enum.GetValues<PrintTransport>();
     public StaffRole[] StaffRoles { get; } = Enum.GetValues<StaffRole>();
     public OptionTypeChoice[] OptionTypeChoices { get; } = OptionGroupEditorVm.TypeChoices;
@@ -84,6 +85,10 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private string _staffHint = "";
     [ObservableProperty] private string _webTestResult = "";
     [ObservableProperty] private string _printerHint = "";
+    [ObservableProperty] private string _supportSummary = "";
+    [ObservableProperty] private string _supportResult = "";
+    [ObservableProperty] private bool _hasFailedJobs;
+    [ObservableProperty] private bool _isSupport;
     [ObservableProperty] private string _callerIdMode = "simulate";
     [ObservableProperty] private string _callerIdCom = "COM3";
     [ObservableProperty] private bool _callerIdEnabled;
@@ -168,9 +173,11 @@ public partial class SettingsViewModel : ViewModelBase
         IsStaff = Section == "Staff";
         IsOnline = Section == "Online";
         IsShift = Section == "Shift";
+        IsSupport = Section == "Support";
         if (IsMenu) ReloadMenuBrowser();
         if (IsNotes) ReloadNoteRows();
         if (IsShift) ReloadShift();
+        if (IsSupport) ReloadSupport();
     }
 
     public void Reload()
@@ -987,6 +994,92 @@ public partial class SettingsViewModel : ViewModelBase
             return;
         }
         await TestPrinterAsync(Printers.First(p => p.Device.Id == device.Id));
+    }
+
+    // ── Support ─────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// What someone on a remote session needs, without asking the merchant to
+    /// read anything out. Refreshed on entry, because a stale diagnostic is
+    /// worse than none.
+    /// </summary>
+    private void ReloadSupport()
+    {
+        var devices = _app.PrintDevices.GetDevices();
+        var faults = _app.PrintQueue.Faults;
+        var abandoned = _app.PrintJobs.GetAbandoned();
+
+        SupportSummary = string.Join("\n",
+        [
+            $"Version      {AppLog.AppVersion}",
+            $"Machine      {Environment.MachineName}",
+            $"Data         {LocalPaths.RootDirectory}",
+            $"Schema       {SchemaVersionText()}",
+            $"Shop         {_app.GetSettings().ShopName} · {_app.Menu.CountItems()} dishes",
+            $"Printers     {devices.Count(d => d.IsEnabled)} on, {faults.Count} reporting a fault",
+            $"Print queue  {_app.PrintJobs.CountWaiting()} waiting, {abandoned.Count} given up",
+            $"Web orders   {(_app.OnlinePoller.IsRunning ? "on" : "off")} · {_app.OnlinePoller.LastStatus}",
+            $"Last backup  {(_app.Backups.LastBackupAt is { } at ? at.ToString("yyyy-MM-dd HH:mm") : "none yet")}",
+            $"Logs         {AppLog.Directory}",
+        ]);
+
+        FailedJobs.Clear();
+        foreach (var job in abandoned)
+            FailedJobs.Add(job);
+        HasFailedJobs = FailedJobs.Count > 0;
+    }
+
+    private string SchemaVersionText()
+    {
+        try
+        {
+            using var conn = _app.Db.Open();
+            return $"{SchemaMigrations.CurrentVersion(conn)} of {SchemaMigrations.LatestVersion}";
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
+    }
+
+    [RelayCommand]
+    private void ExportDiagnostics()
+    {
+        try
+        {
+            var path = AppLog.ExportDiagnostics(_app);
+            SupportResult = UiText.Pick($"Written to {path}", $"已写入 {path}");
+        }
+        catch (Exception ex)
+        {
+            SupportResult = ex.Message;
+        }
+    }
+
+    [RelayCommand]
+    private void BackupNow()
+    {
+        var path = _app.Backups.BackupNow();
+        SupportResult = path is null
+            ? UiText.Pick($"Backup failed: {_app.Backups.LastError}", $"备份失败：{_app.Backups.LastError}")
+            : UiText.Pick($"Backed up to {path}", $"已备份到 {path}");
+        ReloadSupport();
+    }
+
+    /// <summary>
+    /// Put a ticket the printer gave up on back in the queue. Deliberate, and
+    /// after someone has looked at the printer — an automatic retry that never
+    /// stops is how a kitchen ends up with forty copies of one order.
+    /// </summary>
+    [RelayCommand]
+    private void RetryFailedJob(PrintJob? job)
+    {
+        if (job is null) return;
+        _app.PrintJobs.Requeue(job);
+        _app.PrintQueue.Wake();
+        _app.Session.Record("print.retry", job.OrderId, $"{job.OrderNumber} → {job.DeviceId}");
+        SupportResult = UiText.Pick($"Order {job.OrderNumber} queued again", $"订单 {job.OrderNumber} 已重新排队");
+        ReloadSupport();
     }
 
     // ── Printers ────────────────────────────────────────────────────────────

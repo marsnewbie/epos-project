@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RingOrder.Epos.ViewModels"
              xmlns:conv="using:RingOrder.Epos.Converters"
+             xmlns:domain="using:RingOrder.Epos.Domain"
              x:Class="RingOrder.Epos.Views.SettingsView"
              x:Name="Root"
              x:DataType="vm:SettingsViewModel"
@@ -17,6 +18,7 @@
         <Button Classes="btn" Classes.on="{Binding IsStaff}" Content="{Binding LblSecStaff}" Command="{Binding GoSectionCommand}" CommandParameter="Staff" />
         <Button Classes="btn" Classes.on="{Binding IsShift}" Content="{Binding LblSecShift}" Command="{Binding GoSectionCommand}" CommandParameter="Shift" />
         <Button Classes="btn" Classes.on="{Binding IsOnline}" Content="{Binding LblSecOnline}" Command="{Binding GoSectionCommand}" CommandParameter="Online" Margin="0,12,0,0" />
+        <Button Classes="btn" Classes.on="{Binding IsSupport}" Content="Support" Command="{Binding GoSectionCommand}" CommandParameter="Support" />
         <Button Classes="cash" Content="{Binding LblSave}" Command="{Binding SaveCommand}" Height="52" Margin="0,16,0,0" />
         <TextBlock Text="{Binding LblUiLangNote}" Classes="muted" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0" />
       </StackPanel>
@@ -190,6 +192,54 @@
               </ItemsControl>
             </ScrollViewer>
           </DockPanel>
+        </Border>
+
+        <!--
+          Support: everything a remote session needs on one screen, so nobody
+          has to ask the merchant to read a version number down the phone.
+        -->
+        <Border Classes="panel" Padding="16" IsVisible="{Binding IsSupport}">
+          <StackPanel Spacing="10">
+            <TextBlock Text="Support" Classes="title" />
+            <Border Classes="panel-flat" Padding="12">
+              <TextBlock Text="{Binding SupportSummary}" FontFamily="Consolas, Cascadia Mono, monospace"
+                         FontSize="{StaticResource FontSmall}" TextWrapping="Wrap" />
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <Button Classes="primary" Content="Export diagnostics" Width="220"
+                      Command="{Binding ExportDiagnosticsCommand}" />
+              <Button Classes="btn" Content="Back up now" Width="180"
+                      Command="{Binding BackupNowCommand}" />
+            </StackPanel>
+            <TextBlock Text="{Binding SupportResult}" Classes="muted" TextWrapping="Wrap" />
+
+            <TextBlock Text="Tickets the printer gave up on" Classes="title" Margin="0,12,0,0"
+                       IsVisible="{Binding HasFailedJobs}" />
+            <TextBlock Text="Check the printer first, then send it again. These are not retried on their own — a queue that never stops is how a kitchen gets forty copies of one order."
+                       Classes="muted" TextWrapping="Wrap" IsVisible="{Binding HasFailedJobs}" />
+            <ItemsControl ItemsSource="{Binding FailedJobs}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="domain:PrintJob">
+                  <Border Classes="panel-flat" Padding="12" Margin="0,0,0,6">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <StackPanel>
+                        <TextBlock FontWeight="SemiBold">
+                          <Run Text="{Binding OrderNumber}" />
+                          <Run Text=" · " />
+                          <Run Text="{Binding Document}" />
+                        </TextBlock>
+                        <TextBlock Text="{Binding Error}" Classes="muted" TextWrapping="Wrap" />
+                      </StackPanel>
+                      <Button Grid.Column="1" Classes="primary" Content="Send again" Width="150"
+                              Command="{Binding DataContext.RetryFailedJobCommand, ElementName=Root}"
+                              CommandParameter="{Binding}" />
+                    </Grid>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
         </Border>
 
         <Border Classes="panel" CornerRadius="8" Padding="16" IsVisible="{Binding IsShift}">

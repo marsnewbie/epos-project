@@ -21,6 +21,7 @@ public sealed class AppServices
     public BundleImporter BundleImporter { get; }
     public PrintDeviceRepository PrintDevices { get; }
     public PrintQueue PrintQueue { get; }
+    public BackupService Backups { get; }
     public PosSession Session { get; }
     public PrintService Print { get; }
     public OnlineOrderPoller OnlinePoller { get; }
@@ -38,7 +39,7 @@ public sealed class AppServices
     private AppServices()
     {
         Db = new EposDb();
-        Db.Migrate(message => Console.WriteLine($"[db] {message}"));
+        Db.Migrate(AppLog.For("db"));
         Settings = new SettingsRepository(Db);
         Menu = new MenuRepository(Db);
         Orders = new OrderRepository(Db);
@@ -59,8 +60,14 @@ public sealed class AppServices
         OnlinePoller = new OnlineOrderPoller();
         OnlinePoller.Configure(OnlineOrderPollerOptions.FromSettings(_cachedSettings));
         Print = new PrintService(this);
-        PrintQueue = new PrintQueue(PrintJobs, PrintDevices, m => Console.WriteLine($"[print] {m}"));
+        PrintQueue = new PrintQueue(PrintJobs, PrintDevices, AppLog.For("print"));
         PrintQueue.Start();
+        Backups = new BackupService(Db);
+        Backups.Start();
+
+        // The queue is work, not an archive: printed jobs older than a week are
+        // dead weight, and their payloads are raster bitmaps.
+        PrintJobs.PurgePrintedBefore(DateTimeOffset.Now.AddDays(-7));
     }
 
     public static AppServices Start()
@@ -93,14 +100,14 @@ public sealed class AppServices
         try
         {
             StartupImport = BundleImporter.ImportFromFile(bundle);
-            Console.WriteLine($"[provision] {StartupImport.Summary}");
+            AppLog.Info("provision", StartupImport.Summary);
             foreach (var warning in StartupImport.Warnings)
-                Console.WriteLine($"[provision] warning: {warning}");
+                AppLog.Warn("provision", warning);
         }
         catch (Exception ex)
         {
             NeedsProvisioning = true;
-            Console.WriteLine($"[provision] {Path.GetFileName(bundle)} failed to import: {ex.Message}");
+            AppLog.Error("provision", $"{Path.GetFileName(bundle)} failed to import", ex);
         }
     }
 

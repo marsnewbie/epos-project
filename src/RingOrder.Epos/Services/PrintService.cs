@@ -1,4 +1,4 @@
-using RingOrder.Epos.Data;
+﻿using RingOrder.Epos.Data;
 using RingOrder.Epos.Domain;
 using RingOrder.Epos.Hardware;
 
@@ -187,7 +187,7 @@ public sealed class PrintService
                 // Do not loop-reprint. The kitchen has its ticket; a failed
                 // acknowledgement can be retried, and a website that sends the
                 // same order every four seconds is a far worse failure.
-                Console.WriteLine($"[online] ack failed for {incoming.OrderNumber}: {ex.Message}");
+                AppLog.Warn("online", $"ack failed for {incoming.OrderNumber}: {ex.Message}");
             }
         }
     }

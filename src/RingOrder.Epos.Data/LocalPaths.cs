@@ -34,6 +34,13 @@ public static class LocalPaths
         return dir;
     }
 
+    /// <summary>
+    /// Set when the machine-wide location could not be used. Loud on purpose:
+    /// a till quietly keeping its data somewhere else is how a shop loses a
+    /// day's orders and nobody can say where they went.
+    /// </summary>
+    public static string? FallbackReason { get; private set; }
+
     private static string ResolveRoot()
     {
         var machineWide = Path.Combine(
@@ -41,10 +48,13 @@ public static class LocalPaths
             "RingOrder", "EPOS");
 
         // An installer that ran as administrator can leave ProgramData read-only
-        // for a standard till account. Falling back keeps the app usable and the
-        // installer's ACL step is what makes the machine-wide path the real one.
-        if (TryPrepare(machineWide))
+        // for a standard till account. Falling back keeps the app usable, and
+        // the installer's ACL step is what makes the machine-wide path the real
+        // one.
+        if (TryPrepare(machineWide, out var reason))
             return machineWide;
+
+        FallbackReason = reason;
 
         var perUser = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -53,18 +63,25 @@ public static class LocalPaths
         return perUser;
     }
 
-    private static bool TryPrepare(string dir)
+    private static bool TryPrepare(string dir, out string? reason)
     {
+        reason = null;
         try
         {
             Directory.CreateDirectory(dir);
-            var probe = Path.Combine(dir, ".write-probe");
+
+            // The probe is named per process. A shared name meant two instances
+            // starting together could delete each other's file, and the loser
+            // decided ProgramData was unwritable and silently moved the shop's
+            // database into its own user profile.
+            var probe = Path.Combine(dir, $".write-probe-{Environment.ProcessId}");
             File.WriteAllText(probe, string.Empty);
             File.Delete(probe);
             return true;
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
         {
+            reason = ex.Message;
             return false;
         }
     }

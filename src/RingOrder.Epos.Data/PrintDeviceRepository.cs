@@ -293,6 +293,21 @@ public sealed class PrintJobRepository
         return cmd.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// Puts an abandoned job back in the queue with its attempts reset. Only
+    /// ever called deliberately: an automatic retry that never stops is how a
+    /// kitchen ends up with forty copies of one order.
+    /// </summary>
+    public void Requeue(PrintJob job)
+    {
+        using var conn = _db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            "UPDATE print_jobs SET status='Pending', attempts=0, error=NULL, next_attempt_at=NULL WHERE id=$id";
+        cmd.Parameters.AddWithValue("$id", job.Id);
+        cmd.ExecuteNonQuery();
+    }
+
     /// <summary>Jobs that ran out of attempts, for the reprint list.</summary>
     public List<PrintJob> GetAbandoned()
     {

@@ -383,3 +383,60 @@ merchant has an install, and a settings-to-devices upgrade path would have been
 dead code for every shop that will ever exist.
 
 64 tests.
+
+---
+
+## 2026-08-15 — Logging, backups, support — and two defects they exposed
+
+Everything a shop we cannot visit needs us to be able to see.
+
+**A dated log file** under `logs/`, thirty days kept. Startups, migrations,
+provisioning reports, print failures and crashes. Unhandled exceptions and
+unobserved task faults are caught in `Main` and written down — a till that dies
+without a word leaves a shop not knowing whether the last order was saved.
+
+**Nightly backups**: `daily-<date>.sqlite` on the first startup of each day,
+re-checked hourly, fourteen days kept. The hourly re-check is not belt and
+braces — a shop that closes before midnight is never caught by a 3am schedule,
+and one that never turns the till off is never caught by a startup-only one.
+Three tests, including a backup taken while orders are being written.
+
+**Settings → Support**: version, machine, data folder, schema version, shop,
+printer health, queue depth, web-order status, last backup, log folder. Plus
+**Export diagnostics** — one file with all of it and the recent log, to send us —
+and **Back up now**. And a **reprint list** for tickets a printer gave up on,
+with the error against each; deliberate, never automatic, because a queue that
+retries forever is how a kitchen ends up with forty copies of one order.
+
+### Defect one: two instances could move a shop's database
+
+`LocalPaths` probed whether `%PROGRAMDATA%` was writable using a **fixed**
+filename. Two tills starting together — someone double-clicking the icon twice —
+could delete or lock each other's probe, and the loser concluded ProgramData was
+unusable and silently moved the shop's database into its own user profile.
+
+Found because the log stopped appearing where it should. On a merchant's machine
+this is "the till lost all of today's orders" with no explanation available.
+
+Three fixes: the probe is named per process; falling back now records a reason
+and logs a loud warning, because a till quietly keeping its data somewhere else
+is worse than one that complains; and **the app refuses to start twice** on one
+PC. Two tills sharing a database would double-print and disagree about the shift.
+
+### Defect two: the log buffered itself into silence
+
+The first version queued lines onto a background writer. It wrote the startup
+line and nothing after — the log looked healthy while everything of interest
+vanished, which is the worst possible failure for a log.
+
+Rewritten to append synchronously under a lock. A till writes a few hundred
+lines an hour; buffering that bought nothing and hid a fault. Write failures now
+set `LastWriteError`, which diagnostics prints, so a log that cannot write says
+so instead of being trusted.
+
+Both were mine, both were invisible until something else went looking, and both
+would have shown up first on a merchant's PC. Worth stating as a rule: **a
+component that can fail silently must report its own health somewhere a human
+looks.**
+
+67 tests.
