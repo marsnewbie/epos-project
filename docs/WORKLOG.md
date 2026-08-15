@@ -727,3 +727,48 @@ Migration 6 ran on the live shop database with its backup. 167 tests.
 
 **Still unclicked on a running till**, now including the refund panel. Worth
 doing in one pass with the printer, since the refund slip wants paper anyway.
+
+---
+
+## 2026-08-15 — Delivery by postcode, and a surcharge that was taxed but never charged
+
+Every delivery was charged one flat fee. Zones close that, and closed two
+half-wired things on the way.
+
+**Priced by prefix, not distance.** That is how a takeaway publishes its area —
+"B44, B23, B42 — £2", not "£1 per mile". Staff can check a prefix without a map,
+it works with the broadband down, and it avoids the argument that begins "your
+screen says 3.1 miles but I'm 2.9". Distance banding was considered and left
+out: it needs a coordinate for every new address, and the coordinates we have
+are straight-line, which is not what a driver drives.
+
+**Longest matching prefix wins.** `B440` beats `B44` beats `B4`. The broad entry
+catching a district the shop never listed is deliberate, not a bug — a shop that
+writes `B4` with no `B44` means that side of town, and charging the wider zone
+beats declaring a real customer unreachable. The till names the zone it matched
+so a shop can see it happen and narrow it if that was not the intent.
+
+**A minimum never blocks the order.** It is measured on the food — after
+discount, before the fee, so the fee cannot help justify itself — and being
+under it warns. Whoever is on the phone decides; a shop can switch on a surcharge
+that tops the order up instead. A till that refuses outright is a till staff work
+around, and that loses the record along with the sale.
+
+A shop with no zones behaves exactly as before: one default fee, nothing said.
+Worth stating, because "no zones configured" and "outside the delivery area" are
+easy to conflate and only one of them should ever stop anyone.
+
+**Two half-wired things closed.** The shop bundle has carried a `zones` list
+since the schema rebuild that nothing imported — a merchant could describe their
+whole delivery area in the bundle and be charged the flat default anyway. And
+`BelowMinimumSurcharge` was **included in the VAT calculation but left out of the
+order total**: a web order carrying one had tax worked out on money the customer
+was never charged, which is the shop declaring VAT on takings it did not take.
+There is now a test asserting the gross the VAT was computed on equals the total
+the customer pays — the invariant that should have been there from the start.
+
+Migration 7 ran on the live shop database with its backup. 188 tests.
+
+**Unclicked on a running till**, as with the last three rounds: the zone editor,
+the test-a-postcode box, and the amber note on the delivery panel. All covered by
+tests and compiling. Worth one pass with the printer.

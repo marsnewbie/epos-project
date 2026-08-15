@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using RingOrder.Epos.Domain;
 
 namespace RingOrder.Epos.Data;
@@ -32,17 +32,20 @@ public sealed class BundleImporter
     private readonly SettingsRepository _settings;
     private readonly StaffRepository _staff;
     private readonly PrintDeviceRepository _printers;
+    private readonly DeliveryZoneRepository? _zones;
 
     public BundleImporter(
         MenuRepository menu,
         SettingsRepository settings,
         StaffRepository staff,
-        PrintDeviceRepository printers)
+        PrintDeviceRepository printers,
+        DeliveryZoneRepository? zones = null)
     {
         _menu = menu;
         _settings = settings;
         _staff = staff;
         _printers = printers;
+        _zones = zones;
     }
 
     public static ShopBundle Read(string path)
@@ -198,6 +201,7 @@ public sealed class BundleImporter
         _settings.Save(settings);
 
         ImportPrinters(bundle, warnings);
+        ImportDeliveryZones(bundle, warnings);
         var staffCount = SeedStaff(bundle, warnings);
 
         return new ImportReport(
@@ -280,6 +284,45 @@ public sealed class BundleImporter
         }
 
         _printers.ReplaceAll(devices, routes);
+    }
+
+    /// <summary>
+    /// Delivery areas from the bundle. The list has been in the format since the
+    /// schema rebuild and was read by nothing — every shop was charged the single
+    /// flat default however many zones its bundle declared.
+    /// </summary>
+    private void ImportDeliveryZones(ShopBundle bundle, List<string> warnings)
+    {
+        if (_zones is null) return;
+
+        var zones = new List<DeliveryZone>();
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var def in bundle.Delivery.Zones)
+        {
+            var prefix = DeliveryZone.Normalise(def.Prefix);
+            if (prefix.Length == 0)
+            {
+                warnings.Add("a delivery zone has no postcode prefix and was skipped");
+                continue;
+            }
+
+            if (!seen.Add(prefix))
+            {
+                warnings.Add($"delivery zone {prefix} appears more than once; the first was kept");
+                continue;
+            }
+
+            zones.Add(new DeliveryZone
+            {
+                Prefix = prefix,
+                Fee = Money.FromPence(def.FeePence),
+                MinimumOrder = Money.FromPence(def.MinimumOrderPence),
+                SortOrder = zones.Count,
+            });
+        }
+
+        if (zones.Count > 0) _zones.Replace(zones);
     }
 
     private static PrintDocument ResolveDocument(string? document, string? template)

@@ -105,7 +105,18 @@ public sealed class AppSettings
     /// </summary>
     public bool CustomerRetentionAutomatic { get; set; }
 
+    /// <summary>Charged when no zone matches, and when a shop has set no zones at all.</summary>
     public decimal DefaultDeliveryFee { get; set; }
+
+    /// <summary>
+    /// What happens when an order is under a zone's minimum. Warn by default —
+    /// quietly adding money to a bill is worse than telling staff and letting the
+    /// person on the phone decide.
+    /// </summary>
+    public BelowMinimumPolicy BelowMinimumPolicy { get; set; } = BelowMinimumPolicy.Warn;
+
+    /// <summary>What happens to a postcode no zone covers.</summary>
+    public OutsideZonePolicy OutsideZonePolicy { get; set; } = OutsideZonePolicy.ChargeDefault;
     public string? LastMenuImportAt { get; set; }
     public int NextOrderSequence { get; set; } = 1;
 

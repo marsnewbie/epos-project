@@ -24,6 +24,7 @@ public sealed class AppServices
     public AddressCacheRepository AddressCache { get; }
     public AddressLookupService AddressLookup { get; }
     public DataRetention Retention { get; }
+    public DeliveryZoneRepository DeliveryZones { get; }
     public RefundRepository RefundRepo { get; }
     public RefundService Refunds { get; }
     public PrintQueue PrintQueue { get; }
@@ -53,6 +54,7 @@ public sealed class AppServices
         Addresses = new AddressRepository(Db);
         Customers = new CustomerRepository(Db, Addresses);
         Retention = new DataRetention(Db);
+        DeliveryZones = new DeliveryZoneRepository(Db);
         RefundRepo = new RefundRepository(Db);
         MoveAddressesOutOfCustomerRows();
         Staff = new StaffRepository(Db);
@@ -60,7 +62,7 @@ public sealed class AppServices
         Audit = new AuditRepository(Db);
         PrintDevices = new PrintDeviceRepository(Db);
         AddressCache = new AddressCacheRepository(Db);
-        BundleImporter = new BundleImporter(Menu, Settings, Staff, PrintDevices);
+        BundleImporter = new BundleImporter(Menu, Settings, Staff, PrintDevices, DeliveryZones);
         Session = new PosSession(Staff, Shifts, Audit);
         ProvisionIfNeeded();
 

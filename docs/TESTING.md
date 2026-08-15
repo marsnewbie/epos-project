@@ -27,6 +27,7 @@ part of finishing a change, not an extra.
 | Address book | That one door is one row however it is spelled, that two customers can share it, that one customer can hold several, and that the old JSON blob moves across without loss |
 | Privacy | That erasing a customer removes the person and keeps the sale — including the web-order payload, which is the easiest thing to leave behind |
 | Refunds | That only what was taken can go back, never twice, never without a reason; that the drawer and the shift report follow; and that a refunded sale is still a paid sale |
+| Delivery zones | That the longest prefix wins, that free-over and minimums trigger on the right side of the boundary, that a shop with no zones is unaffected — and that what is taxed is what is charged |
 
 The migration test seeds the old database with raw SQL matching that version's
 schema. Using today's repository would test nothing, because it already knows

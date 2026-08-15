@@ -36,7 +36,13 @@ public static class LinePricing
             RecalculateLine(line);
 
         order.Subtotal = RoundMoney(order.Lines.Sum(l => l.LineTotal));
-        order.Total = RoundMoney(order.Subtotal + order.DeliveryFee - order.DiscountTotal);
+
+        // The below-minimum surcharge belongs in the total. It was already being
+        // included in the VAT calculation and left out here, so a web order that
+        // carried one had tax worked out on money the customer was never charged
+        // — the shop declaring VAT on takings it did not take.
+        order.Total = RoundMoney(
+            order.Subtotal + order.DeliveryFee + order.BelowMinimumSurcharge - order.DiscountTotal);
         if (order.Total < 0) order.Total = 0;
         order.UpdatedAt = DateTimeOffset.Now;
     }

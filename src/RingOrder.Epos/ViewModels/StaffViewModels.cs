@@ -187,6 +187,41 @@ public partial class RefundLineRow : ObservableObject
     partial void OnIsSelectedChanged(bool value) => _onChanged();
 }
 
+/// <summary>One delivery area in Settings, editable in place.</summary>
+public partial class DeliveryZoneRow : ObservableObject
+{
+    public DeliveryZoneRow(DeliveryZone zone)
+    {
+        Zone = zone;
+        _prefix = zone.Prefix;
+        _name = zone.Name;
+        _fee = zone.Fee;
+        _minimumOrder = zone.MinimumOrder;
+        _freeOver = zone.FreeOverAmount;
+        _isDeliverable = zone.IsDeliverable;
+    }
+
+    public DeliveryZone Zone { get; }
+
+    [ObservableProperty] private string _prefix;
+    [ObservableProperty] private string _name;
+    [ObservableProperty] private decimal _fee;
+    [ObservableProperty] private decimal _minimumOrder;
+    [ObservableProperty] private decimal _freeOver;
+    [ObservableProperty] private bool _isDeliverable;
+
+    public DeliveryZone ToDomain()
+    {
+        Zone.Prefix = DeliveryZone.Normalise(Prefix);
+        Zone.Name = Name.Trim();
+        Zone.Fee = Fee;
+        Zone.MinimumOrder = MinimumOrder;
+        Zone.FreeOverAmount = FreeOver;
+        Zone.IsDeliverable = IsDeliverable;
+        return Zone;
+    }
+}
+
 /// <summary>One VAT band in Settings.</summary>
 public partial class TaxClassRow : ObservableObject
 {

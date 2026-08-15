@@ -44,7 +44,64 @@
           <StackPanel Spacing="4">
             <TextBlock Text="Delivery / 外卖费" FontWeight="Bold" FontSize="18" Foreground="#1c1917" Margin="0,0,0,8" />
             <TextBox Classes="field" Watermark="Default delivery fee £" Text="{Binding DefaultDeliveryFeeText}" />
-            <TextBlock Text="Advanced postcode bands can be added later." Foreground="#5b6472" FontSize="12" Margin="0,8,0,0" />
+
+            <TextBlock Text="Zones" Classes="title" Margin="0,20,0,0" />
+            <TextBlock Text="{Binding ZoneHint}" Classes="muted" TextWrapping="Wrap" />
+
+            <Grid ColumnDefinitions="90,*,80,80,80,70,40" Margin="0,8,0,2">
+              <TextBlock Text="Prefix" Classes="muted" FontSize="11" />
+              <TextBlock Grid.Column="1" Text="Area name" Classes="muted" FontSize="11" />
+              <TextBlock Grid.Column="2" Text="Fee £" Classes="muted" FontSize="11" />
+              <TextBlock Grid.Column="3" Text="Min £" Classes="muted" FontSize="11" />
+              <TextBlock Grid.Column="4" Text="Free £" Classes="muted" FontSize="11" />
+              <TextBlock Grid.Column="5" Text="Deliver" Classes="muted" FontSize="11" />
+            </Grid>
+
+            <ItemsControl ItemsSource="{Binding DeliveryZones}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:DeliveryZoneRow">
+                  <Grid ColumnDefinitions="90,*,80,80,80,70,40" Margin="0,0,0,6">
+                    <TextBox Classes="field" Text="{Binding Prefix}" Margin="0,0,6,0" />
+                    <TextBox Grid.Column="1" Classes="field" Text="{Binding Name}" Margin="0,0,6,0"
+                             Watermark="e.g. Kingstanding" />
+                    <NumericUpDown Grid.Column="2" Value="{Binding Fee}" Minimum="0" Maximum="99"
+                                   Increment="0.5" FormatString="0.00" Height="44" Margin="0,0,4,0"
+                                   ShowButtonSpinner="False" />
+                    <NumericUpDown Grid.Column="3" Value="{Binding MinimumOrder}" Minimum="0" Maximum="999"
+                                   Increment="1" FormatString="0.00" Height="44" Margin="0,0,4,0"
+                                   ShowButtonSpinner="False" />
+                    <NumericUpDown Grid.Column="4" Value="{Binding FreeOver}" Minimum="0" Maximum="999"
+                                   Increment="1" FormatString="0.00" Height="44" Margin="0,0,4,0"
+                                   ShowButtonSpinner="False" />
+                    <CheckBox Grid.Column="5" IsChecked="{Binding IsDeliverable}" VerticalAlignment="Center" />
+                    <Button Grid.Column="6" Classes="btn" Content="✕" Width="34" Height="44" Padding="0"
+                            Command="{Binding DataContext.RemoveDeliveryZoneCommand, ElementName=Root}"
+                            CommandParameter="{Binding}" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Button Classes="btn" Content="Add zone" Width="140" HorizontalAlignment="Left"
+                    Command="{Binding AddDeliveryZoneCommand}" Margin="0,4,0,0" />
+
+            <CheckBox IsChecked="{Binding SurchargeBelowMinimum}" Margin="0,12,0,0"
+                      Content="Add the shortfall when an order is under a zone's minimum" />
+            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                       Text="Off, the till warns and lets whoever is on the phone decide. It never refuses the order outright — a till staff have to work around loses the record along with the sale." />
+
+            <CheckBox IsChecked="{Binding RefuseOutsideZones}" Margin="0,8,0,0"
+                      Content="Treat a postcode matching no zone as outside the delivery area" />
+
+            <Grid ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+              <TextBox Classes="field" Watermark="Test a postcode" Text="{Binding ZoneTestPostcode}" />
+              <Button Grid.Column="1" Classes="card" Content="Check" Width="110" Margin="8,0,0,0"
+                      Command="{Binding TestZoneCommand}" />
+            </Grid>
+            <TextBlock Text="{Binding ZoneTestResult}" Classes="muted" TextWrapping="Wrap" FontSize="12" />
+
+            <Button Classes="primary" Content="Save delivery zones" Width="220" Margin="0,12,0,0"
+                    HorizontalAlignment="Left" Command="{Binding SaveDeliveryZonesCommand}" />
 
             <TextBlock Text="Postcode lookup" Classes="title" Margin="0,24,0,0" />
             <TextBlock TextWrapping="Wrap" Classes="muted"

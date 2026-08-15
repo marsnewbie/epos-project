@@ -196,7 +196,7 @@ public partial class SettingsViewModel : ViewModelBase
         if (IsShift) ReloadShift();
         if (IsSupport) ReloadSupport();
         if (IsTax) ReloadTax();
-        if (IsDelivery) ReloadAddressLookup();
+        if (IsDelivery) { ReloadDeliveryZones(); ReloadAddressLookup(); }
         if (IsPrivacy) ReloadRetention();
     }
 
@@ -1082,6 +1082,124 @@ public partial class SettingsViewModel : ViewModelBase
 
         ReloadTax();
         _setStatus(UiText.Pick("VAT settings saved", "税务设置已保存"));
+    }
+
+    // ── Delivery zones ──────────────────────────────────────────────────────
+
+    public ObservableCollection<DeliveryZoneRow> DeliveryZones { get; } = [];
+
+    [ObservableProperty] private string _zoneHint = "";
+    [ObservableProperty] private bool _surchargeBelowMinimum;
+    [ObservableProperty] private bool _refuseOutsideZones;
+    [ObservableProperty] private string _zoneTestPostcode = "";
+    [ObservableProperty] private string _zoneTestResult = "";
+
+    private void ReloadDeliveryZones()
+    {
+        var settings = _app.GetSettings();
+
+        DeliveryZones.Clear();
+        foreach (var zone in _app.DeliveryZones.GetZones())
+            DeliveryZones.Add(new DeliveryZoneRow(zone));
+
+        SurchargeBelowMinimum = settings.BelowMinimumPolicy == BelowMinimumPolicy.Surcharge;
+        RefuseOutsideZones = settings.OutsideZonePolicy == OutsideZonePolicy.Refuse;
+
+        ZoneHint = DeliveryZones.Count == 0
+            ? UiText.Pick(
+                "No zones yet — every delivery is charged the default fee above. Add a prefix per area the shop delivers to.",
+                "尚未设置区域——所有外送都按上面的默认配送费。请按配送区域逐个添加邮编前缀。")
+            : UiText.Pick(
+                $"{DeliveryZones.Count} zones. The longest matching prefix wins, so a B44 zone beats a B4 zone for B44 0QN.",
+                $"共 {DeliveryZones.Count} 个区域。匹配最长前缀，因此 B44 0QN 会优先匹配 B44 而非 B4。");
+    }
+
+    [RelayCommand]
+    private void AddDeliveryZone()
+    {
+        DeliveryZones.Add(new DeliveryZoneRow(new DeliveryZone { SortOrder = DeliveryZones.Count }));
+        _setStatus(UiText.Pick("Enter the postcode prefix, then save", "请填写邮编前缀后保存"));
+    }
+
+    [RelayCommand]
+    private void RemoveDeliveryZone(DeliveryZoneRow? row)
+    {
+        if (row is not null) DeliveryZones.Remove(row);
+    }
+
+    /// <summary>
+    /// Prices a postcode against the zones on screen, so a shop can see which one
+    /// wins before a customer is on the phone.
+    /// </summary>
+    [RelayCommand]
+    private void TestZone()
+    {
+        var postcode = UkPostcode.Normalise(ZoneTestPostcode);
+        if (!postcode.IsValid)
+        {
+            ZoneTestResult = UiText.Pick(
+                $"\"{ZoneTestPostcode}\" is not a UK postcode.", $"“{ZoneTestPostcode}”不是有效的英国邮编。");
+            return;
+        }
+
+        var quote = DeliveryPricing.Quote(
+            DeliveryZones.Select(r => r.ToDomain()).ToList(),
+            postcode,
+            goodsValue: 0m,
+            _app.GetSettings().DefaultDeliveryFee,
+            SurchargeBelowMinimum ? BelowMinimumPolicy.Surcharge : BelowMinimumPolicy.Warn,
+            RefuseOutsideZones ? OutsideZonePolicy.Refuse : OutsideZonePolicy.ChargeDefault,
+            UiText.IsZh);
+
+        ZoneTestResult = quote.Zone is null
+            ? quote.Message
+            : $"{postcode.Value} → {quote.Zone.Prefix}  ·  {Money.Format(quote.Fee)}" +
+              (quote.Zone.MinimumOrder > 0
+                  ? UiText.Pick($"  ·  min {Money.Format(quote.Zone.MinimumOrder)}",
+                                $"  ·  起送 {Money.Format(quote.Zone.MinimumOrder)}")
+                  : "");
+    }
+
+    [RelayCommand]
+    private async Task SaveDeliveryZonesAsync()
+    {
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditSettings,
+                UiText.Pick("Change delivery zones", "修改配送区域")))
+            return;
+
+        var rows = DeliveryZones.Select(r => r.ToDomain()).ToList();
+
+        var blank = rows.Count(z => z.NormalisedPrefix.Length == 0);
+        var duplicates = rows
+            .Where(z => z.NormalisedPrefix.Length > 0)
+            .GroupBy(z => z.NormalisedPrefix, StringComparer.Ordinal)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToList();
+
+        if (duplicates.Count > 0)
+        {
+            _setStatus(UiText.Pick(
+                $"Duplicate prefix: {string.Join(", ", duplicates)}",
+                $"前缀重复：{string.Join(", ", duplicates)}"));
+            return;
+        }
+
+        _app.DeliveryZones.Replace(rows);
+
+        var settings = _app.GetSettings();
+        settings.BelowMinimumPolicy = SurchargeBelowMinimum
+            ? BelowMinimumPolicy.Surcharge
+            : BelowMinimumPolicy.Warn;
+        settings.OutsideZonePolicy = RefuseOutsideZones
+            ? OutsideZonePolicy.Refuse
+            : OutsideZonePolicy.ChargeDefault;
+        _app.SaveSettings(settings);
+
+        _app.Session.Record("settings.delivery-zones", detail: $"{rows.Count - blank} zones");
+
+        ReloadDeliveryZones();
+        _setStatus(UiText.Pick("Delivery zones saved", "配送区域已保存"));
     }
 
     // ── Address lookup ──────────────────────────────────────────────────────

@@ -30,6 +30,60 @@ public partial class TillViewModel : ViewModelBase
     /// <summary>Postcode → address, beside the delivery fields.</summary>
     public AddressLookupPanel AddressLookup { get; }
 
+    /// <summary>What the zone said: the fee, and anything staff should know.</summary>
+    [ObservableProperty] private string _deliveryZoneNote = "";
+    [ObservableProperty] private bool _hasDeliveryZoneNote;
+    [ObservableProperty] private bool _deliveryNeedsAttention;
+
+    /// <summary>Surcharge added to reach a zone's minimum, shown so it is never a surprise.</summary>
+    [ObservableProperty] private decimal _belowMinimumSurcharge;
+    [ObservableProperty] private bool _hasBelowMinimumSurcharge;
+
+    /// <summary>
+    /// Prices the delivery for whatever is on the ticket now.
+    /// <para>
+    /// Recomputed rather than remembered, because both halves move: the postcode
+    /// changes when a customer is picked, and the food value changes with every
+    /// dish — and "free over £20" has to notice the moment the order crosses £20.
+    /// </para>
+    /// </summary>
+    private DeliveryQuote QuoteDelivery()
+    {
+        if (OrderType != "Delivery")
+        {
+            SetDeliveryNote(DeliveryQuote.None);
+            return DeliveryQuote.None;
+        }
+
+        var settings = _app.GetSettings();
+
+        // The minimum is about the food, so the discount comes off first and the
+        // delivery fee is not counted towards reaching it.
+        var goods = Money.Round(Lines.Sum(l => l.LineTotal) - _ticket.DiscountTotal);
+
+        var quote = DeliveryPricing.Quote(
+            _app.DeliveryZones.GetZones(),
+            UkPostcode.Normalise(DeliveryPostcode),
+            goods < 0 ? 0 : goods,
+            settings.DefaultDeliveryFee,
+            settings.BelowMinimumPolicy,
+            settings.OutsideZonePolicy,
+            UiText.IsZh);
+
+        SetDeliveryNote(quote);
+        return quote;
+    }
+
+    private void SetDeliveryNote(DeliveryQuote quote)
+    {
+        DeliveryZoneNote = quote.Message;
+        HasDeliveryZoneNote = quote.Message.Length > 0;
+        DeliveryNeedsAttention = quote.NeedsAttention;
+        BelowMinimumSurcharge = quote.Surcharge;
+        HasBelowMinimumSurcharge = quote.Surcharge > 0;
+    }
+
+
     /// <summary>
     /// A picked address overwrites both fields, and normalises the postcode on the
     /// way in — the order, the receipt and the customer record then all carry the
@@ -1560,7 +1614,10 @@ public partial class TillViewModel : ViewModelBase
             _ticket.FulfilmentLabel = $"Table {TableNumber.Trim()}";
         _ticket.Notes = NullIfEmpty(OrderNotes);
         _ticket.Lines = Lines.ToList();
-        _ticket.DeliveryFee = _ticket.ServiceType == ServiceType.Delivery ? _app.GetSettings().DefaultDeliveryFee : 0;
+
+        var quote = QuoteDelivery();
+        _ticket.DeliveryFee = quote.Fee;
+        _ticket.BelowMinimumSurcharge = quote.Surcharge;
         _ticket.UpdatedAt = DateTimeOffset.Now;
         LinePricing.RecalculateOrder(_ticket);
 
@@ -1598,10 +1655,13 @@ public partial class TillViewModel : ViewModelBase
 
     private void SyncTicketTotals()
     {
+        var quote = QuoteDelivery();
+
         var tmp = new PosOrder
         {
             Lines = Lines.ToList(),
-            DeliveryFee = OrderType == "Delivery" ? _app.GetSettings().DefaultDeliveryFee : 0,
+            DeliveryFee = quote.Fee,
+            BelowMinimumSurcharge = quote.Surcharge,
             DiscountTotal = _ticket.DiscountTotal,
         };
         LinePricing.RecalculateOrder(tmp);
@@ -1666,7 +1726,12 @@ public partial class TillViewModel : ViewModelBase
     partial void OnCustomerNameChanged(string value) => UpdateCustomerSummary();
     partial void OnCustomerPhoneChanged(string value) => UpdateCustomerSummary();
     partial void OnDeliveryAddressChanged(string value) => UpdateCustomerSummary();
-    partial void OnDeliveryPostcodeChanged(string value) => UpdateCustomerSummary();
+    /// <summary>A new postcode is a new zone, so the fee is re-quoted with it.</summary>
+    partial void OnDeliveryPostcodeChanged(string value)
+    {
+        UpdateCustomerSummary();
+        SyncTicketTotals();
+    }
     partial void OnTableNumberChanged(string value) => UpdateCustomerSummary();
 
     private void RefreshLines()

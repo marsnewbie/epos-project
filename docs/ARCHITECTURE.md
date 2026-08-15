@@ -1,4 +1,4 @@
-﻿# Architecture
+# Architecture
 
 ## The shape
 
@@ -212,6 +212,41 @@ by one piece of code, and an SQL approximation of it would create duplicates the
 moment it disagreed by a punctuation mark. Each customer moves in its own
 transaction and its blob is emptied as it goes, so the pass is resumable and
 re-running it does nothing.
+
+## Delivery zones
+
+Delivery is priced by **postcode prefix**, not by distance. That is how a
+takeaway publishes its area — the leaflet says "B44, B23, B42 — £2", not "£1 per
+mile". Staff can check a prefix against a customer's postcode without a map, it
+works with the broadband down, and it does not invite the argument that starts
+"your screen says 3.1 miles but I'm 2.9".
+
+**The longest matching prefix wins.** "B44 0QN" takes a `B440` zone over a `B44`
+zone over a `B4` zone. The broad one is a deliberate fallback rather than an
+accident: a shop that writes `B4` and has no `B44` entry means that side of town,
+and charging the broader zone beats declaring a real customer unreachable. The
+matched zone is named on the till so a shop can see it happen and add the
+narrower entry if that was not what they meant.
+
+Each zone carries a fee, an optional minimum order, an optional free-delivery
+threshold, and a flag for areas the shop will not serve — "we don't go there" is
+a real answer, and stating it stops a driver being sent while somebody hunts for
+a missing entry.
+
+A minimum is measured on the **food** — after discount, before the delivery fee,
+so the fee cannot help justify itself. Being under it **never blocks the order**.
+The till says so and whoever is on the phone decides; a shop can switch on a
+surcharge that tops the order up instead. A till that refuses outright is a till
+staff work around, which loses the record along with the sale.
+
+A shop with no zones behaves exactly as it did before the feature existed: the
+one default fee, and nothing said.
+
+Two things were half-wired and are now closed: the shop bundle has carried a
+`zones` list since the schema rebuild that nothing ever imported, and
+`BelowMinimumSurcharge` was **included in the VAT calculation but left out of the
+order total** — so a web order carrying one had tax worked out on money the
+customer was never charged.
 
 ## Postcode lookup
 

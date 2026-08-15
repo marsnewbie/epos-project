@@ -26,7 +26,31 @@ public static class SchemaMigrations
         new(4, "address_cache", AddressCache),
         new(5, "addresses_and_customer_links", AddressesAndCustomerLinks),
         new(6, "refunds", Refunds),
+        new(7, "delivery_zones", DeliveryZones),
     ];
+
+    /// <summary>
+    /// Delivery priced by postcode prefix.
+    /// <para>
+    /// The shop bundle has carried a <c>zones</c> list since the schema rebuild
+    /// and nothing ever read it — every delivery was charged the one flat default.
+    /// This is the table behind it.
+    /// </para>
+    /// </summary>
+    private const string DeliveryZones = """
+        CREATE TABLE delivery_zones (
+          id                  TEXT PRIMARY KEY,
+          prefix              TEXT NOT NULL,
+          name                TEXT NOT NULL DEFAULT '',
+          fee_pence           INTEGER NOT NULL DEFAULT 0,
+          minimum_order_pence INTEGER NOT NULL DEFAULT 0,
+          free_over_pence     INTEGER NOT NULL DEFAULT 0,
+          is_deliverable      INTEGER NOT NULL DEFAULT 1,
+          sort_order          INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE UNIQUE INDEX idx_delivery_zones_prefix ON delivery_zones(prefix);
+        """;
 
     /// <summary>
     /// Money given back, recorded rather than subtracted.

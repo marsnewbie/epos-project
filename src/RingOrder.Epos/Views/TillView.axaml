@@ -311,6 +311,26 @@
               </Grid>
               <TextBox Classes="field" Watermark="{Binding WmAddress}" Text="{Binding DeliveryAddress}" />
 
+              <!--
+                What the postcode costs to deliver to, stated where it is typed.
+                Amber when staff need to do something about it — outside the area,
+                or under a minimum — rather than a colour that means nothing.
+              -->
+              <Panel Margin="0,4,0,0" IsVisible="{Binding HasDeliveryZoneNote}">
+                <Border CornerRadius="6" Padding="8,5" BorderThickness="1"
+                        Background="#f4f6f8" BorderBrush="#d0d5dd"
+                        IsVisible="{Binding !DeliveryNeedsAttention}">
+                  <TextBlock Text="{Binding DeliveryZoneNote}" FontSize="11" TextWrapping="Wrap"
+                             Foreground="#5b6472" />
+                </Border>
+                <Border CornerRadius="6" Padding="8,5" BorderThickness="1"
+                        Background="#fff7ed" BorderBrush="#fdba74"
+                        IsVisible="{Binding DeliveryNeedsAttention}">
+                  <TextBlock Text="{Binding DeliveryZoneNote}" FontSize="11" TextWrapping="Wrap"
+                             Foreground="#9a3412" FontWeight="SemiBold" />
+                </Border>
+              </Panel>
+
               <StackPanel DataContext="{Binding AddressLookup}">
                 <TextBlock Text="{Binding Status}" Classes="muted" FontSize="11" TextWrapping="Wrap"
                            Margin="2,3,0,0" IsVisible="{Binding HasStatus}" />
@@ -370,6 +390,10 @@
                   <TextBlock Text="{Binding DeliveryFee, StringFormat=+ £{0:0.00}}"
                              Classes="muted" FontSize="11" HorizontalAlignment="Right"
                              IsVisible="{Binding IsDelivery}" />
+                  <!-- Money added to reach a minimum is never a silent line. -->
+                  <TextBlock Text="{Binding BelowMinimumSurcharge, StringFormat=+ £{0:0.00} min.}"
+                             FontSize="11" Foreground="#b45309" HorizontalAlignment="Right"
+                             IsVisible="{Binding HasBelowMinimumSurcharge}" />
                   <TextBlock HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold" Foreground="#b45309"
                              IsVisible="{Binding HasPayments}">
                     <Run Text="{Binding DueLabel}" />
