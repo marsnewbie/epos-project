@@ -66,6 +66,26 @@ public sealed class AppSettings
     public string CallerIdComPort { get; set; } = "COM3";
     public int CallerIdBaud { get; set; } = 9600;
 
+    /// <summary>
+    /// Which postcode lookup to ask, if any. Off by default: the feature costs
+    /// money at every provider that can name a house number, and a till that
+    /// silently starts spending a merchant's credits is not a till they trust.
+    /// </summary>
+    public string AddressLookupProvider { get; set; } = AddressProviderNames.None;
+
+    /// <summary>
+    /// Kept in the till's own database, never in the shop bundle — the bundle is
+    /// a file we email around. Provisioning seeds this from the sibling
+    /// secrets.json instead.
+    /// </summary>
+    public string AddressLookupApiKey { get; set; } = "";
+
+    /// <summary>
+    /// Answers are stored and reused. Switchable only because a merchant
+    /// debugging a wrong address needs a way to force a fresh call.
+    /// </summary>
+    public bool AddressLookupCacheEnabled { get; set; } = true;
+
     public decimal DefaultDeliveryFee { get; set; }
     public string? LastMenuImportAt { get; set; }
     public int NextOrderSequence { get; set; } = 1;

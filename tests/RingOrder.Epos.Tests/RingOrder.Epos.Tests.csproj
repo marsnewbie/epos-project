@@ -17,6 +17,7 @@
     <ProjectReference Include="..\..\src\RingOrder.Epos.Data\RingOrder.Epos.Data.csproj" />
     <ProjectReference Include="..\..\src\RingOrder.Epos.Domain\RingOrder.Epos.Domain.csproj" />
     <ProjectReference Include="..\..\src\RingOrder.Epos.Hardware\RingOrder.Epos.Hardware.csproj" />
+    <ProjectReference Include="..\..\src\RingOrder.Epos.Online\RingOrder.Epos.Online.csproj" />
   </ItemGroup>
 
   <ItemGroup>

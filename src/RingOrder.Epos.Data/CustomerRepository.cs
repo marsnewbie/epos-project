@@ -59,6 +59,55 @@ public sealed class CustomerRepository
             .ToList();
     }
 
+    /// <summary>
+    /// Addresses this shop has already delivered to at a postcode.
+    /// <para>
+    /// The SQL narrows on both the spaced and unspaced spellings because years of
+    /// hand-typed records contain both, then the comparison is redone properly in
+    /// memory — LIKE gets the row count down, normalising decides. Duplicates are
+    /// collapsed on the street line so a customer who moved flats within the same
+    /// building does not appear twice.
+    /// </para>
+    /// </summary>
+    public List<AddressCandidate> FindAddressesByPostcode(UkPostcode postcode)
+    {
+        // Only a real postcode is worth scanning for. Matching on a fragment
+        // would offer a street to someone who mistyped, which is worse than
+        // offering nothing.
+        if (!postcode.IsValid) return [];
+
+        using var conn = _db.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText =
+            "SELECT * FROM customers WHERE addresses_json LIKE $spaced OR addresses_json LIKE $packed";
+        cmd.Parameters.AddWithValue("$spaced", $"%{postcode.Value}%");
+        cmd.Parameters.AddWithValue("$packed", $"%{postcode.Outward}{postcode.Inward}%");
+
+        var found = new List<AddressCandidate>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+        {
+            foreach (var address in Read(r).Addresses)
+            {
+                if (UkPostcode.Normalise(address.Postcode).Value != postcode.Value) continue;
+                if (string.IsNullOrWhiteSpace(address.Line1)) continue;
+
+                var candidate = new AddressCandidate
+                {
+                    Line1 = address.Line1,
+                    Line2 = address.Line2,
+                    Postcode = postcode.Value,
+                };
+
+                if (seen.Add(candidate.StreetLine)) found.Add(candidate);
+            }
+        }
+
+        return found;
+    }
+
     public List<Customer> ListAll()
     {
         using var conn = _db.Open();

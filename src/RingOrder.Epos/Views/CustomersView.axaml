@@ -29,8 +29,30 @@
         <TextBlock Text="{Binding LblCustomer}" Classes="title" Margin="0,0,0,8" />
         <TextBox Classes="field" Watermark="{Binding WmName}" Text="{Binding EditName}" />
         <TextBox Classes="field" Watermark="{Binding WmPhone}" Text="{Binding EditPhone}" />
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBox Classes="field" Watermark="{Binding WmPostcode}" Text="{Binding EditPostcode}" />
+          <Button Grid.Column="1" Classes="card" Width="96" Margin="6,0,0,0"
+                  Content="{Binding AddressLookup.LblFind}"
+                  Command="{Binding AddressLookup.FindCommand}"
+                  IsEnabled="{Binding !AddressLookup.IsBusy}" />
+        </Grid>
         <TextBox Classes="field" Watermark="{Binding WmAddress}" Text="{Binding EditAddress}" />
-        <TextBox Classes="field" Watermark="{Binding WmPostcode}" Text="{Binding EditPostcode}" />
+
+        <StackPanel DataContext="{Binding AddressLookup}">
+          <TextBlock Text="{Binding Status}" Classes="muted" FontSize="12" TextWrapping="Wrap"
+                     Margin="2,4,0,0" IsVisible="{Binding HasStatus}" />
+          <ListBox IsVisible="{Binding HasCandidates}" ItemsSource="{Binding Candidates}"
+                   SelectedItem="{Binding SelectedCandidate}"
+                   Background="#ffffff" BorderBrush="#d0d5dd" BorderThickness="1"
+                   CornerRadius="6" Margin="0,6,0,0" MaxHeight="220">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding Display}" FontSize="13" TextWrapping="Wrap"
+                           MinHeight="32" VerticalAlignment="Center" />
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </StackPanel>
         <Button Classes="primary" Content="{Binding LblSave}" Command="{Binding SaveCustomerCommand}"
                 HorizontalAlignment="Left" Width="200" Margin="0,8,0,0" />
         <Button Classes="cash" Content="{Binding LblStartOrder}"

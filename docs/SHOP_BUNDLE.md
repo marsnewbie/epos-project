@@ -69,6 +69,22 @@ never inside it. Bundles are diffed, reviewed and copied around; secrets are not
 The importer picks up a sibling `secrets.json` when present, and its absence is
 normal — most shops have none.
 
+A postcode-lookup account belongs there too, and for a sharper reason: the key is
+billable, so a bundle that carried it would let anyone it was forwarded to spend
+the merchant's credits.
+
+```json
+{
+  "shopSlug": "demo",
+  "addressLookup": { "provider": "getaddress", "apiKey": "…" }
+}
+```
+
+`provider` is one of `none`, `postcodesio`, `getaddress`, `idealpostcodes`.
+Omitting the block leaves lookup switched off, which is the right default — see
+[ARCHITECTURE.md](ARCHITECTURE.md) for why there is no free option that returns
+house numbers.
+
 ## Putting a shop live
 
 The merchant sends whatever they have. It is never the same twice.

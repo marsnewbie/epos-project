@@ -23,7 +23,36 @@ public static class SchemaMigrations
         new(1, "initial", InitialSchema),
         new(2, "order_discount_reason", OrderDiscountReason),
         new(3, "print_devices_and_routing", PrintDevicesAndRouting),
+        new(4, "address_cache", AddressCache),
     ];
+
+    /// <summary>
+    /// Answers from the postcode lookup, kept forever.
+    /// <para>
+    /// A takeaway delivers inside a few miles and serves the same streets for
+    /// years, so its universe is a couple of thousand postcodes that never
+    /// change. Cached, a paid lookup is charged once per postcode for the life of
+    /// the shop rather than once per phone call — which is what makes a
+    /// pay-per-lookup provider affordable here at all.
+    /// </para>
+    /// <para>
+    /// <c>hits</c> is not statistics for its own sake: it is the evidence in
+    /// Settings that the cache is doing the work, so a merchant looking at a bill
+    /// can see how many lookups they did not pay for.
+    /// </para>
+    /// </summary>
+    private const string AddressCache = """
+        CREATE TABLE address_cache (
+          postcode   TEXT PRIMARY KEY,
+          provider   TEXT NOT NULL,
+          payload    TEXT NOT NULL,
+          town       TEXT NOT NULL DEFAULT '',
+          latitude   REAL,
+          longitude  REAL,
+          fetched_at TEXT NOT NULL,
+          hits       INTEGER NOT NULL DEFAULT 0
+        );
+        """;
 
     /// <summary>
     /// A discount without a reason is an unexplained hole in the takings. The

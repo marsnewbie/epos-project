@@ -336,6 +336,14 @@ public sealed class BundleImporter
             settings.OnlineUsername = credentials.Username ?? "";
             settings.OnlinePassword = credentials.Password ?? "";
         }
+
+        if (secrets?.AddressLookup is { } lookup)
+        {
+            if (!string.IsNullOrWhiteSpace(lookup.Provider))
+                settings.AddressLookupProvider = lookup.Provider.Trim().ToLowerInvariant();
+            if (!string.IsNullOrWhiteSpace(lookup.ApiKey))
+                settings.AddressLookupApiKey = lookup.ApiKey.Trim();
+        }
     }
 
     private int SeedStaff(ShopBundle bundle, List<string> warnings)
@@ -374,6 +382,21 @@ public sealed class ShopSecrets
 {
     public string? ShopSlug { get; set; }
     public WebSecrets? Web { get; set; }
+
+    /// <summary>
+    /// The postcode-lookup account. Here rather than in the bundle because the
+    /// key is billable: a bundle gets forwarded, attached to emails and copied
+    /// onto USB sticks, and a leaked key spends someone else's money.
+    /// </summary>
+    public AddressLookupSecrets? AddressLookup { get; set; }
+}
+
+public sealed class AddressLookupSecrets
+{
+    /// <summary>none | postcodesio | getaddress | idealpostcodes</summary>
+    public string? Provider { get; set; }
+
+    public string? ApiKey { get; set; }
 }
 
 public sealed class WebSecrets

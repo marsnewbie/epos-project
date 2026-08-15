@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using RingOrder.Epos.Data;
 using RingOrder.Epos.Domain;
 using RingOrder.Epos.Hardware;
+using RingOrder.Epos.Online;
 using RingOrder.Epos.Services;
 
 namespace RingOrder.Epos.ViewModels;
@@ -193,6 +194,7 @@ public partial class SettingsViewModel : ViewModelBase
         if (IsShift) ReloadShift();
         if (IsSupport) ReloadSupport();
         if (IsTax) ReloadTax();
+        if (IsDelivery) ReloadAddressLookup();
     }
 
     public void Reload()
@@ -1062,6 +1064,141 @@ public partial class SettingsViewModel : ViewModelBase
 
         ReloadTax();
         _setStatus(UiText.Pick("VAT settings saved", "税务设置已保存"));
+    }
+
+    // ── Address lookup ──────────────────────────────────────────────────────
+
+    public ObservableCollection<AddressProviderOption> AddressProviders { get; } = [];
+
+    [ObservableProperty] private AddressProviderOption? _selectedAddressProvider;
+    [ObservableProperty] private string _addressApiKey = "";
+    [ObservableProperty] private bool _addressCacheEnabled = true;
+    [ObservableProperty] private bool _addressNeedsKey;
+    [ObservableProperty] private string _addressProviderHint = "";
+    [ObservableProperty] private string _addressCacheSummary = "";
+    [ObservableProperty] private string _addressTestPostcode = "";
+    [ObservableProperty] private string _addressTestResult = "";
+
+    partial void OnSelectedAddressProviderChanged(AddressProviderOption? value)
+    {
+        AddressNeedsKey = value is not null && AddressProviderNames.NeedsApiKey(value.Key);
+        AddressProviderHint = AddressProviderNames.Describe(value?.Key ?? AddressProviderNames.None);
+    }
+
+    private void ReloadAddressLookup()
+    {
+        var settings = _app.GetSettings();
+
+        if (AddressProviders.Count == 0)
+            foreach (var key in AddressProviderNames.All)
+                AddressProviders.Add(new AddressProviderOption(key, LabelFor(key)));
+
+        SelectedAddressProvider =
+            AddressProviders.FirstOrDefault(p => p.Key == settings.AddressLookupProvider)
+            ?? AddressProviders[0];
+
+        AddressApiKey = settings.AddressLookupApiKey;
+        AddressCacheEnabled = settings.AddressLookupCacheEnabled;
+
+        if (AddressTestPostcode.Length == 0)
+            AddressTestPostcode = settings.ShopPostcode;
+
+        RefreshAddressCacheSummary();
+    }
+
+    private static string LabelFor(string key) => key switch
+    {
+        AddressProviderNames.PostcodesIo => "postcodes.io — free, postcode check only",
+        AddressProviderNames.GetAddressIo => "getAddress.io — full addresses",
+        AddressProviderNames.IdealPostcodes => "Ideal Postcodes — full addresses",
+        _ => "Off — type addresses by hand",
+    };
+
+    /// <summary>
+    /// The cache made visible. A merchant looking at a lookup bill should be able
+    /// to see how many calls they did not pay for.
+    /// </summary>
+    private void RefreshAddressCacheSummary()
+    {
+        var stats = _app.AddressCache.Stats();
+        AddressCacheSummary = stats.Postcodes == 0
+            ? UiText.Pick(
+                "Nothing saved yet. Each postcode is looked up once and then kept, so a shop stops paying for the streets it already delivers to.",
+                "暂无缓存。每个邮编只查一次并永久保存，常送的街道之后不再产生查询费用。")
+            : UiText.Pick(
+                $"{stats.Postcodes} postcodes saved, reused {stats.Hits} times — lookups that cost nothing.",
+                $"已保存 {stats.Postcodes} 个邮编，命中 {stats.Hits} 次——这些查询没有花钱。");
+    }
+
+    [RelayCommand]
+    private async Task SaveAddressLookupAsync()
+    {
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditSettings,
+                UiText.Pick("Change postcode lookup", "修改邮编查询设置")))
+            return;
+
+        var settings = _app.GetSettings();
+        settings.AddressLookupProvider = SelectedAddressProvider?.Key ?? AddressProviderNames.None;
+        settings.AddressLookupApiKey = AddressApiKey.Trim();
+        settings.AddressLookupCacheEnabled = AddressCacheEnabled;
+        _app.SaveSettings(settings);
+
+        // The key is billable, so it is never written to the audit trail.
+        _app.Session.Record("settings.address-lookup", detail: settings.AddressLookupProvider);
+
+        ReloadAddressLookup();
+        _setStatus(UiText.Pick("Postcode lookup saved", "邮编查询设置已保存"));
+    }
+
+    /// <summary>
+    /// Proves the setup against a real postcode before a shift depends on it.
+    /// Deliberately bypasses the cache — the point is to prove the provider
+    /// answers, and a cached hit would prove nothing.
+    /// </summary>
+    [RelayCommand]
+    private async Task TestAddressLookupAsync()
+    {
+        var provider = SelectedAddressProvider?.Key ?? AddressProviderNames.None;
+        if (provider == AddressProviderNames.None)
+        {
+            AddressTestResult = UiText.Pick(
+                "Lookup is off — nothing to test.", "查询已关闭，无需测试。");
+            return;
+        }
+
+        var postcode = UkPostcode.Normalise(AddressTestPostcode);
+        if (!postcode.IsValid)
+        {
+            AddressTestResult = UiText.Pick(
+                $"\"{AddressTestPostcode}\" is not a UK postcode.",
+                $"“{AddressTestPostcode}”不是有效的英国邮编。");
+            return;
+        }
+
+        AddressTestResult = UiText.Pick("Testing…", "测试中…");
+
+        var lookup = AddressLookupFactory.Create(provider, AddressApiKey.Trim());
+        var result = await lookup.FindAsync(postcode);
+
+        AddressTestResult = result.Status switch
+        {
+            AddressLookupStatus.Ok when result.HasCandidates =>
+                $"✓ {result.Candidates.Count} — {result.Candidates[0].Display}",
+            AddressLookupStatus.Ok => $"✓ {result.Message}",
+            _ => $"✗ {result.Message}",
+        };
+    }
+
+    [RelayCommand]
+    private async Task ClearAddressCacheAsync()
+    {
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditSettings,
+                UiText.Pick("Clear saved addresses", "清空已保存的地址")))
+            return;
+
+        var removed = _app.AddressCache.Clear();
+        RefreshAddressCacheSummary();
+        _setStatus(UiText.Pick($"Cleared {removed} saved postcodes", $"已清空 {removed} 个邮编缓存"));
     }
 
     // ── Support ─────────────────────────────────────────────────────────────

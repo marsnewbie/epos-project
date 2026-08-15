@@ -17,7 +17,16 @@ public partial class CustomersViewModel : ViewModelBase
         _app = app;
         _setStatus = setStatus;
         _startOrder = startOrder;
+        AddressLookup = new AddressLookupPanel(app.AddressLookup, () => EditPostcode, candidate =>
+        {
+            EditAddress = candidate.StreetLine;
+            var normalised = UkPostcode.Normalise(candidate.Postcode);
+            if (!normalised.IsEmpty) EditPostcode = normalised.Value;
+        });
     }
+
+    /// <summary>Postcode → address, beside the address fields.</summary>
+    public AddressLookupPanel AddressLookup { get; }
 
     public ObservableCollection<Customer> Customers { get; } = [];
 
@@ -55,6 +64,7 @@ public partial class CustomersViewModel : ViewModelBase
         LblCallerId = UiText.CallerIdSim;
         LblCallerHint = UiText.CallerIdHint;
         LblSimulate = UiText.SimulateCall;
+        AddressLookup.RefreshUiLabels();
     }
 
     public void Refresh()
@@ -74,6 +84,7 @@ public partial class CustomersViewModel : ViewModelBase
         var addr = value.Addresses.FirstOrDefault();
         EditAddress = addr?.Line1 ?? "";
         EditPostcode = addr?.Postcode ?? "";
+        AddressLookup.Reset();
     }
 
     [RelayCommand]
@@ -95,7 +106,11 @@ public partial class CustomersViewModel : ViewModelBase
                 new CustomerAddress
                 {
                     Line1 = EditAddress.Trim(),
-                    Postcode = EditPostcode.Trim(),
+                    // Stored normalised so tomorrow's postcode search finds it
+                    // however it was typed today.
+                    Postcode = UkPostcode.Normalise(EditPostcode) is { IsValid: true } p
+                        ? p.Value
+                        : EditPostcode.Trim(),
                     IsDefault = true,
                 }
             ];

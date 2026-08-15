@@ -44,6 +44,35 @@
             <TextBlock Text="Delivery / 外卖费" FontWeight="Bold" FontSize="18" Foreground="#1c1917" Margin="0,0,0,8" />
             <TextBox Classes="field" Watermark="Default delivery fee £" Text="{Binding DefaultDeliveryFeeText}" />
             <TextBlock Text="Advanced postcode bands can be added later." Foreground="#5b6472" FontSize="12" Margin="0,8,0,0" />
+
+            <TextBlock Text="Postcode lookup" Classes="title" Margin="0,24,0,0" />
+            <TextBlock TextWrapping="Wrap" Classes="muted"
+                       Text="Type a postcode on the till, press Find, pick the house. There is no free source of UK house numbers — every provider that has them licenses the Royal Mail address file — so this is off until a shop chooses to turn it on." />
+
+            <ComboBox ItemsSource="{Binding AddressProviders}" SelectedItem="{Binding SelectedAddressProvider}"
+                      HorizontalAlignment="Stretch" Height="44" Margin="0,8,0,0" />
+            <TextBlock Text="{Binding AddressProviderHint}" Classes="muted" TextWrapping="Wrap" FontSize="12" />
+
+            <TextBox Classes="field" Watermark="API key" Text="{Binding AddressApiKey}"
+                     IsVisible="{Binding AddressNeedsKey}" Margin="0,8,0,0" />
+
+            <CheckBox IsChecked="{Binding AddressCacheEnabled}" Margin="0,8,0,0"
+                      Content="Remember every answer (recommended)" />
+            <TextBlock Text="{Binding AddressCacheSummary}" Classes="muted" TextWrapping="Wrap" FontSize="12" />
+
+            <Grid ColumnDefinitions="*,Auto" Margin="0,12,0,0">
+              <TextBox Classes="field" Watermark="Test with a postcode" Text="{Binding AddressTestPostcode}" />
+              <Button Grid.Column="1" Classes="card" Content="Test" Width="110" Margin="8,0,0,0"
+                      Command="{Binding TestAddressLookupCommand}" />
+            </Grid>
+            <TextBlock Text="{Binding AddressTestResult}" Classes="muted" TextWrapping="Wrap" FontSize="12" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
+              <Button Classes="primary" Content="Save postcode lookup" Width="220"
+                      Command="{Binding SaveAddressLookupCommand}" />
+              <Button Classes="btn" Content="Clear saved addresses" Width="200"
+                      Command="{Binding ClearAddressCacheCommand}" />
+            </StackPanel>
           </StackPanel>
         </Border>
 

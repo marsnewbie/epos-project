@@ -20,6 +20,8 @@ public sealed class AppServices
     public AuditRepository Audit { get; }
     public BundleImporter BundleImporter { get; }
     public PrintDeviceRepository PrintDevices { get; }
+    public AddressCacheRepository AddressCache { get; }
+    public AddressLookupService AddressLookup { get; }
     public PrintQueue PrintQueue { get; }
     public BackupService Backups { get; }
     public PosSession Session { get; }
@@ -49,11 +51,22 @@ public sealed class AppServices
         Shifts = new ShiftRepository(Db);
         Audit = new AuditRepository(Db);
         PrintDevices = new PrintDeviceRepository(Db);
+        AddressCache = new AddressCacheRepository(Db);
         BundleImporter = new BundleImporter(Menu, Settings, Staff, PrintDevices);
         Session = new PosSession(Staff, Shifts, Audit);
         ProvisionIfNeeded();
 
         _cachedSettings = Settings.Load();
+
+        // Built from the settings on every call rather than captured once, so
+        // pasting an API key in Settings takes effect on the next lookup instead
+        // of on the next restart.
+        AddressLookup = new AddressLookupService(
+            AddressCache,
+            Customers,
+            () => AddressLookupFactory.Create(
+                _cachedSettings.AddressLookupProvider, _cachedSettings.AddressLookupApiKey),
+            () => _cachedSettings.AddressLookupCacheEnabled);
 
         CardTerminal = new ManualCardTerminal();
         CallerId = new SimulatedCallerId();

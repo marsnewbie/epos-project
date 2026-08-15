@@ -138,6 +138,52 @@ from a business that cannot charge it is worse than one that says nothing.
 `TaxCalculator` is pure, and its tests include the property that matters on a
 receipt: net plus VAT reconstructs the gross, for every penny from 1p to £50.
 
+## Postcode lookup
+
+Type a postcode, press Find, pick the house. The uncomfortable fact underneath is
+that **there is no free source of UK house numbers**: every service that can list
+front doors is reselling the Royal Mail Postcode Address File, and the Royal Mail
+charges for it. What is genuinely free — postcodes.io, Ordnance Survey open data
+— confirms a postcode exists and names the district, but has never heard of
+number 12.
+
+So the shop chooses, and **off is the default**. A till that quietly starts
+spending a merchant's lookup credits is not a till they trust.
+
+| Provider | Cost | Gives |
+| --- | --- | --- |
+| Off | — | nothing; addresses are typed |
+| postcodes.io | free, no key | postcode is real, town, coordinates |
+| getAddress.io | free tier, then paid | full addresses |
+| Ideal Postcodes | ~3–4.5p per lookup, prepaid | full addresses |
+
+**The cache is what makes a paid provider affordable.** A takeaway delivers
+inside a few miles and serves the same streets for years — a couple of thousand
+postcodes that never change. Every answer is stored forever, keyed on the
+normalised postcode, so a lookup is charged once per postcode for the life of the
+shop rather than once per phone call. Settings shows how many were reused, which
+is the evidence a merchant wants when a bill arrives.
+
+Normalising is therefore load-bearing, not tidiness: if `b296aa` and `B29 6AA`
+are two cache keys, the shop pays twice for one house. `UkPostcode` packs,
+uppercases and re-inserts the single space before the last three characters, and
+everything downstream keys on that.
+
+Three sources are tried in the order that costs least: the cache, then the
+configured provider, then **the shop's own delivery history** — which knows the
+regulars when nothing else is available, and is the whole answer for a shop that
+never turns a provider on. A real answer from a provider always beats history.
+
+Two rules hold everywhere. **Nothing blocks the address fields** — whatever comes
+back, staff can ignore it and keep typing, because a lookup that stops an order
+being taken has cost a sale to save keystrokes. And **only real answers are
+cached**: "no such postcode" is permanent and worth keeping, but a timeout says
+nothing about the postcode and caching it would make one bad minute permanent.
+
+The API key lives in the till's own database and in `secrets.json` at
+provisioning — never in the shop bundle, which gets emailed and copied around. A
+leaked key spends someone else's money.
+
 ## Printing
 
 Four layers, and the separation is what lets a shop have four printers of three

@@ -152,6 +152,16 @@ public partial class RouteRow : ObservableObject
     }
 }
 
+/// <summary>
+/// One choice in the postcode-lookup dropdown. <see cref="ToString"/> is what the
+/// ComboBox shows; <see cref="Key"/> is what gets stored, so relabelling an option
+/// never changes a saved setting.
+/// </summary>
+public sealed record AddressProviderOption(string Key, string Label)
+{
+    public override string ToString() => Label;
+}
+
 /// <summary>One VAT band in Settings.</summary>
 public partial class TaxClassRow : ObservableObject
 {

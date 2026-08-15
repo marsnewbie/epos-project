@@ -509,3 +509,79 @@ gross for every penny from 1p to £50 — the one thing a customer can check by
 looking at the paper.
 
 83 tests.
+
+---
+
+## 2026-08-15 — Postcode lookup, and the honest answer about "free"
+
+Asked whether the industry-standard "type a postcode, get the address" belongs
+in the till, and whether a reliable free service exists to plug in.
+
+**It belongs, and there is no free option that does the job.** Every service
+that can turn a postcode into house numbers resells the Royal Mail Postcode
+Address File, and the Royal Mail charges for it. The genuinely free one —
+postcodes.io, Ordnance Survey open data, no key, self-hostable — confirms a
+postcode exists and names the district, but has never heard of number 12.
+Checked rather than assumed: Ideal Postcodes is pay-as-you-go at roughly 3–4.5p
+a lookup from prepaid credits with a 50-credit trial; getAddress.io has a free
+tier for low volume and paid plans above it.
+
+So the shop chooses between four options and **off is the default**. A till that
+quietly starts spending a merchant's credits is not a till they trust.
+
+**The cache is the commercial argument.** A takeaway delivers inside a few miles
+and serves the same streets for years — a couple of thousand postcodes that never
+change. Every answer is stored forever, so a paid lookup is charged once per
+postcode for the life of the shop rather than once per phone call. That turns
+"do we need a subscription" into "no". Settings shows postcodes saved and times
+reused, because that number is what a merchant wants when a bill arrives.
+
+Which makes **normalising load-bearing, not tidiness**: `b296aa`, `B29 6AA` and
+`B29  6aa` are one house, and if they are three cache keys the shop pays three
+times. `UkPostcode` packs, uppercases, and re-inserts the single space before the
+last three characters; everything downstream keys on that. Customer addresses are
+now saved normalised too, so the history search finds them later.
+
+**Three sources, cheapest first**: the cache, then the provider, then the shop's
+own delivery history. History last, deliberately — it knows only the addresses
+this shop has already delivered to, so offering it ahead of a real answer would
+suggest number 12 to a new caller at number 40. For a shop that never turns a
+provider on, history is the whole feature, and it costs nothing.
+
+**Only real answers are cached.** "No such postcode" is permanent and worth
+keeping. A timeout says nothing about the postcode, and caching it would make one
+bad minute permanent.
+
+**Nothing blocks the address fields.** Four-second timeout, every failure lands
+on plain wording ("credits have run out", not "402"), and staff can ignore all of
+it and keep typing. A lookup that stops an order being taken has cost a sale to
+save keystrokes.
+
+On the till the delivery fields are now **postcode → Find → street**, the order a
+UK delivery is actually established over the phone. A single result fills itself
+in rather than asking someone to pick from a list of one. The same panel serves
+the phone book, because two copies would drift the first time one was fixed.
+
+The API key lives in the till's database and in `secrets.json` at provisioning,
+never in the shop bundle — bundles get emailed and copied, and a leaked key
+spends someone else's money. It is kept out of the audit trail for the same
+reason.
+
+**Two defects found while building it.** `default(UkPostcode)` threw on every
+property because a struct's auto-properties skip the constructor and left the
+strings null — caught by the empty-string case in the validation table, fixed
+with backing fields. And the results list was first written with a
+parent-relative command binding, which XAML compilation cannot check; it became a
+`ListBox` bound to `SelectedCandidate`, which needs no parent lookup and puts the
+pick logic somewhere a re-entrancy guard can protect it.
+
+Migration 4 ran on the live shop database with the usual pre-migration backup.
+Verified afterwards: 21 categories, 170 dishes, 11 shared option groups, 14
+per-dish links, 37 option choices — unchanged.
+
+118 tests.
+
+**Not done, and needs saying:** the results list is covered by unit tests and the
+markup compiles, but nobody has yet clicked a candidate on a running till, and no
+real provider key has been exercised against a live API. Both are worth ten
+minutes during the printer session.

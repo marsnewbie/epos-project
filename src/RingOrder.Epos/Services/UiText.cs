@@ -58,6 +58,8 @@ public static class UiText
     public static string CustomerPhone => Pick("Phone", "电话");
     public static string Address => Pick("Address", "地址");
     public static string Postcode => Pick("Postcode", "邮编");
+    public static string FindAddress => Pick("Find", "查找");
+    public static string SearchingAddress => Pick("Searching…", "查询中…");
     public static string TablePager => Pick("Table / pager #", "桌号 / 叫号");
     public static string TypeCollection => Pick("Collect", "外带");
     public static string TypeDelivery => Pick("Deliver", "外卖");

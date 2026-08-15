@@ -20,10 +20,18 @@ part of finishing a change, not an extra.
 | Tender and shift arithmetic | Partial payment, split tender, expected cash, variance, sequential shift numbers |
 | Permissions and PIN hashing | Who may do what, and that a PIN is not recoverable from what is stored |
 | Migrations | A database written by an older release still opens, still has its orders, and gains its new columns |
+| Print routing | Which device a document goes to, and that a dish inheriting its category's station still reaches the kitchen |
+| Backups | That the nightly copy is taken, is openable, and that old ones are pruned |
+| VAT | Prices include tax, so the arithmetic runs backwards; net plus VAT reconstructs the gross for every penny from 1p to £50 |
+| Postcode lookup | That one house typed three ways is paid for once, that rubbish never reaches a paid provider, and that a timeout is not cached |
 
 The migration test seeds the old database with raw SQL matching that version's
 schema. Using today's repository would test nothing, because it already knows
 about columns the old release never had.
+
+The lookup tests never touch the network. Provider responses are parsed from
+recorded JSON, and the cache and fallback behaviour run against a counting fake —
+so "how many times did the shop get charged" is an assertion rather than a hope.
 
 ## Manual pass — the money
 

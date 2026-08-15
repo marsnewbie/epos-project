@@ -111,3 +111,5 @@ raised as a fault by someone reasoning from a name rather than from the code.
 | Deleting staff is possible | Only deactivation. Their name is on every order they took |
 | `ServiceType` says where an order came from | `ServiceType` is how the customer gets the food; `OrderChannel` is where it came from. "Waiting" is neither — it is a collection order with the customer standing there |
 | The bundle is read at runtime | It is a seed. After import the till owns the data and Settings is the source of truth |
+| Postcode lookup is off because it is unfinished | It is off because it costs money. There is no free source of UK house numbers — every provider that has them licenses the Royal Mail address file — so switching it on is the merchant's decision, not our default |
+| The address cache is a performance optimisation | It is a billing one. Each postcode is paid for once for the life of the shop instead of once per phone call, which is what makes a per-lookup provider viable at all |

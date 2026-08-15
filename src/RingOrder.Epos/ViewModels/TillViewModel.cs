@@ -19,10 +19,30 @@ public partial class TillViewModel : ViewModelBase
         _app = app;
         _setStatus = setStatus;
         _goOrders = goOrders;
+        // Before NewTicket, which resets it.
+        AddressLookup = new AddressLookupPanel(app.AddressLookup, () => DeliveryPostcode, ApplyFoundAddress);
         ReloadQuickNotes();
         RefreshMenu();
         NewTicket(force: true);
         RefreshUiLabels();
+    }
+
+    /// <summary>Postcode → address, beside the delivery fields.</summary>
+    public AddressLookupPanel AddressLookup { get; }
+
+    /// <summary>
+    /// A picked address overwrites both fields, and normalises the postcode on the
+    /// way in — the order, the receipt and the customer record then all carry the
+    /// same spelling, which is what makes the history search find it next time.
+    /// </summary>
+    private void ApplyFoundAddress(AddressCandidate candidate)
+    {
+        DeliveryAddress = candidate.StreetLine;
+
+        var normalised = UkPostcode.Normalise(candidate.Postcode);
+        if (!normalised.IsEmpty) DeliveryPostcode = normalised.Value;
+
+        OrderType = "Delivery";
     }
 
     public ObservableCollection<CategoryTile> CategoryTiles { get; } = [];
@@ -176,6 +196,7 @@ public partial class TillViewModel : ViewModelBase
         WmPhone = UiText.CustomerPhone;
         WmAddress = UiText.Address;
         WmPostcode = UiText.Postcode;
+        AddressLookup.RefreshUiLabels();
         WmTable = UiText.TablePager;
         LblNotes = UiText.Notes;
         WmOrderNotes = UiText.OrderNotes;
@@ -607,6 +628,7 @@ public partial class TillViewModel : ViewModelBase
         CustomerPhone = "";
         DeliveryAddress = "";
         DeliveryPostcode = "";
+        AddressLookup.Reset();
         PanelStatus = "Phone order — enter name/phone or pick from Customers";
         _setStatus(PanelStatus);
     }
@@ -1437,6 +1459,7 @@ public partial class TillViewModel : ViewModelBase
         CustomerPhone = "";
         DeliveryAddress = "";
         DeliveryPostcode = "";
+        AddressLookup.Reset();
         TableNumber = "";
         OrderNotes = "";
         CashTenderedText = "";

@@ -299,10 +299,35 @@
               <TextBox Classes="field" Watermark="{Binding WmName}" Text="{Binding CustomerName}" Margin="0,0,4,4" />
               <TextBox Grid.Column="1" Classes="field" Watermark="{Binding WmPhone}" Text="{Binding CustomerPhone}" Margin="0,0,0,4" />
             </Grid>
-            <TextBox Classes="field" Watermark="{Binding WmAddress}" Text="{Binding DeliveryAddress}"
-                     IsVisible="{Binding IsDelivery}" />
-            <TextBox Classes="field" Watermark="{Binding WmPostcode}" Text="{Binding DeliveryPostcode}"
-                     IsVisible="{Binding IsDelivery}" />
+            <!-- Postcode first, then Find, then the street: the order a UK
+                 delivery is actually established over the phone. -->
+            <StackPanel IsVisible="{Binding IsDelivery}">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBox Classes="field" Watermark="{Binding WmPostcode}" Text="{Binding DeliveryPostcode}" />
+                <Button Grid.Column="1" Classes="card" Width="84" Margin="4,0,0,0"
+                        Content="{Binding AddressLookup.LblFind}"
+                        Command="{Binding AddressLookup.FindCommand}"
+                        IsEnabled="{Binding !AddressLookup.IsBusy}" />
+              </Grid>
+              <TextBox Classes="field" Watermark="{Binding WmAddress}" Text="{Binding DeliveryAddress}" />
+
+              <StackPanel DataContext="{Binding AddressLookup}">
+                <TextBlock Text="{Binding Status}" Classes="muted" FontSize="11" TextWrapping="Wrap"
+                           Margin="2,3,0,0" IsVisible="{Binding HasStatus}" />
+                <ListBox IsVisible="{Binding HasCandidates}" ItemsSource="{Binding Candidates}"
+                         SelectedItem="{Binding SelectedCandidate}"
+                         Background="#ffffff" BorderBrush="#d0d5dd" BorderThickness="1"
+                         CornerRadius="6" Margin="0,4,0,0" MaxHeight="176">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding Display}" FontSize="13" TextWrapping="Wrap"
+                                 MinHeight="30" VerticalAlignment="Center" />
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </StackPanel>
+            </StackPanel>
+
             <TextBox Classes="field" Watermark="{Binding WmTable}" Text="{Binding TableNumber}"
                      IsVisible="{Binding IsEatIn}" />
             <Grid ColumnDefinitions="*,Auto">
