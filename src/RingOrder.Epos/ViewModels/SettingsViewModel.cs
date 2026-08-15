@@ -1089,8 +1089,10 @@ public partial class SettingsViewModel : ViewModelBase
     public ObservableCollection<DeliveryZoneRow> DeliveryZones { get; } = [];
 
     [ObservableProperty] private string _zoneHint = "";
-    [ObservableProperty] private bool _surchargeBelowMinimum;
-    [ObservableProperty] private bool _refuseOutsideZones;
+    [ObservableProperty] private decimal _belowMinimumSurcharge;
+    [ObservableProperty] private decimal _maxDeliveryMiles;
+    [ObservableProperty] private DeliveryMode _deliveryMode;
+    public DeliveryMode[] DeliveryModes { get; } = Enum.GetValues<DeliveryMode>();
     [ObservableProperty] private string _zoneTestPostcode = "";
     [ObservableProperty] private string _zoneTestResult = "";
 
@@ -1102,16 +1104,17 @@ public partial class SettingsViewModel : ViewModelBase
         foreach (var zone in _app.DeliveryZones.GetZones())
             DeliveryZones.Add(new DeliveryZoneRow(zone));
 
-        SurchargeBelowMinimum = settings.BelowMinimumPolicy == BelowMinimumPolicy.Surcharge;
-        RefuseOutsideZones = settings.OutsideZonePolicy == OutsideZonePolicy.Refuse;
+        BelowMinimumSurcharge = settings.BelowMinimumSurcharge;
+        MaxDeliveryMiles = settings.MaxDeliveryMiles;
+        DeliveryMode = settings.DeliveryMode;
 
         ZoneHint = DeliveryZones.Count == 0
             ? UiText.Pick(
                 "No zones yet — every delivery is charged the default fee above. Add a prefix per area the shop delivers to.",
                 "尚未设置区域——所有外送都按上面的默认配送费。请按配送区域逐个添加邮编前缀。")
             : UiText.Pick(
-                $"{DeliveryZones.Count} zones. The longest matching prefix wins, so a B44 zone beats a B4 zone for B44 0QN.",
-                $"共 {DeliveryZones.Count} 个区域。匹配最长前缀，因此 B44 0QN 会优先匹配 B44 而非 B4。");
+                $"{DeliveryZones.Count} zones. The most specific rule wins: B44 0QN takes a \"B44 0\" sector over a \"B44\" district over a \"B\" area. B47 never matches a B44 rule.",
+                $"共 {DeliveryZones.Count} 个区域。匹配最精确的规则：B44 0QN 优先匹配「B44 0」段，其次「B44」区，再次「B」大区。B47 永远不会匹配 B44 规则。");
     }
 
     [RelayCommand]
@@ -1142,22 +1145,27 @@ public partial class SettingsViewModel : ViewModelBase
             return;
         }
 
-        var quote = DeliveryPricing.Quote(
-            DeliveryZones.Select(r => r.ToDomain()).ToList(),
-            postcode,
-            goodsValue: 0m,
-            _app.GetSettings().DefaultDeliveryFee,
-            SurchargeBelowMinimum ? BelowMinimumPolicy.Surcharge : BelowMinimumPolicy.Warn,
-            RefuseOutsideZones ? OutsideZonePolicy.Refuse : OutsideZonePolicy.ChargeDefault,
-            UiText.IsZh);
+        var config = new DeliveryConfig
+        {
+            Mode = DeliveryMode,
+            DefaultFee = _app.GetSettings().DefaultDeliveryFee,
+            BelowMinimumSurcharge = BelowMinimumSurcharge,
+            MaxDeliveryMiles = MaxDeliveryMiles,
+            Zones = DeliveryZones.Select(r => r.ToDomain()).ToList(),
+            MilesBands = _app.MilesBands.GetBands(),
+        };
 
-        ZoneTestResult = quote.Zone is null
-            ? quote.Message
-            : $"{postcode.Value} → {quote.Zone.Prefix}  ·  {Money.Format(quote.Fee)}" +
-              (quote.Zone.MinimumOrder > 0
-                  ? UiText.Pick($"  ·  min {Money.Format(quote.Zone.MinimumOrder)}",
-                                $"  ·  起送 {Money.Format(quote.Zone.MinimumOrder)}")
-                  : "");
+        var miles = _app.MilesBands.GetCachedMiles(_app.GetSettings().ShopPostcode, postcode.Value);
+        var quote = DeliveryPricing.Quote(config, postcode, orderValue: 0m, miles, UiText.IsZh);
+
+        ZoneTestResult = quote.MatchedRule.Length > 0
+            ? $"{postcode.Value} → {quote.MatchedRule}  ·  {Money.Format(quote.Fee)}" +
+              (quote.MinimumOrder > 0
+                  ? UiText.Pick($"  ·  min {Money.Format(quote.MinimumOrder)}",
+                                $"  ·  起送 {Money.Format(quote.MinimumOrder)}")
+                  : "") +
+              (miles is { } m ? $"  ·  {m:0.0} mi" : "")
+            : quote.Message;
     }
 
     [RelayCommand]
@@ -1169,10 +1177,10 @@ public partial class SettingsViewModel : ViewModelBase
 
         var rows = DeliveryZones.Select(r => r.ToDomain()).ToList();
 
-        var blank = rows.Count(z => z.NormalisedPrefix.Length == 0);
+        var blank = rows.Count(z => PostcodeRules.Parse(z.Prefix) is null);
         var duplicates = rows
-            .Where(z => z.NormalisedPrefix.Length > 0)
-            .GroupBy(z => z.NormalisedPrefix, StringComparer.Ordinal)
+            .Where(z => PostcodeRules.Parse(z.Prefix) is not null)
+            .GroupBy(z => z.Canonical, StringComparer.Ordinal)
             .Where(g => g.Count() > 1)
             .Select(g => g.Key)
             .ToList();
@@ -1188,12 +1196,9 @@ public partial class SettingsViewModel : ViewModelBase
         _app.DeliveryZones.Replace(rows);
 
         var settings = _app.GetSettings();
-        settings.BelowMinimumPolicy = SurchargeBelowMinimum
-            ? BelowMinimumPolicy.Surcharge
-            : BelowMinimumPolicy.Warn;
-        settings.OutsideZonePolicy = RefuseOutsideZones
-            ? OutsideZonePolicy.Refuse
-            : OutsideZonePolicy.ChargeDefault;
+        settings.BelowMinimumSurcharge = BelowMinimumSurcharge;
+        settings.MaxDeliveryMiles = MaxDeliveryMiles;
+        settings.DeliveryMode = DeliveryMode;
         _app.SaveSettings(settings);
 
         _app.Session.Record("settings.delivery-zones", detail: $"{rows.Count - blank} zones");

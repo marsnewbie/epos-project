@@ -1,5 +1,6 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.ComponentModel;
 using RingOrder.Epos.Domain;
+using RingOrder.Epos.Services;
 
 namespace RingOrder.Epos.ViewModels;
 
@@ -198,7 +199,7 @@ public partial class DeliveryZoneRow : ObservableObject
         _fee = zone.Fee;
         _minimumOrder = zone.MinimumOrder;
         _freeOver = zone.FreeOverAmount;
-        _isDeliverable = zone.IsDeliverable;
+        _isActive = zone.IsActive;
     }
 
     public DeliveryZone Zone { get; }
@@ -208,16 +209,25 @@ public partial class DeliveryZoneRow : ObservableObject
     [ObservableProperty] private decimal _fee;
     [ObservableProperty] private decimal _minimumOrder;
     [ObservableProperty] private decimal _freeOver;
-    [ObservableProperty] private bool _isDeliverable;
+    [ObservableProperty] private bool _isActive;
+
+    /// <summary>
+    /// What the prefix actually covers, in words. "B44 0" is one sector and "B40"
+    /// is a whole district — a merchant needs to see which one they just typed.
+    /// </summary>
+    public string Coverage => PostcodeRules.Describe(Prefix, UiText.IsZh)
+        ?? UiText.Pick("Not a postcode prefix", "不是有效的邮编前缀");
+
+    partial void OnPrefixChanged(string value) => OnPropertyChanged(nameof(Coverage));
 
     public DeliveryZone ToDomain()
     {
-        Zone.Prefix = DeliveryZone.Normalise(Prefix);
+        Zone.Prefix = PostcodeRules.Canonical(Prefix);
         Zone.Name = Name.Trim();
         Zone.Fee = Fee;
         Zone.MinimumOrder = MinimumOrder;
         Zone.FreeOverAmount = FreeOver;
-        Zone.IsDeliverable = IsDeliverable;
+        Zone.IsActive = IsActive;
         return Zone;
     }
 }

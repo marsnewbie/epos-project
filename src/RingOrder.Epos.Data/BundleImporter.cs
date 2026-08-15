@@ -300,13 +300,14 @@ public sealed class BundleImporter
 
         foreach (var def in bundle.Delivery.Zones)
         {
-            var prefix = DeliveryZone.Normalise(def.Prefix);
-            if (prefix.Length == 0)
+            var rule = PostcodeRules.Parse(def.Prefix);
+            if (rule is null)
             {
-                warnings.Add("a delivery zone has no postcode prefix and was skipped");
+                warnings.Add($"delivery zone \"{def.Prefix}\" is not a postcode prefix and was skipped");
                 continue;
             }
 
+            var prefix = rule.Canonical;
             if (!seen.Add(prefix))
             {
                 warnings.Add($"delivery zone {prefix} appears more than once; the first was kept");

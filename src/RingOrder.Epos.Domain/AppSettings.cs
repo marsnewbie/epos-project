@@ -108,15 +108,23 @@ public sealed class AppSettings
     /// <summary>Charged when no zone matches, and when a shop has set no zones at all.</summary>
     public decimal DefaultDeliveryFee { get; set; }
 
-    /// <summary>
-    /// What happens when an order is under a zone's minimum. Warn by default —
-    /// quietly adding money to a bill is worse than telling staff and letting the
-    /// person on the phone decide.
-    /// </summary>
-    public BelowMinimumPolicy BelowMinimumPolicy { get; set; } = BelowMinimumPolicy.Warn;
+    /// <summary>Postcode rules, road-distance bands, or rules first then distance.</summary>
+    public DeliveryMode DeliveryMode { get; set; } = DeliveryMode.Postcode;
 
-    /// <summary>What happens to a postcode no zone covers.</summary>
-    public OutsideZonePolicy OutsideZonePolicy { get; set; } = OutsideZonePolicy.ChargeDefault;
+    /// <summary>
+    /// Flat amount added when the basket is under the matched minimum — the
+    /// shop's price for carrying a small order, not the shortfall. Zero means the
+    /// till warns and charges nothing.
+    /// <para>
+    /// Flat rather than "top up to the minimum" because that is what the
+    /// RingOrder website charges, and a shop running both must not quote two
+    /// different numbers for the same basket.
+    /// </para>
+    /// </summary>
+    public decimal BelowMinimumSurcharge { get; set; }
+
+    /// <summary>Beyond this, the shop does not deliver at all.</summary>
+    public decimal MaxDeliveryMiles { get; set; } = 5m;
     public string? LastMenuImportAt { get; set; }
     public int NextOrderSequence { get; set; } = 1;
 

@@ -122,5 +122,7 @@ raised as a fault by someone reasoning from a name rather than from the code.
 | A void and a refund are the same thing | A void says the sale never happened. A refund says it did and was reversed. Voiding a paid order does not return any money, and the till says so |
 | Refunds appear in `PosOrder.Tenders` | They are in `PosOrder.Refunds`. As a negative tender a refund would push `BalanceDue` back up and let a settled sale be settled twice |
 | Saving an order rewrites all its payment rows | The wipe is scoped to `is_refund = 0`. Money already handed back is not the caller's to delete |
-| A `B4` zone should not match `B44 0QN` | It does, when no `B44` zone exists. Longest prefix wins, and the broad entry is a deliberate fallback — charging the wider zone beats calling a real customer unreachable. The till names the zone it matched |
-| Being under a zone minimum blocks the order | It warns. The person on the phone decides, and a shop can opt into a surcharge instead. A till staff work around loses the record along with the sale |
+| Delivery prefixes are matched as strings | They are matched on postcode *components* at four levels — area, district, sector, unit — most specific wins. **B47 never matches a B44 rule.** The space matters: `B44 0` is a sector, `B40` is a district |
+| The delivery rules are ours to design | They are a port of the RingOrder website's `src/lib/delivery/`. A shop runs both, and two engines that disagree quote two prices for one order. Change them together or not at all |
+| The below-minimum surcharge is the shortfall | It is a flat shop-level amount — the price of carrying a small order, matching the website and matching what arrives on a web order |
+| Being under a zone minimum blocks the order | It warns and adds the flat surcharge if one is set. The person on the phone decides. A till staff work around loses the record along with the sale |

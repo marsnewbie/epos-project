@@ -772,3 +772,47 @@ Migration 7 ran on the live shop database with its backup. 188 tests.
 **Unclicked on a running till**, as with the last three rounds: the zone editor,
 the test-a-postcode box, and the amber note on the delivery panel. All covered by
 tests and compiling. Worth one pass with the printer.
+
+---
+
+## 2026-08-15 - Delivery realigned with the website, and a matching rule corrected
+
+Read the RingOrder website's delivery engine (`ringordersite`,
+`src/lib/delivery/`) and found the zones shipped a few hours earlier were wrong
+in a way the site had already solved and documented.
+
+**Matching was string prefixes. It is now postcode components.** The site's own
+comment states the rule: B47 must never match a B44 rule, and with only "B44 0"
+and "B44 1" rules a "B44 3" postcode matches neither. My version would have
+priced a B47 delivery at the B4 rate - different districts on opposite sides of
+the city - and I had written a paragraph rationalising it as a deliberate
+fallback. It was not; it was wrong. Rules now parse to one of four levels (area,
+district, sector, unit) and match exactly at that level, most specific winning.
+
+The space turned out to be load-bearing: "B44 0" is a sector and "B40" is a
+district. My previous normalisation squashed spaces out, collapsing one into the
+other.
+
+**The below-minimum surcharge was the shortfall. It is now a flat amount**, which
+is what the website charges and what already arrives on a web order. The old
+behaviour meant the same shop quoted two different numbers for one basket
+depending on which product the customer used.
+
+**Free-over of zero now means "no threshold"**, matching the site's reasoning:
+"free from the first penny" is a delivery fee of zero, and giving one idea two
+spellings is how a merchant clears the box and makes every order free.
+
+Thresholds and minimums compare against the basket **before** discounts, again
+matching - a voucher must not quietly withdraw free delivery already shown.
+
+**Distance pricing added, with the site's own stack**: postcodes.io for
+coordinates, public OSRM for road miles. Last round I said our coordinates were
+straight-line and therefore not worth pricing on; that was wrong - road distance
+is available free, and the website already uses it. Routing runs once per
+postcode in the background and is cached forever, so the till keeps pricing when
+the public router is down.
+
+The lesson worth keeping: **the two products are one price list.** Delivery rules
+are not ours to design independently. `AGENTS.md` now says so.
+
+Migration 8 ran on the live shop database with its backup. 197 tests.

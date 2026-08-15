@@ -1,4 +1,4 @@
-﻿<UserControl xmlns="https://github.com/avaloniaui"
+<UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:RingOrder.Epos.ViewModels"
              xmlns:conv="using:RingOrder.Epos.Converters"
@@ -54,7 +54,7 @@
               <TextBlock Grid.Column="2" Text="Fee £" Classes="muted" FontSize="11" />
               <TextBlock Grid.Column="3" Text="Min £" Classes="muted" FontSize="11" />
               <TextBlock Grid.Column="4" Text="Free £" Classes="muted" FontSize="11" />
-              <TextBlock Grid.Column="5" Text="Deliver" Classes="muted" FontSize="11" />
+              <TextBlock Grid.Column="5" Text="On" Classes="muted" FontSize="11" />
             </Grid>
 
             <ItemsControl ItemsSource="{Binding DeliveryZones}">
@@ -73,7 +73,7 @@
                     <NumericUpDown Grid.Column="4" Value="{Binding FreeOver}" Minimum="0" Maximum="999"
                                    Increment="1" FormatString="0.00" Height="44" Margin="0,0,4,0"
                                    ShowButtonSpinner="False" />
-                    <CheckBox Grid.Column="5" IsChecked="{Binding IsDeliverable}" VerticalAlignment="Center" />
+                    <CheckBox Grid.Column="5" IsChecked="{Binding IsActive}" VerticalAlignment="Center" />
                     <Button Grid.Column="6" Classes="btn" Content="✕" Width="34" Height="44" Padding="0"
                             Command="{Binding DataContext.RemoveDeliveryZoneCommand, ElementName=Root}"
                             CommandParameter="{Binding}" />
@@ -85,13 +85,26 @@
             <Button Classes="btn" Content="Add zone" Width="140" HorizontalAlignment="Left"
                     Command="{Binding AddDeliveryZoneCommand}" Margin="0,4,0,0" />
 
-            <CheckBox IsChecked="{Binding SurchargeBelowMinimum}" Margin="0,12,0,0"
-                      Content="Add the shortfall when an order is under a zone's minimum" />
+            <TextBlock Text="How distance is priced" Classes="title" Margin="0,20,0,0" />
+            <ComboBox ItemsSource="{Binding DeliveryModes}" SelectedItem="{Binding DeliveryMode}"
+                      HorizontalAlignment="Stretch" Height="44" />
             <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
-                       Text="Off, the till warns and lets whoever is on the phone decide. It never refuses the order outright — a till staff have to work around loses the record along with the sale." />
+                       Text="Postcode: rules only, and a postcode matching none is outside the area. Miles: road distance bands. Hybrid: rules first, distance as the fallback. This matches the RingOrder website, so a shop running both quotes one price." />
 
-            <CheckBox IsChecked="{Binding RefuseOutsideZones}" Margin="0,8,0,0"
-                      Content="Treat a postcode matching no zone as outside the delivery area" />
+            <Grid ColumnDefinitions="*,*" Margin="0,10,0,0">
+              <StackPanel Margin="0,0,8,0">
+                <TextBlock Text="Below-minimum surcharge £" Classes="muted" FontSize="12" />
+                <NumericUpDown Value="{Binding BelowMinimumSurcharge}" Minimum="0" Maximum="99"
+                               Increment="0.5" FormatString="0.00" Height="44" />
+              </StackPanel>
+              <StackPanel Grid.Column="1">
+                <TextBlock Text="Maximum delivery miles" Classes="muted" FontSize="12" />
+                <NumericUpDown Value="{Binding MaxDeliveryMiles}" Minimum="0" Maximum="50"
+                               Increment="0.5" FormatString="0.##" Height="44" />
+              </StackPanel>
+            </Grid>
+            <TextBlock Classes="muted" FontSize="12" TextWrapping="Wrap"
+                       Text="The surcharge is a flat amount for carrying a small order, not the shortfall — same as the website. Zero means the till warns and charges nothing. Being under a minimum never blocks the order." />
 
             <Grid ColumnDefinitions="*,Auto" Margin="0,12,0,0">
               <TextBox Classes="field" Watermark="Test a postcode" Text="{Binding ZoneTestPostcode}" />

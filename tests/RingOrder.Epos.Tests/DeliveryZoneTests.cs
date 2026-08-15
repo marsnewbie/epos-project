@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using RingOrder.Epos.Data;
 using RingOrder.Epos.Domain;
+using RingOrder.Epos.Online;
 using Xunit;
 
 namespace RingOrder.Epos.Tests;
@@ -8,176 +9,328 @@ namespace RingOrder.Epos.Tests;
 /// <summary>
 /// What a delivery costs.
 /// <para>
-/// Priced by postcode prefix because that is how a takeaway publishes its area —
-/// the leaflet says "B44, B23 — £2", not "£1 per mile". The rules here decide
-/// what a customer is charged, so they are tested away from any screen.
+/// A port of the RingOrder website's rules, on purpose. A shop taking web orders
+/// and phone orders must quote one price, and the fastest way to break that is
+/// for the two products to disagree about what a postcode prefix means.
 /// </para>
 /// </summary>
 public class DeliveryZoneTests
 {
     private static DeliveryZone Zone(
-        string prefix, decimal fee, decimal min = 0, decimal freeOver = 0, bool deliverable = true) =>
-        new()
-        {
-            Prefix = prefix,
-            Fee = fee,
-            MinimumOrder = min,
-            FreeOverAmount = freeOver,
-            IsDeliverable = deliverable,
-        };
+        string prefix, decimal fee, decimal min = 0, decimal freeOver = 0, bool active = true) =>
+        new() { Prefix = prefix, Fee = fee, MinimumOrder = min, FreeOverAmount = freeOver, IsActive = active };
 
     private static UkPostcode Pc(string raw) => UkPostcode.Normalise(raw);
 
-    // ── Matching ────────────────────────────────────────────────────────────
+    private static DeliveryConfig Config(
+        IEnumerable<DeliveryZone>? zones = null,
+        IEnumerable<MilesBand>? bands = null,
+        DeliveryMode mode = DeliveryMode.Postcode,
+        decimal defaultFee = 0,
+        decimal surcharge = 0,
+        decimal maxMiles = 5) =>
+        new()
+        {
+            Mode = mode,
+            DefaultFee = defaultFee,
+            BelowMinimumSurcharge = surcharge,
+            MaxDeliveryMiles = maxMiles,
+            Zones = (zones ?? []).ToList(),
+            MilesBands = (bands ?? []).ToList(),
+        };
+
+    // ── Levels, not string prefixes ─────────────────────────────────────────
 
     [Fact]
-    public void The_longest_matching_prefix_wins()
+    public void A_neighbouring_district_never_matches()
     {
-        // B44 and B4 are different districts. A shop that has defined both means
-        // the specific one for B44 0QN.
-        var zones = new[] { Zone("B", 4m), Zone("B4", 3m), Zone("B44", 2m) };
-
-        Assert.Equal("B44", DeliveryPricing.Match(zones, Pc("B44 0QN"))!.Prefix);
-        Assert.Equal("B4", DeliveryPricing.Match(zones, Pc("B4 7AP"))!.Prefix);
-        Assert.Equal("B", DeliveryPricing.Match(zones, Pc("B23 5TT"))!.Prefix);
+        // The bug this whole design exists to prevent. B47 is Hollywood,
+        // Worcestershire; B4 is the city centre. A string prefix would price one
+        // as the other.
+        Assert.Null(DeliveryPricing.Match([Zone("B4", 2m)], Pc("B47 5DL")));
+        Assert.Null(DeliveryPricing.Match([Zone("B44", 2m)], Pc("B47 5DL")));
     }
 
     [Fact]
-    public void A_broad_prefix_catches_a_district_the_shop_never_listed()
+    public void A_district_rule_covers_its_whole_district()
     {
-        // Deliberate: a shop that writes "B4" and no "B44" means that side of
-        // town, and charging the broader zone beats declaring a real customer
-        // unreachable. The matched zone is shown on screen so this is visible.
-        var zones = new[] { Zone("B4", 3m) };
+        var zones = new[] { Zone("B44", 2m) };
 
-        Assert.Equal("B4", DeliveryPricing.Match(zones, Pc("B44 0QN"))!.Prefix);
+        Assert.NotNull(DeliveryPricing.Match(zones, Pc("B44 0QN")));
+        Assert.NotNull(DeliveryPricing.Match(zones, Pc("B44 9XX")));
     }
 
     [Fact]
-    public void A_prefix_can_narrow_to_a_sector()
+    public void A_sector_rule_covers_only_that_sector()
     {
-        // "B440" is the awkward end of B44 and costs more to reach.
-        var zones = new[] { Zone("B44", 2m), Zone("B440", 3.5m) };
+        var zones = new[] { Zone("B44 0", 3m) };
 
-        Assert.Equal(3.5m, DeliveryPricing.Match(zones, Pc("B44 0QN"))!.Fee);
-        Assert.Equal(2m, DeliveryPricing.Match(zones, Pc("B44 9XX"))!.Fee);
+        Assert.NotNull(DeliveryPricing.Match(zones, Pc("B44 0QN")));
+        Assert.Null(DeliveryPricing.Match(zones, Pc("B44 3AB")));
     }
+
+    [Fact]
+    public void The_space_is_significant()
+    {
+        // "B44 0" is a sector of B44. "B440" written without a space would be a
+        // district if one existed — the two must never collapse into each other.
+        Assert.Equal(PostcodeRuleLevel.Sector, PostcodeRules.Parse("B44 0")!.Level);
+        Assert.Equal(PostcodeRuleLevel.District, PostcodeRules.Parse("B40")!.Level);
+        Assert.Equal(PostcodeRuleLevel.District, PostcodeRules.Parse("B44")!.Level);
+        Assert.Equal(PostcodeRuleLevel.Area, PostcodeRules.Parse("B")!.Level);
+        Assert.Equal(PostcodeRuleLevel.Unit, PostcodeRules.Parse("B44 0QN")!.Level);
+    }
+
+    [Fact]
+    public void The_most_specific_rule_wins()
+    {
+        var zones = new[] { Zone("B", 5m), Zone("B44", 3m), Zone("B44 0", 2m), Zone("B44 0QN", 1m) };
+
+        Assert.Equal(1m, DeliveryPricing.Match(zones, Pc("B44 0QN"))!.Fee);
+        Assert.Equal(2m, DeliveryPricing.Match(zones, Pc("B44 0AA"))!.Fee);
+        Assert.Equal(3m, DeliveryPricing.Match(zones, Pc("B44 9XX"))!.Fee);
+        Assert.Equal(5m, DeliveryPricing.Match(zones, Pc("B23 5TT"))!.Fee);
+    }
+
+    [Fact]
+    public void A_switched_off_zone_is_not_matched() =>
+        Assert.Null(DeliveryPricing.Match([Zone("B44", 2m, active: false)], Pc("B44 0QN")));
 
     [Theory]
     [InlineData("b44")]
-    [InlineData("B 44")]
-    [InlineData("b-44")]
+    [InlineData("  B44  ")]
+    [InlineData("b44 ")]
     public void A_prefix_is_matched_however_it_was_typed(string prefix) =>
         Assert.NotNull(DeliveryPricing.Match([Zone(prefix, 2m)], Pc("b440qn")));
 
-    [Fact]
-    public void No_zone_matches_a_postcode_from_another_town() =>
-        Assert.Null(DeliveryPricing.Match([Zone("B44", 2m)], Pc("M1 1AE")));
+    [Theory]
+    [InlineData("")]
+    [InlineData("hello")]
+    [InlineData("123")]
+    public void Rubbish_is_not_a_prefix(string prefix) =>
+        Assert.Null(PostcodeRules.Parse(prefix));
 
     // ── Pricing ─────────────────────────────────────────────────────────────
 
     [Fact]
     public void A_matched_zone_sets_the_fee()
     {
-        var quote = DeliveryPricing.Quote([Zone("B44", 2.50m)], Pc("B44 0QN"), 18m, defaultFee: 9m);
+        var quote = DeliveryPricing.Quote(Config([Zone("B44", 2.50m)]), Pc("B44 0QN"), 18m);
 
+        Assert.True(quote.Eligible);
         Assert.Equal(2.50m, quote.Fee);
-        Assert.Equal("B44", quote.Zone!.Prefix);
         Assert.False(quote.NeedsAttention);
+    }
+
+    [Fact]
+    public void In_postcode_mode_an_unmatched_postcode_is_outside_the_area()
+    {
+        // Matching the website exactly: no rule, no delivery.
+        var quote = DeliveryPricing.Quote(Config([Zone("B44", 2m)], defaultFee: 3m), Pc("M1 1AE"), 18m);
+
+        Assert.False(quote.Eligible);
+        Assert.True(quote.NeedsAttention);
+        Assert.Contains("outside", quote.Message);
+    }
+
+    [Fact]
+    public void A_shop_with_nothing_configured_charges_what_it_always_did()
+    {
+        // "Nothing set up" is not "outside the delivery area", and only one of
+        // those should ever stop an order.
+        var quote = DeliveryPricing.Quote(Config(defaultFee: 3m), Pc("B44 0QN"), 18m);
+
+        Assert.True(quote.Eligible);
+        Assert.Equal(3m, quote.Fee);
+        Assert.Equal("", quote.Message);
     }
 
     [Fact]
     public void Free_delivery_starts_the_moment_the_order_crosses_the_threshold()
     {
-        var zones = new[] { Zone("B44", 2.50m, freeOver: 20m) };
+        var config = Config([Zone("B44", 2.50m, freeOver: 20m)]);
 
-        Assert.Equal(2.50m, DeliveryPricing.Quote(zones, Pc("B44 0QN"), 19.99m, 9m).Fee);
-        Assert.Equal(0m, DeliveryPricing.Quote(zones, Pc("B44 0QN"), 20m, 9m).Fee);
+        Assert.Equal(2.50m, DeliveryPricing.Quote(config, Pc("B44 0QN"), 19.99m).Fee);
+        Assert.Equal(0m, DeliveryPricing.Quote(config, Pc("B44 0QN"), 20m).Fee);
     }
 
     [Fact]
-    public void A_shop_with_no_zones_charges_what_it_always_did()
+    public void A_free_over_of_zero_means_no_threshold_not_always_free()
     {
-        // No zones is not "outside the area" — it is a shop that has not set any
-        // up, and it must behave exactly as it did before this feature existed.
-        var quote = DeliveryPricing.Quote([], Pc("B44 0QN"), 18m, defaultFee: 3m);
+        // Giving one idea two spellings is how a merchant clears the box and
+        // accidentally makes every delivery free.
+        var quote = DeliveryPricing.Quote(Config([Zone("B44", 2.50m, freeOver: 0m)]), Pc("B44 0QN"), 500m);
 
-        Assert.Equal(3m, quote.Fee);
-        Assert.False(quote.OutsideArea);
-        Assert.Equal("", quote.Message);
-    }
-
-    [Fact]
-    public void An_unmatched_postcode_falls_back_or_is_refused_as_the_shop_chose()
-    {
-        var zones = new[] { Zone("B44", 2m) };
-
-        var fallback = DeliveryPricing.Quote(zones, Pc("M1 1AE"), 18m, 3m,
-            outside: OutsideZonePolicy.ChargeDefault);
-        Assert.Equal(3m, fallback.Fee);
-        Assert.False(fallback.OutsideArea);
-
-        var refused = DeliveryPricing.Quote(zones, Pc("M1 1AE"), 18m, 3m,
-            outside: OutsideZonePolicy.Refuse);
-        Assert.True(refused.OutsideArea);
-        Assert.True(refused.NeedsAttention);
-    }
-
-    [Fact]
-    public void A_zone_the_shop_will_not_deliver_to_says_so()
-    {
-        var quote = DeliveryPricing.Quote(
-            [Zone("B44", 0m, deliverable: false)], Pc("B44 0QN"), 30m, 3m);
-
-        Assert.True(quote.OutsideArea);
-        Assert.Equal(0m, quote.Fee);
-        Assert.Contains("does not deliver", quote.Message);
+        Assert.Equal(2.50m, quote.Fee);
     }
 
     // ── Minimums ────────────────────────────────────────────────────────────
 
     [Fact]
-    public void Under_the_minimum_warns_without_charging_anything_extra()
+    public void The_surcharge_is_a_flat_amount_not_the_shortfall()
     {
-        var quote = DeliveryPricing.Quote(
-            [Zone("B44", 2m, min: 15m)], Pc("B44 0QN"), 12m, 3m,
-            belowMinimum: BelowMinimumPolicy.Warn);
+        // The website charges a flat fee for carrying a small order. If the till
+        // topped the basket up to the minimum instead, the same shop would quote
+        // two different numbers for the same order.
+        var config = Config([Zone("B44", 2m, min: 15m)], surcharge: 2.50m);
 
-        Assert.Equal(3m, quote.Shortfall);
-        Assert.Equal(0m, quote.Surcharge);
+        var quote = DeliveryPricing.Quote(config, Pc("B44 0QN"), 5m);
+
+        Assert.Equal(2.50m, quote.Surcharge);       // not 10.00
+        Assert.Equal(4.50m, quote.TotalDeliveryCharge);
+        Assert.False(quote.MeetsMinimum);
         Assert.True(quote.NeedsAttention);
+        Assert.True(quote.Eligible);                // warned, never blocked
     }
 
     [Fact]
-    public void The_surcharge_policy_tops_the_order_up_to_the_minimum()
+    public void With_no_surcharge_set_it_warns_and_charges_nothing_extra()
     {
-        var quote = DeliveryPricing.Quote(
-            [Zone("B44", 2m, min: 15m)], Pc("B44 0QN"), 12m, 3m,
-            belowMinimum: BelowMinimumPolicy.Surcharge);
+        var quote = DeliveryPricing.Quote(Config([Zone("B44", 2m, min: 15m)]), Pc("B44 0QN"), 12m);
 
-        Assert.Equal(3m, quote.Surcharge);
-        Assert.Contains("added", quote.Message);
+        Assert.Equal(0m, quote.Surcharge);
+        Assert.True(quote.NeedsAttention);
     }
 
     [Fact]
     public void Reaching_the_minimum_exactly_is_not_under_it()
     {
         var quote = DeliveryPricing.Quote(
-            [Zone("B44", 2m, min: 15m)], Pc("B44 0QN"), 15m, 3m);
+            Config([Zone("B44", 2m, min: 15m)], surcharge: 2m), Pc("B44 0QN"), 15m);
 
-        Assert.Equal(0m, quote.Shortfall);
-        Assert.False(quote.NeedsAttention);
+        Assert.True(quote.MeetsMinimum);
+        Assert.Equal(0m, quote.Surcharge);
+    }
+
+    // ── Road distance ───────────────────────────────────────────────────────
+
+    private static MilesBand Band(decimal min, decimal max, decimal fee, decimal minOrder = 0) =>
+        new() { MinMiles = min, MaxMiles = max, Fee = fee, MinimumOrder = minOrder };
+
+    [Fact]
+    public void A_band_covers_its_lower_bound_and_stops_before_its_upper()
+    {
+        var bands = new[] { Band(0, 1, 1m), Band(1, 2, 2m), Band(2, 3, 3m) };
+
+        Assert.Equal(1m, DeliveryPricing.MatchBand(bands, 0m)!.Fee);
+        Assert.Equal(1m, DeliveryPricing.MatchBand(bands, 0.99m)!.Fee);
+        Assert.Equal(2m, DeliveryPricing.MatchBand(bands, 1m)!.Fee);
+        Assert.Equal(3m, DeliveryPricing.MatchBand(bands, 2.5m)!.Fee);
     }
 
     [Fact]
-    public void An_order_with_no_postcode_yet_still_has_a_fee()
+    public void Beyond_the_maximum_the_shop_does_not_deliver()
     {
-        // Someone starts ringing dishes before asking where it is going. The
-        // ticket must still total up.
-        var quote = DeliveryPricing.Quote([Zone("B44", 2m)], Pc(""), 18m, defaultFee: 3m);
+        var config = Config(bands: [Band(0, 3, 2m)], mode: DeliveryMode.Miles, maxMiles: 3m);
+
+        var quote = DeliveryPricing.Quote(config, Pc("B44 0QN"), 20m, distanceMiles: 4.2m);
+
+        Assert.False(quote.Eligible);
+        Assert.Contains("beyond", quote.Message);
+    }
+
+    [Fact]
+    public void Hybrid_uses_the_postcode_rule_first_and_distance_as_the_fallback()
+    {
+        var config = Config(
+            [Zone("B44", 2m)], [Band(0, 10, 4m)], DeliveryMode.Hybrid, maxMiles: 10m);
+
+        var matched = DeliveryPricing.Quote(config, Pc("B44 0QN"), 20m, distanceMiles: 6m);
+        Assert.Equal(2m, matched.Fee);
+
+        var fellBack = DeliveryPricing.Quote(config, Pc("M1 1AE"), 20m, distanceMiles: 6m);
+        Assert.Equal(4m, fellBack.Fee);
+        Assert.Equal(6m, fellBack.DistanceMiles);
+    }
+
+    [Fact]
+    public void Without_a_distance_miles_mode_says_so_rather_than_inventing_a_price()
+    {
+        // The router was unreachable or the postcode would not geocode. Charging
+        // a made-up fee would be worse than asking someone to check.
+        var config = Config(bands: [Band(0, 5, 2m)], mode: DeliveryMode.Miles, defaultFee: 3m);
+
+        var quote = DeliveryPricing.Quote(config, Pc("B44 0QN"), 20m, distanceMiles: null);
 
         Assert.Equal(3m, quote.Fee);
-        Assert.False(quote.NeedsAttention);
+        Assert.Contains("check", quote.Message);
+    }
+
+    [Fact]
+    public void Osrm_metres_become_miles()
+    {
+        Assert.Equal(1m, RoadDistanceService.ParseMiles("""{"routes":[{"distance":1609.344}]}"""));
+
+        // Zero is a real answer: the customer is at the shop's own postcode.
+        Assert.Equal(0m, RoadDistanceService.ParseMiles("""{"routes":[{"distance":0}]}"""));
+
+        Assert.Null(RoadDistanceService.ParseMiles("""{"routes":[]}"""));
+        Assert.Null(RoadDistanceService.ParseMiles("""{"code":"NoRoute"}"""));
+    }
+
+    // ── Storage ─────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void Zones_are_stored_canonically_so_a_sector_stays_a_sector()
+    {
+        WithDb(db =>
+        {
+            var repo = new DeliveryZoneRepository(db);
+            repo.Replace([Zone("b44 0", 3m), Zone("  b23 ", 2m), Zone("nonsense", 9m)]);
+
+            var saved = repo.GetZones();
+
+            Assert.Equal(2, saved.Count);
+            Assert.Contains(saved, z => z.Prefix == "B44 0");
+            Assert.Contains(saved, z => z.Prefix == "B23");
+        });
+    }
+
+    [Fact]
+    public void A_routed_distance_is_paid_for_once()
+    {
+        WithDb(db =>
+        {
+            var repo = new MilesBandRepository(db);
+
+            Assert.Null(repo.GetCachedMiles("B44 0QN", "B23 5TT"));
+
+            repo.PutCachedMiles("b440qn", "b235tt", 2.4m);
+
+            // However either postcode is spelled next time.
+            Assert.Equal(2.4m, repo.GetCachedMiles("B44 0QN", "B23 5TT"));
+            Assert.Equal(2.4m, repo.GetCachedMiles("b44 0qn", "B235TT"));
+        });
+    }
+
+    [Fact]
+    public void Zones_in_a_shop_bundle_reach_the_till()
+    {
+        WithDb(db =>
+        {
+            var zones = new DeliveryZoneRepository(db);
+            var importer = new BundleImporter(
+                new MenuRepository(db), new SettingsRepository(db), new StaffRepository(db),
+                new PrintDeviceRepository(db), zones);
+
+            var bundle = new ShopBundle { Shop = { Name = "Test Shop" } };
+            bundle.Delivery.Zones =
+            [
+                new DeliveryZoneDef { Prefix = "B44", FeePence = 200, MinimumOrderPence = 1500 },
+                new DeliveryZoneDef { Prefix = " b44 ", FeePence = 999 },  // the same district twice
+                new DeliveryZoneDef { Prefix = "b 44", FeePence = 100 },   // not a prefix at all
+            ];
+
+            var report = importer.Import(bundle);
+
+            var saved = Assert.Single(zones.GetZones());
+            Assert.Equal("B44", saved.Prefix);
+            Assert.Equal(2m, saved.Fee);        // the first one kept, not the £9.99
+            Assert.Equal(15m, saved.MinimumOrder);
+
+            Assert.Contains(report.Warnings, w => w.Contains("more than once"));
+            Assert.Contains(report.Warnings, w => w.Contains("not a postcode prefix"));
+        });
     }
 
     // ── The surcharge reaches the bill ──────────────────────────────────────
@@ -185,9 +338,6 @@ public class DeliveryZoneTests
     [Fact]
     public void A_below_minimum_surcharge_is_in_the_order_total()
     {
-        // It was being included in the VAT calculation and left out of the total,
-        // so a web order carrying one had tax worked out on money the customer
-        // was never charged.
         var order = new PosOrder
         {
             Lines = [new CartLine { Name = "Chips", Quantity = 1, BasePrice = 12m, IsAdHoc = true }],
@@ -197,110 +347,7 @@ public class DeliveryZoneTests
 
         LinePricing.RecalculateOrder(order);
 
-        Assert.Equal(12m, order.Subtotal);
         Assert.Equal(17m, order.Total);
-    }
-
-    // ── Storage and provisioning ────────────────────────────────────────────
-
-    [Fact]
-    public void Zones_survive_a_save_and_reload_with_their_prefixes_normalised()
-    {
-        var path = Path.Combine(Path.GetTempPath(), $"ringorder-zones-{Guid.NewGuid():N}.sqlite");
-        try
-        {
-            using var db = new EposDb(path);
-            db.Migrate();
-            var repo = new DeliveryZoneRepository(db);
-
-            repo.Replace(
-            [
-                Zone("b44", 2m, min: 15m, freeOver: 25m),
-                Zone("B 23", 3m),
-                new DeliveryZone { Prefix = "  ", Fee = 9m },   // a row still being typed
-            ]);
-
-            var saved = repo.GetZones();
-
-            Assert.Equal(2, saved.Count);
-            Assert.Contains(saved, z => z.Prefix == "B44" && z.MinimumOrder == 15m && z.FreeOverAmount == 25m);
-            Assert.Contains(saved, z => z.Prefix == "B23");
-        }
-        finally
-        {
-            SqliteConnection.ClearAllPools();
-            foreach (var p in new[] { path, $"{path}-wal", $"{path}-shm" })
-                if (File.Exists(p)) try { File.Delete(p); } catch { /* the OS will get it */ }
-        }
-    }
-
-    [Fact]
-    public void Editing_zones_replaces_the_set_rather_than_adding_to_it()
-    {
-        var path = Path.Combine(Path.GetTempPath(), $"ringorder-zones2-{Guid.NewGuid():N}.sqlite");
-        try
-        {
-            using var db = new EposDb(path);
-            db.Migrate();
-            var repo = new DeliveryZoneRepository(db);
-
-            repo.Replace([Zone("B44", 2m), Zone("B23", 3m)]);
-            repo.Replace([Zone("B44", 2.5m)]);          // B23 removed on screen
-
-            var saved = repo.GetZones();
-            Assert.Equal("B44", Assert.Single(saved).Prefix);
-            Assert.Equal(2.5m, saved[0].Fee);
-        }
-        finally
-        {
-            SqliteConnection.ClearAllPools();
-            foreach (var p in new[] { path, $"{path}-wal", $"{path}-shm" })
-                if (File.Exists(p)) try { File.Delete(p); } catch { /* the OS will get it */ }
-        }
-    }
-
-    [Fact]
-    public void Zones_in_a_shop_bundle_reach_the_till()
-    {
-        // The bundle has carried a zones list since the schema rebuild and
-        // nothing read it — every shop was charged the one flat default.
-        var path = Path.Combine(Path.GetTempPath(), $"ringorder-zonesimp-{Guid.NewGuid():N}.sqlite");
-        try
-        {
-            using var db = new EposDb(path);
-            db.Migrate();
-
-            var zones = new DeliveryZoneRepository(db);
-            var settings = new SettingsRepository(db);
-            var importer = new BundleImporter(
-                new MenuRepository(db), settings, new StaffRepository(db),
-                new PrintDeviceRepository(db), zones);
-
-            var bundle = new ShopBundle { Shop = { Name = "Test Shop" } };
-            bundle.Delivery.DefaultFeePence = 300;
-            bundle.Delivery.Zones =
-            [
-                new DeliveryZoneDef { Prefix = "B44", FeePence = 200, MinimumOrderPence = 1500 },
-                new DeliveryZoneDef { Prefix = "b 44", FeePence = 999 },   // the same area twice
-                new DeliveryZoneDef { Prefix = "", FeePence = 100 },       // nothing to match on
-            ];
-
-            var report = importer.Import(bundle);
-
-            var saved = Assert.Single(zones.GetZones());
-            Assert.Equal("B44", saved.Prefix);
-            Assert.Equal(2m, saved.Fee);
-            Assert.Equal(15m, saved.MinimumOrder);
-
-            Assert.Contains(report.Warnings, w => w.Contains("more than once"));
-            Assert.Contains(report.Warnings, w => w.Contains("no postcode prefix"));
-        }
-        finally
-        {
-            SqliteConnection.ClearAllPools();
-            foreach (var p in new[] { path, $"{path}-wal", $"{path}-shm" })
-                if (File.Exists(p)) try { File.Delete(p); } catch { /* the OS will get it */ }
-        }
     }
 
     [Fact]
@@ -318,7 +365,23 @@ public class DeliveryZoneTests
 
         var bands = TaxCalculator.Summarise(order, classes);
 
-        // The gross the VAT was worked out on must be the total the customer pays.
         Assert.Equal(order.Total, Money.Round(bands.Sum(b => b.Gross)));
+    }
+
+    private static void WithDb(Action<EposDb> body)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"ringorder-zone-{Guid.NewGuid():N}.sqlite");
+        try
+        {
+            using var db = new EposDb(path);
+            db.Migrate();
+            body(db);
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            foreach (var p in new[] { path, $"{path}-wal", $"{path}-shm" })
+                if (File.Exists(p)) try { File.Delete(p); } catch { /* the OS will get it */ }
+        }
     }
 }

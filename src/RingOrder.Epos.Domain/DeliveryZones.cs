@@ -1,24 +1,31 @@
 namespace RingOrder.Epos.Domain;
 
+/// <summary>How a shop prices distance.</summary>
+public enum DeliveryMode
+{
+    /// <summary>Postcode rules only. No rule matches, no delivery.</summary>
+    Postcode,
+
+    /// <summary>Road-distance bands only.</summary>
+    Miles,
+
+    /// <summary>Try the postcode rules first, fall back to distance.</summary>
+    Hybrid,
+}
+
 /// <summary>
-/// One delivery area, priced by postcode prefix.
+/// One delivery area, priced by postcode.
 /// <para>
-/// Prefixes rather than distance because that is how a takeaway actually
-/// publishes its delivery area — the leaflet says "B44, B23, B42 — £2", not
-/// "£1 per mile". Staff can check a prefix against a customer's postcode without
-/// a map, it works with the broadband down, and it does not invite the argument
-/// that starts "your screen says 3.1 miles but I'm 2.9".
+/// <see cref="Prefix"/> is matched on structured postcode components, never as a
+/// string — see <see cref="PostcodeRules"/> for why B47 must not match a B44
+/// rule.
 /// </para>
 /// </summary>
 public sealed class DeliveryZone
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
 
-    /// <summary>
-    /// Matched against the postcode with spaces removed, so "B44" and "B440"
-    /// are both usable — the second narrows to a sector when one part of a
-    /// district costs more to reach.
-    /// </summary>
+    /// <summary>"B", "B44", "B44 0" or "B44 0QN". The space is significant.</summary>
     public string Prefix { get; set; } = "";
 
     /// <summary>What the shop calls it on the phone, e.g. "Kingstanding".</summary>
@@ -26,171 +33,220 @@ public sealed class DeliveryZone
 
     public decimal Fee { get; set; }
 
-    /// <summary>Food value the order must reach. Zero means no minimum.</summary>
+    /// <summary>Order value the basket must reach. Zero means no minimum.</summary>
     public decimal MinimumOrder { get; set; }
 
-    /// <summary>Food value above which delivery is free. Zero means never.</summary>
+    /// <summary>
+    /// Order value at or above which this zone delivers free. Zero means no
+    /// threshold — never "free from the first penny", which is a delivery fee of
+    /// zero. Giving one idea two spellings is how a merchant clears the box and
+    /// accidentally makes every order free.
+    /// </summary>
     public decimal FreeOverAmount { get; set; }
 
-    /// <summary>
-    /// A prefix the shop will not deliver to. Worth stating rather than leaving
-    /// out: "we don't go there" is a real answer, and a zone that says so stops
-    /// a driver being sent while somebody looks for the missing entry.
-    /// </summary>
-    public bool IsDeliverable { get; set; } = true;
+    /// <summary>Switched off rather than deleted, so a seasonal area keeps its prices.</summary>
+    public bool IsActive { get; set; } = true;
 
     public int SortOrder { get; set; }
 
-    /// <summary>Normalised for matching: uppercase, letters and digits only.</summary>
-    public string NormalisedPrefix => Normalise(Prefix);
-
-    public static string Normalise(string? value) =>
-        new string((value ?? "").Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
+    public string Canonical => PostcodeRules.Canonical(Prefix);
 }
 
-/// <summary>What the shop does when an order is under a zone's minimum.</summary>
-public enum BelowMinimumPolicy
+/// <summary>One road-distance band: <c>MinMiles &lt;= d &lt; MaxMiles</c>.</summary>
+public sealed class MilesBand
 {
-    /// <summary>Say so and carry on. The person on the phone decides.</summary>
-    Warn,
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
+    public decimal MinMiles { get; set; }
+    public decimal MaxMiles { get; set; }
+    public decimal Fee { get; set; }
+    public decimal MinimumOrder { get; set; }
 
-    /// <summary>Add the shortfall to the bill so the order reaches the minimum.</summary>
-    Surcharge,
+    /// <summary>Zero means no threshold, as on a zone.</summary>
+    public decimal FreeOverAmount { get; set; }
+
+    public int SortOrder { get; set; }
+
+    public string Label => $"{MinMiles:0.##}–{MaxMiles:0.##} miles";
 }
 
-/// <summary>What the shop does with a postcode no zone covers.</summary>
-public enum OutsideZonePolicy
+/// <summary>Everything the pricing needs, so the rules stay free of settings plumbing.</summary>
+public sealed class DeliveryConfig
 {
-    /// <summary>Charge the default fee, and say it matched nothing.</summary>
-    ChargeDefault,
+    public DeliveryMode Mode { get; set; } = DeliveryMode.Postcode;
 
-    /// <summary>Treat it as outside the delivery area, and say so loudly.</summary>
-    Refuse,
+    /// <summary>Charged when the shop has configured nothing at all.</summary>
+    public decimal DefaultFee { get; set; }
+
+    /// <summary>
+    /// Flat amount added when the basket is under the matched minimum — the
+    /// shop's price for carrying a small order, not the shortfall. Zero means the
+    /// till warns and charges nothing extra.
+    /// </summary>
+    public decimal BelowMinimumSurcharge { get; set; }
+
+    public decimal MaxDeliveryMiles { get; set; } = 5m;
+
+    public IReadOnlyList<DeliveryZone> Zones { get; set; } = [];
+    public IReadOnlyList<MilesBand> MilesBands { get; set; } = [];
 }
 
-/// <summary>
-/// The delivery charge for one order, and everything staff need to be told
-/// about it.
-/// </summary>
+/// <summary>The delivery charge for one order, and what staff should be told.</summary>
 public sealed record DeliveryQuote(
+    bool Eligible,
     decimal Fee,
     decimal Surcharge,
-    DeliveryZone? Zone,
-    bool OutsideArea,
-    decimal Shortfall,
+    decimal MinimumOrder,
+    bool MeetsMinimum,
+    string MatchedRule,
+    decimal? DistanceMiles,
     string Message)
 {
-    /// <summary>True when staff should be looking at this before sending a driver.</summary>
-    public bool NeedsAttention => OutsideArea || Shortfall > 0;
+    /// <summary>What goes on the bill for delivery, all in.</summary>
+    public decimal TotalDeliveryCharge => Money.Round(Fee + Surcharge);
+
+    /// <summary>True when staff should look at this before sending a driver.</summary>
+    public bool NeedsAttention => !Eligible || !MeetsMinimum;
 
     public static readonly DeliveryQuote None =
-        new(0, 0, null, false, 0, "");
+        new(true, 0, 0, 0, true, "", null, "");
 }
 
 /// <summary>
-/// Works out what delivery costs. Pure: no database, no screen, no settings
-/// object — the rules that decide what a customer is charged are testable on
-/// their own.
+/// Works out what delivery costs.
+/// <para>
+/// Pure, and deliberately a port of the website's <c>calculateDeliveryQuote</c>.
+/// A shop running both must quote one price: if the site says "we don't deliver
+/// to B47" while the till charges the B4 rate, the merchant finds out from a
+/// customer.
+/// </para>
 /// </summary>
 public static class DeliveryPricing
 {
     /// <summary>
-    /// Longest matching prefix wins.
-    /// <para>
-    /// "B44 0QN" takes a "B440" zone over a "B44" zone over a "B4" zone. The
-    /// broad one is a deliberate fallback, not an accident: a shop that writes
-    /// "B4" and has no "B44" entry means "that side of town", and charging the
-    /// broader zone beats declaring a real customer unreachable. The matched zone
-    /// is shown on screen so a shop can see it happen and add the narrower entry
-    /// if that was not what they meant.
-    /// </para>
+    /// The most specific matching rule wins: unit beats sector beats district
+    /// beats area. Inactive zones are not considered.
     /// </summary>
     public static DeliveryZone? Match(IEnumerable<DeliveryZone> zones, UkPostcode postcode)
     {
-        var packed = DeliveryZone.Normalise(postcode.Value);
-        if (packed.Length == 0) return null;
+        if (!postcode.IsValid) return null;
 
-        return zones
-            .Where(z => z.NormalisedPrefix.Length > 0 && packed.StartsWith(z.NormalisedPrefix, StringComparison.Ordinal))
-            .OrderByDescending(z => z.NormalisedPrefix.Length)
-            .FirstOrDefault();
+        DeliveryZone? best = null;
+        var bestLevel = 0;
+
+        foreach (var zone in zones)
+        {
+            if (!zone.IsActive) continue;
+
+            var rule = PostcodeRules.Parse(zone.Prefix);
+            if (rule is null || !PostcodeRules.Covers(rule, postcode)) continue;
+
+            if ((int)rule.Level > bestLevel)
+            {
+                best = zone;
+                bestLevel = (int)rule.Level;
+            }
+        }
+
+        return best;
     }
+
+    public static MilesBand? MatchBand(IEnumerable<MilesBand> bands, decimal miles) =>
+        bands.FirstOrDefault(b => miles >= b.MinMiles && miles < b.MaxMiles);
 
     /// <summary>
     /// Prices a delivery.
     /// <para>
-    /// <paramref name="goodsValue"/> is the food, after any discount and before
-    /// delivery — a minimum order is about how much food is worth carrying, and
-    /// counting the delivery fee towards it would let the fee justify itself.
+    /// <paramref name="orderValue"/> is the basket <i>before</i> discounts, which
+    /// is what the customer actually ordered — a voucher must not quietly
+    /// withdraw the free delivery they were already shown.
     /// </para>
     /// </summary>
     public static DeliveryQuote Quote(
-        IReadOnlyList<DeliveryZone> zones,
+        DeliveryConfig config,
         UkPostcode postcode,
-        decimal goodsValue,
-        decimal defaultFee,
-        BelowMinimumPolicy belowMinimum = BelowMinimumPolicy.Warn,
-        OutsideZonePolicy outside = OutsideZonePolicy.ChargeDefault,
+        decimal orderValue,
+        decimal? distanceMiles = null,
         bool zh = false)
     {
         string Say(string en, string cn) => zh ? cn : en;
 
+        // A shop that has configured nothing behaves as it always did: one fee,
+        // and nothing said. "Nothing set up" is not "outside the delivery area".
+        if (config.Zones.Count == 0 && config.MilesBands.Count == 0)
+            return new DeliveryQuote(true, config.DefaultFee, 0, 0, true, "", distanceMiles, "");
+
         if (postcode.IsEmpty)
-            return new DeliveryQuote(defaultFee, 0, null, false, 0,
+            return new DeliveryQuote(true, config.DefaultFee, 0, 0, true, "", distanceMiles,
                 Say("No postcode yet — default delivery fee.", "尚未填写邮编——按默认配送费。"));
 
-        var zone = Match(zones, postcode);
-
-        if (zone is null)
+        if (config.Mode is DeliveryMode.Postcode or DeliveryMode.Hybrid && postcode.IsValid)
         {
-            // No zones configured at all is not "outside the area" — it is a shop
-            // that has not set any up, and it should behave as it did before.
-            if (zones.Count == 0)
-                return new DeliveryQuote(defaultFee, 0, null, false, 0, "");
+            var zone = Match(config.Zones, postcode);
+            if (zone is not null)
+                return Build(config, orderValue, zone.Fee, zone.MinimumOrder, zone.FreeOverAmount,
+                    Label(zone), distanceMiles, zh);
 
-            return outside == OutsideZonePolicy.Refuse
-                ? new DeliveryQuote(defaultFee, 0, null, true, 0,
+            if (config.Mode == DeliveryMode.Postcode)
+                return new DeliveryQuote(false, 0, 0, 0, true, "", distanceMiles,
                     Say($"{postcode.Value} is outside the delivery area.",
-                        $"{postcode.Value} 不在配送范围内。"))
-                : new DeliveryQuote(defaultFee, 0, null, false, 0,
-                    Say($"{postcode.Value} matches no zone — default fee applied.",
-                        $"{postcode.Value} 未匹配任何区域——按默认配送费。"));
+                        $"{postcode.Value} 不在配送范围内。"));
         }
 
-        if (!zone.IsDeliverable)
-            return new DeliveryQuote(0, 0, zone, true, 0,
-                Say($"{Label(zone)}: the shop does not deliver here.",
-                    $"{Label(zone)}：该区域不配送。"));
+        if (config.Mode is DeliveryMode.Miles or DeliveryMode.Hybrid && distanceMiles is { } miles)
+        {
+            if (miles > config.MaxDeliveryMiles)
+                return new DeliveryQuote(false, 0, 0, 0, true, "", miles,
+                    Say($"{miles:0.0} miles — beyond the {config.MaxDeliveryMiles:0.##} mile limit.",
+                        $"{miles:0.0} 英里——超出 {config.MaxDeliveryMiles:0.##} 英里配送半径。"));
 
-        var freeDelivery = zone.FreeOverAmount > 0 && goodsValue >= zone.FreeOverAmount;
-        var fee = freeDelivery ? 0m : zone.Fee;
+            var band = MatchBand(config.MilesBands, miles);
+            if (band is not null)
+                return Build(config, orderValue, band.Fee, band.MinimumOrder, band.FreeOverAmount,
+                    band.Label, miles, zh);
+        }
 
-        var shortfall = zone.MinimumOrder > 0 && goodsValue < zone.MinimumOrder
-            ? Money.Round(zone.MinimumOrder - goodsValue)
-            : 0m;
+        // Distance was wanted and could not be had — no coordinates, or the
+        // routing service was unreachable. Say so rather than inventing a price.
+        return new DeliveryQuote(true, config.DefaultFee, 0, 0, true, "", distanceMiles,
+            Say("Could not price this postcode — default fee applied, please check.",
+                "无法计算该邮编的配送费——已按默认收费，请人工确认。"));
+    }
 
-        // A shortfall is never a hard stop. The owner on the phone may well take
-        // the order anyway, and a till that refuses outright is a till staff work
-        // around — which loses the record of what happened along with the sale.
-        var surcharge = shortfall > 0 && belowMinimum == BelowMinimumPolicy.Surcharge
-            ? shortfall
-            : 0m;
+    private static DeliveryQuote Build(
+        DeliveryConfig config,
+        decimal orderValue,
+        decimal baseFee,
+        decimal minimumOrder,
+        decimal freeOver,
+        string matchedRule,
+        decimal? distanceMiles,
+        bool zh)
+    {
+        string Say(string en, string cn) => zh ? cn : en;
 
-        var message = shortfall > 0
-            ? belowMinimum == BelowMinimumPolicy.Surcharge
-                ? Say($"{Label(zone)}: under the {Money.Format(zone.MinimumOrder)} minimum — {Money.Format(surcharge)} added.",
-                      $"{Label(zone)}：未达 {Money.Format(zone.MinimumOrder)} 起送——已加收 {Money.Format(surcharge)}。")
-                : Say($"{Label(zone)}: under the {Money.Format(zone.MinimumOrder)} minimum by {Money.Format(shortfall)}.",
-                      $"{Label(zone)}：距 {Money.Format(zone.MinimumOrder)} 起送还差 {Money.Format(shortfall)}。")
+        var meetsMinimum = orderValue >= minimumOrder;
+        var surcharge = meetsMinimum ? 0m : config.BelowMinimumSurcharge;
+
+        // Zero is "no threshold", never "free from the first penny".
+        var freeDelivery = freeOver > 0 && orderValue >= freeOver;
+        var fee = freeDelivery ? 0m : baseFee;
+
+        var message = !meetsMinimum
+            ? surcharge > 0
+                ? Say($"{matchedRule}: under the {Money.Format(minimumOrder)} minimum — {Money.Format(surcharge)} surcharge.",
+                      $"{matchedRule}：未达 {Money.Format(minimumOrder)} 起送——加收 {Money.Format(surcharge)}。")
+                : Say($"{matchedRule}: under the {Money.Format(minimumOrder)} minimum.",
+                      $"{matchedRule}：未达 {Money.Format(minimumOrder)} 起送。")
             : freeDelivery
-                ? Say($"{Label(zone)}: free delivery over {Money.Format(zone.FreeOverAmount)}.",
-                      $"{Label(zone)}：满 {Money.Format(zone.FreeOverAmount)} 免配送费。")
-                : Say($"{Label(zone)}: {Money.Format(fee)} delivery.",
-                      $"{Label(zone)}：配送费 {Money.Format(fee)}。");
+                ? Say($"{matchedRule}: free delivery over {Money.Format(freeOver)}.",
+                      $"{matchedRule}：满 {Money.Format(freeOver)} 免配送费。")
+                : Say($"{matchedRule}: {Money.Format(fee)} delivery.",
+                      $"{matchedRule}：配送费 {Money.Format(fee)}。");
 
-        return new DeliveryQuote(fee, surcharge, zone, false, shortfall, message);
+        return new DeliveryQuote(
+            true, fee, surcharge, minimumOrder, meetsMinimum, matchedRule, distanceMiles, message);
     }
 
     private static string Label(DeliveryZone zone) =>
-        string.IsNullOrWhiteSpace(zone.Name) ? zone.Prefix : $"{zone.Prefix} {zone.Name}";
+        string.IsNullOrWhiteSpace(zone.Name) ? zone.Canonical : $"{zone.Canonical} {zone.Name}";
 }

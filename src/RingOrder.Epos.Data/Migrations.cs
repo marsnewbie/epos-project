@@ -27,7 +27,48 @@ public static class SchemaMigrations
         new(5, "addresses_and_customer_links", AddressesAndCustomerLinks),
         new(6, "refunds", Refunds),
         new(7, "delivery_zones", DeliveryZones),
+        new(8, "delivery_miles_and_levels", DeliveryMilesAndLevels),
     ];
+
+    /// <summary>
+    /// Brings delivery into line with the RingOrder website.
+    /// <para>
+    /// Zones gain <c>is_active</c>, and the prefix is stored canonically with its
+    /// space — "B44 0" is a sector and "B40" is a district, and squashing the
+    /// space out turns one into the other. Version 7 shipped for a day and
+    /// matched prefixes as strings, which would have let a B4 rule price a B47
+    /// delivery; the unique index is rebuilt because the stored form changes.
+    /// </para>
+    /// <para>
+    /// Miles bands arrive alongside, so a shop pricing by road distance on its
+    /// website prices the same way on the till.
+    /// </para>
+    /// </summary>
+    private const string DeliveryMilesAndLevels = """
+        ALTER TABLE delivery_zones ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1;
+
+        DROP INDEX IF EXISTS idx_delivery_zones_prefix;
+        CREATE UNIQUE INDEX idx_delivery_zones_prefix ON delivery_zones(prefix);
+
+        CREATE TABLE delivery_miles_bands (
+          id                  TEXT PRIMARY KEY,
+          min_miles           REAL NOT NULL DEFAULT 0,
+          max_miles           REAL NOT NULL DEFAULT 0,
+          fee_pence           INTEGER NOT NULL DEFAULT 0,
+          minimum_order_pence INTEGER NOT NULL DEFAULT 0,
+          free_over_pence     INTEGER NOT NULL DEFAULT 0,
+          sort_order          INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE distance_cache (
+          from_postcode TEXT NOT NULL,
+          to_postcode   TEXT NOT NULL,
+          miles         REAL NOT NULL,
+          fetched_at    TEXT NOT NULL,
+          hits          INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (from_postcode, to_postcode)
+        );
+        """;
 
     /// <summary>
     /// Delivery priced by postcode prefix.

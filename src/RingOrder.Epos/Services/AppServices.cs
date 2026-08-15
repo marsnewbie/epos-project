@@ -25,6 +25,8 @@ public sealed class AppServices
     public AddressLookupService AddressLookup { get; }
     public DataRetention Retention { get; }
     public DeliveryZoneRepository DeliveryZones { get; }
+    public MilesBandRepository MilesBands { get; }
+    public RoadDistanceService RoadDistance { get; } = new();
     public RefundRepository RefundRepo { get; }
     public RefundService Refunds { get; }
     public PrintQueue PrintQueue { get; }
@@ -55,6 +57,7 @@ public sealed class AppServices
         Customers = new CustomerRepository(Db, Addresses);
         Retention = new DataRetention(Db);
         DeliveryZones = new DeliveryZoneRepository(Db);
+        MilesBands = new MilesBandRepository(Db);
         RefundRepo = new RefundRepository(Db);
         MoveAddressesOutOfCustomerRows();
         Staff = new StaffRepository(Db);

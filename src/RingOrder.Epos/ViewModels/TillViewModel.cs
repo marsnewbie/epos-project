@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RingOrder.Epos.Domain;
@@ -57,18 +57,31 @@ public partial class TillViewModel : ViewModelBase
 
         var settings = _app.GetSettings();
 
-        // The minimum is about the food, so the discount comes off first and the
-        // delivery fee is not counted towards reaching it.
-        var goods = Money.Round(Lines.Sum(l => l.LineTotal) - _ticket.DiscountTotal);
+        // The basket before discounts, matching the website: it is what the
+        // customer actually ordered, and a voucher must not quietly withdraw the
+        // free delivery they were already shown.
+        var orderValue = Money.Round(Lines.Sum(l => l.LineTotal));
 
-        var quote = DeliveryPricing.Quote(
-            _app.DeliveryZones.GetZones(),
-            UkPostcode.Normalise(DeliveryPostcode),
-            goods < 0 ? 0 : goods,
-            settings.DefaultDeliveryFee,
-            settings.BelowMinimumPolicy,
-            settings.OutsideZonePolicy,
-            UiText.IsZh);
+        var config = new DeliveryConfig
+        {
+            Mode = settings.DeliveryMode,
+            DefaultFee = settings.DefaultDeliveryFee,
+            BelowMinimumSurcharge = settings.BelowMinimumSurcharge,
+            MaxDeliveryMiles = settings.MaxDeliveryMiles,
+            Zones = _app.DeliveryZones.GetZones(),
+            MilesBands = _app.MilesBands.GetBands(),
+        };
+
+        var postcode = UkPostcode.Normalise(DeliveryPostcode);
+
+        // Only a distance already paid for is used inline. Routing is a network
+        // call and this runs on every keystroke and every dish; the fetch happens
+        // once, in the background, when the postcode settles.
+        var miles = config.Mode is DeliveryMode.Miles or DeliveryMode.Hybrid
+            ? _app.MilesBands.GetCachedMiles(settings.ShopPostcode, postcode.Value)
+            : null;
+
+        var quote = DeliveryPricing.Quote(config, postcode, orderValue, miles, UiText.IsZh);
 
         SetDeliveryNote(quote);
         return quote;
@@ -1731,6 +1744,36 @@ public partial class TillViewModel : ViewModelBase
     {
         UpdateCustomerSummary();
         SyncTicketTotals();
+        _ = FetchDistanceIfNeededAsync(value);
+    }
+
+    /// <summary>
+    /// Routes the postcode once, in the background, and re-prices when the answer
+    /// lands.
+    /// <para>
+    /// Never on the typing path: routing is a network call, and a till that
+    /// stalls between keystrokes while somebody is on the phone is worse than one
+    /// that shows the fee a second late. The result is cached forever, so this
+    /// happens once per postcode for the life of the shop.
+    /// </para>
+    /// </summary>
+    private async Task FetchDistanceIfNeededAsync(string rawPostcode)
+    {
+        var settings = _app.GetSettings();
+        if (settings.DeliveryMode is DeliveryMode.Postcode) return;
+
+        var postcode = UkPostcode.Normalise(rawPostcode);
+        if (!postcode.IsValid || string.IsNullOrWhiteSpace(settings.ShopPostcode)) return;
+        if (_app.MilesBands.GetCachedMiles(settings.ShopPostcode, postcode.Value) is not null) return;
+
+        var miles = await _app.RoadDistance.MilesBetweenAsync(settings.ShopPostcode, postcode.Value);
+        if (miles is null) return;
+
+        _app.MilesBands.PutCachedMiles(settings.ShopPostcode, postcode.Value, miles.Value);
+
+        // The postcode may have moved on while the router was thinking.
+        if (UkPostcode.Normalise(DeliveryPostcode).Value == postcode.Value)
+            SyncTicketTotals();
     }
     partial void OnTableNumberChanged(string value) => UpdateCustomerSummary();
 

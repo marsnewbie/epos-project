@@ -215,38 +215,47 @@ re-running it does nothing.
 
 ## Delivery zones
 
-Delivery is priced by **postcode prefix**, not by distance. That is how a
-takeaway publishes its area — the leaflet says "B44, B23, B42 — £2", not "£1 per
-mile". Staff can check a prefix against a customer's postcode without a map, it
-works with the broadband down, and it does not invite the argument that starts
-"your screen says 3.1 miles but I'm 2.9".
+Delivery pricing is a **port of the RingOrder website's rules**
+(`src/lib/delivery/`), and that is the point rather than a coincidence. Plenty of
+shops run both: orders arrive from the website and over the phone, and if the
+site says "we do not deliver to B47" while the till charges the B4 rate, the
+merchant finds out from a customer.
 
-**The longest matching prefix wins.** "B44 0QN" takes a `B440` zone over a `B44`
-zone over a `B4` zone. The broad one is a deliberate fallback rather than an
-accident: a shop that writes `B4` and has no `B44` entry means that side of town,
-and charging the broader zone beats declaring a real customer unreachable. The
-matched zone is named on the till so a shop can see it happen and add the
-narrower entry if that was not what they meant.
+**Matching is on structured postcode components, never a string prefix.** A rule
+sits at one of four levels — area `B`, district `B44`, sector `B44 0`, unit
+`B44 0QN` — and matches only when the customer's component at that level is
+exactly equal. The most specific match wins. So **B47 never matches a B44 rule**,
+and with only `B44 0` and `B44 1` rules a `B44 3` postcode matches neither.
 
-Each zone carries a fee, an optional minimum order, an optional free-delivery
-threshold, and a flag for areas the shop will not serve — "we don't go there" is
-a real answer, and stating it stops a driver being sent while somebody hunts for
-a missing entry.
+The space is load-bearing: `B44 0` is a sector and `B40` is a district, and any
+spelling that squashes the space out turns one into the other.
 
-A minimum is measured on the **food** — after discount, before the delivery fee,
-so the fee cannot help justify itself. Being under it **never blocks the order**.
-The till says so and whoever is on the phone decides; a shop can switch on a
-surcharge that tops the order up instead. A till that refuses outright is a till
-staff work around, which loses the record along with the sale.
+Each zone has a fee, an optional minimum, an optional free-delivery threshold and
+an active flag. **A free-over of zero means no threshold**, never "free from the
+first penny" — that is a fee of zero, and giving one idea two spellings is how a
+merchant clears a box and accidentally makes every order free.
 
-A shop with no zones behaves exactly as it did before the feature existed: the
-one default fee, and nothing said.
+The **below-minimum surcharge is a flat shop-level amount**, not the shortfall.
+It is what the shop charges for carrying a small order, it is what the website
+charges, and it is what already arrives on a web order. Being under a minimum
+warns and never blocks: a till staff have to work around loses the record along
+with the sale.
 
-Two things were half-wired and are now closed: the shop bundle has carried a
-`zones` list since the schema rebuild that nothing ever imported, and
-`BelowMinimumSurcharge` was **included in the VAT calculation but left out of the
-order total** — so a web order carrying one had tax worked out on money the
-customer was never charged.
+Free-delivery thresholds and minimums are compared against the basket **before
+discounts** — what the customer actually ordered — so a voucher cannot quietly
+withdraw free delivery they were already shown.
+
+Distance mode uses the same two free services as the website: postcodes.io for
+coordinates, and the public OSRM router for **road** miles, because a river
+between two points can double a journey the straight line calls three-quarters of
+a mile. Bands are min inclusive, max exclusive, with a hard maximum beyond which
+the shop does not deliver. Routing happens once per postcode in the background
+and is cached forever, so the till keeps pricing when the router is unreachable —
+which, for a public demo instance, is a question of when.
+
+A shop with nothing configured behaves exactly as it did before any of this
+existed: one default fee, and nothing said. "Nothing set up" is not "outside the
+delivery area", and only one of those should ever stop an order.
 
 ## Postcode lookup
 

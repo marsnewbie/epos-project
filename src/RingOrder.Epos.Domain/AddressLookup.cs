@@ -43,6 +43,16 @@ public readonly record struct UkPostcode
     /// <summary>The leading letters, e.g. "B" or "CV". The shop's rough catchment.</summary>
     public string Area => new(Outward.TakeWhile(char.IsLetter).ToArray());
 
+    /// <summary>
+    /// Outward plus the first inward digit, e.g. "B44 0". One rung finer than a
+    /// district and the level at which one awkward end of an estate is priced
+    /// differently from the rest.
+    /// </summary>
+    public string Sector => Inward.Length == 3 ? $"{Outward} {Inward[0]}" : "";
+
+    /// <summary>The whole thing — a single address's postcode.</summary>
+    public string Unit => Value;
+
     public bool IsEmpty => Outward.Length == 0;
 
     public override string ToString() => Value;
