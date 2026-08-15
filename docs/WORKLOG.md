@@ -661,3 +661,69 @@ links, 37 option choices — unchanged.
 **Still not clicked on a running till:** the results list, the erase-customer
 button and the Customer data screen are covered by tests and compile, but the
 interaction itself is unexercised. Worth ten minutes alongside the printer.
+
+---
+
+## 2026-08-15 — Refunds: give money back without rewriting the sale
+
+Voiding was the only lever the till had, and it does not return money. Closed
+the gap that a real shop hits every week.
+
+**A refund is a new record, never an edit.** The order keeps its lines, totals
+and VAT exactly as rung up, and the refund sits beside it. The shop has to be
+able to show both halves — what was sold and what came back — and a till that
+quietly reduced yesterday's takings could explain neither.
+
+**A void and a refund are different events.** A void says the sale never
+happened; a refund says it did and was reversed. The void prompt used to warn
+"refund customer manually if needed", which was the honest thing to say when
+there was no refund. It now says to use Refund instead.
+
+Each refund writes two rows in one transaction: the reason, staff and shift in
+`refunds`, and the money in `payments` — **negative, and flagged**. The negative
+amount means every sum already written over `payments` keeps working and becomes
+a net figure without knowing refunds exist, and the shift's expected cash comes
+out right for free: money handed over the counter is money out of the drawer.
+
+**Two traps that came with that choice**, both found by thinking about the
+existing code rather than by a failing test:
+
+- A refund loaded as a negative tender would pull `AmountPaid` down and push
+  `BalanceDue` back up, so a refunded order would look like it owed money and
+  could be settled a second time. `PosOrder.Refunds` is a separate list.
+- Saving an order rewrites its rows in `payments`. That wipe would have deleted
+  refunds on the next ordinary save — after printing, say. It is now scoped to
+  `is_refund = 0`.
+
+A third was already in the shift query: it summed *all* payments to decide
+whether an order was settled, so a fully refunded sale would have dropped back
+among the unpaid and invented money the shop was owed. Gross now, refunds
+excluded — it was a paid sale, and the refund shows on its own line.
+
+**The report shows both numbers.** Gross taken, refunds out, net kept. "Took
+£1,200 and refunded £45" is a different conversation from "took £1,155", and
+only one of them tells an owner to go and look.
+
+**Rules that refuse a refund** live in a pure `RefundPolicy`: never more than was
+actually taken less what has already gone back (the order total is not the
+ceiling — a part-paid order can only return what it received), never twice for
+the same line, never without a reason, never on a voided or unpaid order. The
+suggested tender is whichever one most of the money arrived on, because cash back
+on a card sale is the shape of most till fraud and should be a deliberate change
+rather than the default. Full-refund-by-lines carries a penny of tolerance so
+three lines at £6.67 against £20.00 taken are not refused by a rounding crumb.
+
+**VAT reverses at the rate the sale was made at** — exactly per line when the
+refund names them, scaled by the fraction returned when it is a bare amount.
+
+The refund slip is its own document, not a receipt with a minus sign: what went
+back, why, how it was returned, and what is left on the sale.
+
+On screen: tick the dishes that were wrong or type an amount, pick the tender,
+give the reason, confirm. Gated on `Permission.Refund`, which existed in the enum
+and had never been used by anything.
+
+Migration 6 ran on the live shop database with its backup. 167 tests.
+
+**Still unclicked on a running till**, now including the refund panel. Worth
+doing in one pass with the printer, since the refund slip wants paper anyway.

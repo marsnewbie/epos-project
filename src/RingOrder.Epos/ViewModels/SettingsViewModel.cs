@@ -381,10 +381,25 @@ public partial class SettingsViewModel : ViewModelBase
         var online = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.PrepaidOnline).Sum(t => t.Amount);
         var dueOpen = active.Where(o => o.IsUnpaid).Sum(o => o.BalanceDue);
         var voided = all.Count(o => o.Status == PosOrderStatus.Voided);
+
+        // Refunds get their own lines rather than being netted into the takings.
+        // "Took £1,200, refunded £45" is a different conversation from
+        // "took £1,155", and only one of them tells an owner to go and look.
+        var refunds = all.SelectMany(o => o.Refunds).ToList();
+        var cashBack = refunds.Where(r => r.Tender == TenderType.Cash).Sum(r => r.Amount);
+        var otherBack = Money.Round(refunds.Sum(r => r.Amount) - cashBack);
+
+        var refundBlock = refunds.Count == 0
+            ? ""
+            : $"Refunds: {refunds.Count} · £{refunds.Sum(r => r.Amount):0.00} " +
+              $"(cash £{cashBack:0.00} · other £{otherBack:0.00})\n" +
+              $"Net after refunds: £{cash + card + online - refunds.Sum(r => r.Amount):0.00}\n";
+
         ShiftSummary =
             $"Cash taken (incl. partial): £{cash:0.00}\n" +
             $"Card taken (incl. partial): £{card:0.00}\n" +
             $"Online paid: £{online:0.00}\n" +
+            refundBlock +
             $"Open balance due: £{dueOpen:0.00}\n" +
             $"Paid-in-full tickets: {paidDone.Count}\n" +
             $"Gross of paid tickets: £{paidDone.Sum(o => o.Total):0.00}\n" +

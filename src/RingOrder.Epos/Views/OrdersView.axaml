@@ -87,9 +87,58 @@
             <Button Grid.Column="1" Classes="btn" Content="{Binding LblReprintFront}"
                     Command="{Binding ReprintFrontCommand}" Height="44" />
           </Grid>
-          <Button Classes="danger" Content="{Binding LblVoid}"
-                  Command="{Binding VoidOrderCommand}" Height="44" />
+          <Grid ColumnDefinitions="*,*">
+            <Button Grid.Column="0" Classes="hold" Content="{Binding LblRefund}"
+                    Command="{Binding BeginRefundCommand}" Margin="0,0,4,0" Height="44" />
+            <Button Grid.Column="1" Classes="danger" Content="{Binding LblVoid}"
+                    Command="{Binding VoidOrderCommand}" Height="44" />
+          </Grid>
         </StackPanel>
+
+        <!--
+          The refund panel. Tick the dishes that were wrong, or type an amount.
+          The reason is not optional: an unexplained refund is an unexplained
+          hole in the takings.
+        -->
+        <Border DockPanel.Dock="Bottom" IsVisible="{Binding ShowRefundPanel}"
+                Background="#fff7ed" BorderBrush="#fdba74" BorderThickness="1"
+                CornerRadius="8" Padding="12" Margin="0,10,0,0">
+          <StackPanel Spacing="8">
+            <TextBlock Text="{Binding LblRefund}" FontWeight="Bold" Foreground="#9a3412" />
+            <TextBlock Text="{Binding RefundableText}" Classes="muted" FontSize="12" TextWrapping="Wrap" />
+
+            <ItemsControl ItemsSource="{Binding RefundLines}" MaxHeight="150">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:RefundLineRow">
+                  <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,2">
+                    <CheckBox Content="{Binding Label}" IsChecked="{Binding IsSelected}" />
+                    <TextBlock Grid.Column="1" Text="{Binding PriceText}"
+                               VerticalAlignment="Center" Margin="8,0,0,0" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Grid ColumnDefinitions="Auto,*">
+              <TextBlock Text="£" VerticalAlignment="Center" FontSize="18" Margin="0,0,6,0" />
+              <TextBox Grid.Column="1" Classes="field" Text="{Binding RefundAmountText}" />
+            </Grid>
+
+            <ComboBox ItemsSource="{Binding RefundTenders}" SelectedItem="{Binding RefundTender}"
+                      HorizontalAlignment="Stretch" Height="44" />
+
+            <TextBox Classes="field" Text="{Binding RefundReason}"
+                     Watermark="{Binding LblRefundReason}" />
+
+            <Grid ColumnDefinitions="*,*">
+              <Button Grid.Column="0" Classes="btn" Content="{Binding LblCancel}"
+                      Command="{Binding CancelRefundCommand}" Margin="0,0,4,0" Height="44" />
+              <Button Grid.Column="1" Classes="danger" Content="{Binding LblRefundConfirm}"
+                      Command="{Binding ConfirmRefundCommand}"
+                      IsEnabled="{Binding !RefundBusy}" Height="44" />
+            </Grid>
+          </StackPanel>
+        </Border>
         <TextBlock DockPanel.Dock="Top" Text="{Binding LblDetail}" FontWeight="Bold"
                    Foreground="#5b6472" Margin="0,0,0,8" />
         <TextBox Text="{Binding DetailText}" AcceptsReturn="True" IsReadOnly="True" TextWrapping="Wrap"

@@ -84,4 +84,66 @@ public static class TaxCalculator
 
     public static decimal TotalVat(IEnumerable<TaxBand> bands) =>
         Money.Round(bands.Sum(b => b.Vat));
+
+    /// <summary>
+    /// The VAT going back with a refund.
+    /// <para>
+    /// A refund reverses tax at the rate the sale was made at, not at today's
+    /// rate and not at a blended average. When the refund names its lines the
+    /// bands come from those lines exactly; when it is a bare amount there is no
+    /// better answer than the shape of the original order, so each band is scaled
+    /// by the fraction being handed back.
+    /// </para>
+    /// <para>
+    /// Returned as positive amounts. It is a refund line on a report, and
+    /// printing a negative of a negative is how a reader loses track of which
+    /// way the money went.
+    /// </para>
+    /// </summary>
+    public static List<TaxBand> SummariseRefund(
+        PosOrder order,
+        Refund refund,
+        IReadOnlyList<TaxClass> classes,
+        string defaultClassId = "hot-food",
+        bool pricesIncludeTax = true)
+    {
+        if (classes.Count == 0 || refund.Amount <= 0) return [];
+
+        if (refund.Lines.Count > 0)
+        {
+            var named = new PosOrder
+            {
+                Lines = refund.Lines
+                    .Select(l => new CartLine
+                    {
+                        Name = l.Name,
+                        Quantity = l.Quantity,
+                        BasePrice = l.Amount,
+                        LineTotal = l.Amount,
+                        TaxClassId = l.TaxClassId,
+                        IsAdHoc = true,
+                    })
+                    .ToList(),
+            };
+            named.Subtotal = Money.Round(named.Lines.Sum(l => l.LineTotal));
+            named.Total = named.Subtotal;
+
+            return Summarise(named, classes, defaultClassId, pricesIncludeTax);
+        }
+
+        var original = Summarise(order, classes, defaultClassId, pricesIncludeTax);
+        var gross = Money.Round(original.Sum(b => b.Gross));
+        if (gross <= 0) return [];
+
+        var share = refund.Amount / gross;
+
+        return original
+            .Select(b => new TaxBand(
+                b.Class,
+                Money.Round(b.Net * share),
+                Money.Round(b.Vat * share),
+                Money.Round(b.Gross * share)))
+            .Where(b => b.Gross > 0)
+            .ToList();
+    }
 }

@@ -230,6 +230,97 @@ public static class TicketRenderer
     }
 
     /// <summary>
+    /// The customer's proof that money went back.
+    /// <para>
+    /// Its own document, not a reprinted receipt with a minus sign. Someone
+    /// holding this needs to see at a glance that it is a refund, what it was
+    /// for, and how it was returned — and the shop's copy is what a manager
+    /// matches against the drawer at close.
+    /// </para>
+    /// </summary>
+    public static byte[] RenderRefund(
+        PosOrder order,
+        Refund refund,
+        AppSettings settings,
+        PrintDevice? device = null,
+        IReadOnlyList<TaxClass>? taxClasses = null)
+    {
+        var enc = string.IsNullOrWhiteSpace(settings.PrintEncoding) ? "gbk" : settings.PrintEncoding;
+        var b = NewBuilder(enc, settings.PrintChineseAsRaster, device);
+
+        b.Center().KitchenLine(settings.ShopName, large: true);
+        b.Normal().Line(settings.ShopAddress);
+        b.Line($"{settings.ShopPostcode}  {settings.ShopPhone}");
+        if (!string.IsNullOrWhiteSpace(settings.VatNumber))
+            b.Line($"VAT No: {settings.VatNumber}");
+
+        b.Bold(true).Line("*** REFUND ***").Bold(false).Left().Separator('=');
+        b.Line($"Order {order.OrderNumber}");
+        b.Line($"Sold  {order.CreatedAt.ToLocalTime():dd/MM/yyyy HH:mm}");
+        b.Line($"Refund {refund.At.ToLocalTime():dd/MM/yyyy HH:mm}");
+        b.Separator();
+
+        if (refund.Lines.Count > 0)
+        {
+            foreach (var line in refund.Lines)
+                b.ItemEnglishAndPrice($"{line.Quantity} x {line.Name}", EscPos.Money(line.Amount));
+            b.Separator();
+        }
+
+        b.Large().Bold(true)
+            .ColumnsAscii("REFUNDED", EscPos.Money(refund.Amount), cols: 24)
+            .Bold(false).Normal();
+
+        WriteRefundVat(b, order, refund, settings, taxClasses);
+
+        b.Separator('-');
+        b.ColumnsAscii("Returned to", refund.Tender switch
+        {
+            TenderType.Cash => "Cash",
+            TenderType.CardManual or TenderType.CardIntegrated => "Card",
+            TenderType.PrepaidOnline => "Online",
+            TenderType.Voucher => "Voucher",
+            _ => refund.Tender.ToString(),
+        });
+
+        foreach (var wrapped in WrapLines($"Reason: {refund.Reason}", EscPos.ColsFontA))
+            b.Line(wrapped);
+
+        // What is left on the sale, so nobody has to work it out from two slips.
+        var stillPaid = Money.Round(order.AmountPaid - order.AmountRefunded);
+        b.ColumnsAscii("Originally paid", EscPos.Money(order.AmountPaid));
+        b.ColumnsAscii("Kept on this sale", EscPos.Money(stillPaid));
+
+        b.Separator('-').Center();
+        b.Line("Please keep this receipt");
+        b.FeedAndCut();
+        return b.Build();
+    }
+
+    /// <summary>VAT going back out, at the rate the sale was made at.</summary>
+    private static void WriteRefundVat(
+        EscPosTicketBuilder b,
+        PosOrder order,
+        Refund refund,
+        AppSettings settings,
+        IReadOnlyList<TaxClass>? taxClasses)
+    {
+        if (string.IsNullOrWhiteSpace(settings.VatNumber) || taxClasses is not { Count: > 0 })
+            return;
+
+        var bands = TaxCalculator.SummariseRefund(
+            order, refund, taxClasses, settings.DefaultTaxClassId, settings.PricesIncludeTax);
+        if (bands.Count == 0) return;
+
+        b.Separator('-');
+        b.ColumnsAscii("Rate", "Net        VAT");
+        foreach (var band in bands)
+            b.ColumnsAscii(band.RateLabel, $"{EscPos.Money(band.Net),9}  {EscPos.Money(band.Vat),9}");
+
+        b.ColumnsAscii("VAT refunded", EscPos.Money(TaxCalculator.TotalVat(bands)));
+    }
+
+    /// <summary>
     /// The VAT block. Silent unless the shop is registered — a receipt claiming
     /// VAT from a business that cannot charge it is worse than one that says
     /// nothing at all.

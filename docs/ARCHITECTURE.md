@@ -138,6 +138,46 @@ from a business that cannot charge it is worse than one that says nothing.
 `TaxCalculator` is pure, and its tests include the property that matters on a
 receipt: net plus VAT reconstructs the gross, for every penny from 1p to £50.
 
+## Refunds
+
+**A refund is a new record, never an edit of the sale.** The order keeps its
+lines, its totals and its VAT exactly as they were rung up, and the refund sits
+beside it. A shop has to be able to show both halves — what was sold, and what
+was returned — and a till that quietly reduced yesterday's takings could explain
+neither number.
+
+A void and a refund are different events. A void says the sale never happened; a
+refund says it did and was reversed. Voiding an order that has been paid is
+almost always the wrong tool, and the till now says so instead of leaving a note
+telling staff to sort the money out themselves.
+
+Each refund writes two rows in one transaction: a `refunds` row holding the
+reason, the staff member and the shift, and a `payments` row holding the money —
+**stored negative and flagged `is_refund`**. The negative amount means every
+existing sum over `payments` keeps working and quietly becomes a net figure,
+which is the safe direction for a total to be wrong in. The shift's expected cash
+comes out right for free: money handed across the counter is money no longer in
+the drawer.
+
+Two consequences that had to be handled explicitly:
+
+- **Refunds do not load as tenders.** As a negative tender a refund would pull
+  `AmountPaid` down and push `BalanceDue` back up, so a refunded order would
+  appear to owe money and could be settled a second time. `PosOrder.Refunds` is
+  separate, and `AmountPaid` stays gross.
+- **Re-saving an order must not delete them.** Saving an order rewrites its rows
+  in `payments`; that wipe is scoped to `is_refund = 0`.
+
+`RefundPolicy` is pure and holds the rules that refuse one: never more than was
+actually taken less what has already gone back, never without a reason, never on
+a voided or unpaid order, and never the same line twice. The suggested tender is
+whichever one most of the money arrived on — cash back on a card sale is the
+shape of most till fraud, so it is a deliberate change rather than the default.
+
+VAT reverses at the rate the sale was made at. When a refund names its lines the
+bands come from those lines exactly; when it is a bare amount each band is scaled
+by the fraction being handed back.
+
 ## Places and people
 
 `addresses` holds doors; `customer_addresses` links a person to one. They are

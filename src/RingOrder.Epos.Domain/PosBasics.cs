@@ -50,6 +50,13 @@ public enum PosOrderStatus
     Completed,
     Cancelled,
     Voided,
+
+    /// <summary>
+    /// Paid, then everything taken was handed back. Distinct from
+    /// <see cref="Voided"/>: a void is a sale that never happened, a refund is a
+    /// sale that did and was reversed. The shop's day has to show both.
+    /// </summary>
+    Refunded,
 }
 
 public enum TenderType
@@ -168,4 +175,11 @@ public static class Money
 
     public static decimal Round(decimal value) =>
         decimal.Round(value, 2, MidpointRounding.AwayFromZero);
+
+    /// <summary>
+    /// For a message a member of staff reads. Always two decimals — "£5.5" on a
+    /// screen about money reads as unfinished, and invites a second look at a
+    /// number that was right.
+    /// </summary>
+    public static string Format(decimal amount) => $"£{amount:0.00}";
 }

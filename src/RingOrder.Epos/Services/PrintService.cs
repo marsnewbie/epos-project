@@ -89,6 +89,38 @@ public sealed class PrintService
         return Task.FromResult(queued);
     }
 
+    /// <summary>
+    /// The refund slip, routed like a receipt because it goes to the customer
+    /// standing at the same counter.
+    /// <para>
+    /// The order is not re-saved here. A refund does not change the sale, and
+    /// writing the order back would only risk overwriting it with whatever the
+    /// caller happened to be holding.
+    /// </para>
+    /// </summary>
+    public Task<int> PrintRefundAsync(PosOrder order, Refund refund)
+    {
+        var settings = _app.GetSettings();
+        var devices = _app.PrintDevices.GetDeviceMap();
+        var targets = PrintRouting.Route(order, PrintDocument.Receipt, _app.PrintDevices.GetRoutes(), devices);
+
+        if (targets.Count == 0)
+        {
+            var any = devices.Values.FirstOrDefault(d => d.IsEnabled);
+            if (any is null) return Task.FromResult(0);
+            targets = [new PrintRouting.Target(any, 1, null)];
+        }
+
+        foreach (var target in targets)
+        {
+            var payload = TicketRenderer.RenderRefund(
+                order, refund, settings, target.Device, _app.Menu.GetTaxClasses());
+            Enqueue(order, target, PrintDocument.Receipt, "refund", payload);
+        }
+
+        return Task.FromResult(targets.Count);
+    }
+
     public Task<int> PrintReceiptAsync(PosOrder order)
     {
         var settings = _app.GetSettings();

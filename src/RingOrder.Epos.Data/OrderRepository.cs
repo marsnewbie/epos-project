@@ -201,7 +201,7 @@ public sealed class OrderRepository
             cmd.CommandText = """
                 SELECT order_id,id,tender_type,amount_pence,cash_received_pence,change_given_pence,
                        reference,staff_id,at
-                FROM payments ORDER BY order_id,at
+                FROM payments WHERE is_refund=0 ORDER BY order_id,at
                 """;
             using var r = cmd.ExecuteReader();
             while (r.Read())
@@ -217,6 +217,32 @@ public sealed class OrderRepository
                     Reference = r.IsDBNull(6) ? null : r.GetString(6),
                     StaffId = r.IsDBNull(7) ? null : r.GetString(7),
                     At = DateTimeOffset.Parse(r.GetString(8)),
+                });
+            }
+        }
+
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = """
+                SELECT order_id,id,shift_id,staff_id,amount_pence,tender_type,reason,lines_json,is_full,at
+                FROM refunds ORDER BY order_id,at
+                """;
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                if (!byId.TryGetValue(r.GetString(0), out var order)) continue;
+                order.Refunds.Add(new Refund
+                {
+                    Id = r.GetString(1),
+                    OrderId = r.GetString(0),
+                    ShiftId = r.IsDBNull(2) ? null : r.GetString(2),
+                    StaffId = r.IsDBNull(3) ? null : r.GetString(3),
+                    Amount = Money.FromPence(r.GetInt64(4)),
+                    Tender = Enum.Parse<TenderType>(r.GetString(5)),
+                    Reason = r.GetString(6),
+                    Lines = JsonUtil.Deserialize<List<RefundLine>>(r.GetString(7)),
+                    IsFull = r.GetInt32(8) == 1,
+                    At = DateTimeOffset.Parse(r.GetString(9)),
                 });
             }
         }
@@ -269,7 +295,10 @@ public sealed class OrderRepository
         using (var wipe = conn.CreateCommand())
         {
             wipe.Transaction = tx;
-            wipe.CommandText = "DELETE FROM payments WHERE order_id=$o";
+            // Refund rows live in this table too and are not the caller's to
+            // rewrite: re-saving an order must never erase money already handed
+            // back. Only the sale's own tenders are replaced.
+            wipe.CommandText = "DELETE FROM payments WHERE order_id=$o AND is_refund=0";
             wipe.Parameters.AddWithValue("$o", order.Id);
             wipe.ExecuteNonQuery();
         }

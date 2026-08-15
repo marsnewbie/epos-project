@@ -160,11 +160,34 @@ public sealed class PosOrder
     public bool FrontPrinted { get; set; }
     public bool OnlineAcked { get; set; }
     public List<OrderTender> Tenders { get; set; } = [];
+
+    /// <summary>
+    /// Money given back, kept out of <see cref="Tenders"/> on purpose.
+    /// <para>
+    /// A refund loaded as a negative tender would pull <see cref="AmountPaid"/>
+    /// down and push <see cref="BalanceDue"/> back up, so a refunded order would
+    /// appear on the till as owing money and could be "settled" a second time.
+    /// A refund is money returned, not a debt reinstated.
+    /// </para>
+    /// </summary>
+    public List<Refund> Refunds { get; set; } = [];
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.Now;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.Now;
 
-    /// <summary>Sum of tender amounts applied to the bill.</summary>
+    /// <summary>Sum of tender amounts applied to the bill. Never reduced by a refund.</summary>
     public decimal AmountPaid => Tenders.Sum(t => t.Amount);
+
+    /// <summary>Total handed back against this order.</summary>
+    public decimal AmountRefunded => Money.Round(Refunds.Sum(r => r.Amount));
+
+    /// <summary>What the shop actually kept.</summary>
+    public decimal NetTaken => Money.Round(AmountPaid - AmountRefunded);
+
+    public bool HasRefunds => Refunds.Count > 0;
+
+    /// <summary>Everything taken has gone back.</summary>
+    public bool IsFullyRefunded => HasRefunds && AmountRefunded >= AmountPaid - 0.005m;
 
     /// <summary>Remaining to collect. Grows again if items are added after a partial/full pay reopen.</summary>
     public decimal BalanceDue => Math.Max(0, Math.Round(Total - AmountPaid, 2));

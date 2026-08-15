@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RingOrder.Epos.Domain;
@@ -52,6 +52,10 @@ public partial class OrdersViewModel : ViewModelBase
     [ObservableProperty] private string _lblReprintKitchen = "Reprint kitchen";
     [ObservableProperty] private string _lblReprintFront = "Reprint receipt";
     [ObservableProperty] private string _lblVoid = "Void (PIN)";
+    [ObservableProperty] private string _lblRefund = "Refund";
+    [ObservableProperty] private string _lblRefundConfirm = "Refund now";
+    [ObservableProperty] private string _lblRefundReason = "Reason (required)";
+    [ObservableProperty] private string _lblCancel = "Cancel";
     [ObservableProperty] private string _lblReopen = "Reopen (PIN)";
 
     public void RefreshUiLabels()
@@ -67,6 +71,10 @@ public partial class OrdersViewModel : ViewModelBase
         LblReprintKitchen = UiText.ReprintKitchen;
         LblReprintFront = UiText.ReprintFront;
         LblVoid = UiText.VoidOrder;
+        LblRefund = UiText.Pick("Refund", "退款");
+        LblRefundConfirm = UiText.Pick("Refund now", "确认退款");
+        LblRefundReason = UiText.Pick("Reason (required)", "退款原因（必填）");
+        LblCancel = UiText.Pick("Cancel", "取消");
         LblReopen = UiText.ReopenOrder;
         LblChannelAll = UiText.Pick("All sources", "全部来源");
         LblChannelCounter = UiText.Pick("Counter", "到店");
@@ -151,6 +159,19 @@ public partial class OrdersViewModel : ViewModelBase
                 $"  {t.Type} £{t.Amount:0.00}" +
                 (t.CashReceived is > 0 ? $" (tendered £{t.CashReceived:0.00})" : "") +
                 (t.ChangeGiven is > 0 ? $" change £{t.ChangeGiven:0.00}" : "")));
+        // Money that went back is shown on the sale it came off, because that is
+        // where anyone looking for it will look.
+        var refunds = value.HasRefunds
+            ? "\n" + string.Join("\n", value.Refunds.Select(r =>
+                  $"  REFUND {Money.Format(r.Amount)} {r.Tender} — {r.Reason} " +
+                  $"({r.At.ToLocalTime():dd/MM HH:mm})")) +
+              $"\n  Refunded {Money.Format(value.AmountRefunded)} · Kept {Money.Format(value.NetTaken)}"
+            : "";
+
+        // Changing selection closes an open panel: the amount and reason on
+        // screen belong to the order that was showing when they were typed.
+        ShowRefundPanel = false;
+
         DetailText =
             $"{value.OrderNumber}  {value.ServiceType}  {value.Channel}  {value.Status}\n" +
             (string.IsNullOrWhiteSpace(value.HoldLabel) ? "" : $"Hold: {value.HoldLabel}\n") +
@@ -160,7 +181,7 @@ public partial class OrdersViewModel : ViewModelBase
             $"{lines}\n" +
             $"Subtotal £{value.Subtotal:0.00}  Delivery £{value.DeliveryFee:0.00}  Total £{value.Total:0.00}\n" +
             $"Paid £{value.AmountPaid:0.00}  Due £{value.BalanceDue:0.00}\n" +
-            $"{tenders}\n" +
+            $"{tenders}{refunds}\n" +
             $"Kitchen={(value.KitchenPrinted ? "Y" : "N")} Front={(value.FrontPrinted ? "Y" : "N")}\n" +
             $"Notes: {value.Notes}" +
             (string.IsNullOrWhiteSpace(value.VoidReason) ? "" : $"\nVoid: {value.VoidReason}");
@@ -230,10 +251,12 @@ public partial class OrdersViewModel : ViewModelBase
         }
         if (!await UiPrompt.RequireAsync(_app, Permission.VoidOrder, UiText.Pick("Void order", "作废订单")))
             return;
+        // Voiding a paid order is almost always the wrong tool: a void says the
+        // sale never happened, which is not true once money has changed hands.
         var paidNote = SelectedOrder.AmountPaid > 0
             ? UiText.Pick(
-                $" WARNING: £{SelectedOrder.AmountPaid:0.00} already taken — refund customer manually if needed.",
-                $" 注意：已收 £{SelectedOrder.AmountPaid:0.00} — 如需退款请人工处理。")
+                $" WARNING: £{SelectedOrder.AmountPaid:0.00} already taken. Use Refund instead — a void does not return money.",
+                $" 注意：已收 £{SelectedOrder.AmountPaid:0.00}。请改用「退款」——作废不会退还金额。")
             : "";
         var reason = await UiPrompt.PromptTextAsync(
             UiText.Pick("Void reason", "作废原因") + paidNote,
@@ -250,6 +273,118 @@ public partial class OrdersViewModel : ViewModelBase
         catch (Exception ex)
         {
             _setStatus($"Void failed: {ex.Message}");
+        }
+    }
+
+    // ── Refunds ─────────────────────────────────────────────────────────────
+
+    public ObservableCollection<RefundLineRow> RefundLines { get; } = [];
+
+    [ObservableProperty] private bool _showRefundPanel;
+    [ObservableProperty] private string _refundAmountText = "";
+    [ObservableProperty] private string _refundReason = "";
+    [ObservableProperty] private string _refundableText = "";
+    [ObservableProperty] private string _refundHistory = "";
+    [ObservableProperty] private bool _hasRefundHistory;
+    [ObservableProperty] private TenderType _refundTender = TenderType.Cash;
+    [ObservableProperty] private bool _refundBusy;
+
+    public TenderType[] RefundTenders { get; } =
+        [TenderType.Cash, TenderType.CardManual, TenderType.PrepaidOnline, TenderType.Voucher, TenderType.Other];
+
+    /// <summary>
+    /// Opens the refund panel with sensible defaults: the whole refundable
+    /// amount, and the tender most of the money arrived on. Cash back on a card
+    /// sale is the shape of most till fraud, so it is a deliberate change rather
+    /// than the starting position.
+    /// </summary>
+    [RelayCommand]
+    private async Task BeginRefundAsync()
+    {
+        if (SelectedOrder is null) return;
+
+        var refusal = RefundPolicy.Validate(SelectedOrder, 0.01m, "x", UiText.IsZh);
+        if (refusal is not null)
+        {
+            _setStatus(refusal);
+            return;
+        }
+
+        if (!await UiPrompt.RequireAsync(_app, Permission.Refund, UiText.Pick("Refund", "退款")))
+            return;
+
+        var refundable = RefundPolicy.Refundable(SelectedOrder);
+
+        RefundLines.Clear();
+        foreach (var line in RefundPolicy.RefundableLines(SelectedOrder))
+            RefundLines.Add(new RefundLineRow(line, RecalculateFromLines));
+
+        RefundAmountText = refundable.ToString("0.00");
+        RefundReason = "";
+        RefundTender = RefundPolicy.SuggestTender(SelectedOrder);
+        RefundableText = UiText.Pick(
+            $"Up to {Money.Format(refundable)} of {Money.Format(SelectedOrder.AmountPaid)} taken",
+            $"最多可退 {Money.Format(refundable)}（已收 {Money.Format(SelectedOrder.AmountPaid)}）");
+
+        ShowRefundPanel = true;
+    }
+
+    /// <summary>Ticking lines drives the amount; untick everything to type a figure.</summary>
+    private void RecalculateFromLines()
+    {
+        var chosen = RefundLines.Where(r => r.IsSelected).ToList();
+        if (chosen.Count == 0) return;
+        RefundAmountText = chosen.Sum(r => r.Line.LineTotal).ToString("0.00");
+    }
+
+    [RelayCommand]
+    private void CancelRefund()
+    {
+        ShowRefundPanel = false;
+        RefundLines.Clear();
+        RefundReason = "";
+    }
+
+    [RelayCommand]
+    private async Task ConfirmRefundAsync()
+    {
+        if (SelectedOrder is null || RefundBusy) return;
+
+        if (!decimal.TryParse(RefundAmountText, out var amount))
+        {
+            _setStatus(UiText.Pick("Enter an amount", "请输入金额"));
+            return;
+        }
+
+        var chosen = RefundLines.Where(r => r.IsSelected).Select(r => r.Line).ToList();
+
+        // Lines only travel with the refund when they add up to it. Otherwise the
+        // slip would name dishes whose prices do not match the money returned.
+        var linesMatchAmount =
+            chosen.Count > 0 && Math.Abs(chosen.Sum(l => l.LineTotal) - amount) < 0.005m;
+
+        RefundBusy = true;
+        try
+        {
+            var result = await _app.Refunds.RefundAsync(
+                SelectedOrder, amount, RefundReason, RefundTender,
+                linesMatchAmount ? chosen : null);
+
+            _setStatus(result.Message);
+            if (!result.Ok) return;
+
+            ShowRefundPanel = false;
+            RefundLines.Clear();
+            RefundReason = "";
+            Refresh();
+        }
+        catch (Exception ex)
+        {
+            _setStatus(UiText.Pick($"Refund failed: {ex.Message}", $"退款失败：{ex.Message}"));
+        }
+        finally
+        {
+            RefundBusy = false;
         }
     }
 

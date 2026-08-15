@@ -1,4 +1,4 @@
-﻿using RingOrder.Epos.Data;
+using RingOrder.Epos.Data;
 using RingOrder.Epos.Domain;
 using RingOrder.Epos.Hardware;
 using RingOrder.Epos.Online;
@@ -24,6 +24,8 @@ public sealed class AppServices
     public AddressCacheRepository AddressCache { get; }
     public AddressLookupService AddressLookup { get; }
     public DataRetention Retention { get; }
+    public RefundRepository RefundRepo { get; }
+    public RefundService Refunds { get; }
     public PrintQueue PrintQueue { get; }
     public BackupService Backups { get; }
     public PosSession Session { get; }
@@ -51,6 +53,7 @@ public sealed class AppServices
         Addresses = new AddressRepository(Db);
         Customers = new CustomerRepository(Db, Addresses);
         Retention = new DataRetention(Db);
+        RefundRepo = new RefundRepository(Db);
         MoveAddressesOutOfCustomerRows();
         Staff = new StaffRepository(Db);
         Shifts = new ShiftRepository(Db);
@@ -78,6 +81,7 @@ public sealed class AppServices
         OnlinePoller = new OnlineOrderPoller();
         OnlinePoller.Configure(OnlineOrderPollerOptions.FromSettings(_cachedSettings));
         Print = new PrintService(this);
+        Refunds = new RefundService(this);
         PrintQueue = new PrintQueue(PrintJobs, PrintDevices, AppLog.For("print"));
         PrintQueue.Start();
         Backups = new BackupService(Db);

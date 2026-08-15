@@ -162,6 +162,31 @@ public sealed record AddressProviderOption(string Key, string Label)
     public override string ToString() => Label;
 }
 
+/// <summary>
+/// One line offered back on the refund panel. Ticking it adds its price to the
+/// amount, so "the curry was wrong" is two taps rather than mental arithmetic
+/// done while a customer waits.
+/// </summary>
+public partial class RefundLineRow : ObservableObject
+{
+    private readonly Action _onChanged;
+
+    public RefundLineRow(CartLine line, Action onChanged)
+    {
+        Line = line;
+        _onChanged = onChanged;
+    }
+
+    public CartLine Line { get; }
+
+    public string Label => $"{Line.Quantity} x {Line.Name}";
+    public string PriceText => Money.Format(Line.LineTotal);
+
+    [ObservableProperty] private bool _isSelected;
+
+    partial void OnIsSelectedChanged(bool value) => _onChanged();
+}
+
 /// <summary>One VAT band in Settings.</summary>
 public partial class TaxClassRow : ObservableObject
 {

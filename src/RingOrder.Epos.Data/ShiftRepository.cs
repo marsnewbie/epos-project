@@ -18,12 +18,34 @@ public sealed record ShiftTotals(
     int OrdersPaid,
     int OrdersOpen,
     int OrdersVoided,
-    decimal GrossPaid)
+    decimal GrossPaid,
+    decimal CashRefunds = 0,
+    decimal NonCashRefunds = 0,
+    int RefundCount = 0)
 {
-    /// <summary>What should be in the drawer: float, plus cash taken, plus pay-ins.</summary>
+    /// <summary>
+    /// What should be in the drawer: float, plus cash taken, plus pay-ins.
+    /// <para>
+    /// <see cref="CashSales"/> is already net of cash refunds, because a refund
+    /// is stored as a negative payment — which is exactly right here. Money
+    /// handed back across the counter is money no longer in the till.
+    /// </para>
+    /// </summary>
     public decimal ExpectedCash => Money.Round(OpeningFloat + CashSales + CashMovements);
 
+    /// <summary>What the shop kept: sales less refunds.</summary>
     public decimal TotalTaken => Money.Round(CashSales + CardSales + PrepaidSales + OtherSales);
+
+    public decimal TotalRefunds => Money.Round(CashRefunds + NonCashRefunds);
+
+    /// <summary>
+    /// Takings before anything went back. Shown beside <see cref="TotalTaken"/>
+    /// because "we took £1,200 and refunded £45" is a different conversation from
+    /// "we took £1,155", and only one of them tells a manager to go and look.
+    /// </summary>
+    public decimal GrossSales => Money.Round(TotalTaken + TotalRefunds);
+
+    public bool HasRefunds => RefundCount > 0;
 }
 
 public sealed class ShiftRepository
@@ -169,6 +191,29 @@ public sealed class ShiftRepository
         var prepaid = SumPayments("'PrepaidOnline'");
         var other = SumPayments("'Voucher','Other'");
 
+        // Refunds are already inside those figures as negatives, which is what
+        // keeps the drawer right. They are read again on their own so the report
+        // can show what was taken *and* what went back, rather than one number
+        // that hides the second.
+        decimal cashRefunds = 0, nonCashRefunds = 0;
+        var refundCount = 0;
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = """
+                SELECT tender_type, COUNT(*), COALESCE(SUM(amount_pence), 0)
+                FROM refunds WHERE shift_id=$s GROUP BY tender_type
+                """;
+            cmd.Parameters.AddWithValue("$s", shift.Id);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var amount = Money.FromPence(r.GetInt64(2));
+                refundCount += r.GetInt32(1);
+                if (r.GetString(0) == nameof(TenderType.Cash)) cashRefunds += amount;
+                else nonCashRefunds += amount;
+            }
+        }
+
         decimal movements;
         using (var cmd = conn.CreateCommand())
         {
@@ -185,7 +230,8 @@ public sealed class ShiftRepository
             cmd.CommandText = """
                 SELECT o.status,
                        o.total_pence,
-                       COALESCE((SELECT SUM(p.amount_pence) FROM payments p WHERE p.order_id = o.id), 0)
+                       COALESCE((SELECT SUM(p.amount_pence) FROM payments p
+                                 WHERE p.order_id = o.id AND p.is_refund = 0), 0)
                 FROM orders o WHERE o.shift_id=$s
                 """;
             cmd.Parameters.AddWithValue("$s", shift.Id);
@@ -194,6 +240,10 @@ public sealed class ShiftRepository
             {
                 var status = Enum.Parse<PosOrderStatus>(r.GetString(0));
                 var total = Money.FromPence(r.GetInt64(1));
+                // Gross, excluding refunds: a sale that was paid and later
+                // refunded was still a paid sale. Counting the refund here would
+                // put the order back among the unpaid and make the shift look
+                // like it was owed money nobody owes.
                 var settled = Money.FromPence(r.GetInt64(2));
 
                 if (status is PosOrderStatus.Voided or PosOrderStatus.Cancelled)
@@ -217,7 +267,8 @@ public sealed class ShiftRepository
 
         return new ShiftTotals(
             shift.OpeningFloat, cash, card, prepaid, other, movements,
-            Money.Round(outstanding), paid, open, voided, Money.Round(grossPaid));
+            Money.Round(outstanding), paid, open, voided, Money.Round(grossPaid),
+            Money.Round(cashRefunds), Money.Round(nonCashRefunds), refundCount);
     }
 
     private const string Select =

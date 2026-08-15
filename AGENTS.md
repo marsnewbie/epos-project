@@ -118,3 +118,7 @@ raised as a fault by someone reasoning from a name rather than from the code.
 | Erasing a customer should delete their addresses | It deletes the *links*. The place stays — a street with nobody attached is geography, and the shop keeps its delivery map |
 | An erasure deletes the orders too | Orders keep their money and VAT and lose their identity. HMRC requires six years of sale records; GDPR erasure does not override a legal retention duty |
 | Retention defaults to something sensible | It defaults to **0 — never remove**. The merchant is the data controller and a till that deleted their phone book on upgrade would be indefensible. Settings shows the count and the obligation; the click is theirs |
+| A refund edits the order it came from | It never does. The sale keeps its lines, totals and VAT; the refund is a separate record beside it. A shop must be able to show both halves |
+| A void and a refund are the same thing | A void says the sale never happened. A refund says it did and was reversed. Voiding a paid order does not return any money, and the till says so |
+| Refunds appear in `PosOrder.Tenders` | They are in `PosOrder.Refunds`. As a negative tender a refund would push `BalanceDue` back up and let a settled sale be settled twice |
+| Saving an order rewrites all its payment rows | The wipe is scoped to `is_refund = 0`. Money already handed back is not the caller's to delete |

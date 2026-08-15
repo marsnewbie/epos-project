@@ -26,6 +26,7 @@ part of finishing a change, not an extra.
 | Postcode lookup | That one house typed three ways is paid for once, that rubbish never reaches a paid provider, and that a timeout is not cached |
 | Address book | That one door is one row however it is spelled, that two customers can share it, that one customer can hold several, and that the old JSON blob moves across without loss |
 | Privacy | That erasing a customer removes the person and keeps the sale — including the web-order payload, which is the easiest thing to leave behind |
+| Refunds | That only what was taken can go back, never twice, never without a reason; that the drawer and the shift report follow; and that a refunded sale is still a paid sale |
 
 The migration test seeds the old database with raw SQL matching that version's
 schema. Using today's repository would test nothing, because it already knows

@@ -25,7 +25,44 @@ public static class SchemaMigrations
         new(3, "print_devices_and_routing", PrintDevicesAndRouting),
         new(4, "address_cache", AddressCache),
         new(5, "addresses_and_customer_links", AddressesAndCustomerLinks),
+        new(6, "refunds", Refunds),
     ];
+
+    /// <summary>
+    /// Money given back, recorded rather than subtracted.
+    /// <para>
+    /// The refund row holds why it happened and who did it; the matching
+    /// <c>payments</c> row holds the money, stored negative and flagged. Both
+    /// exist because they answer different questions — the payment row keeps the
+    /// drawer and the shift totals right without any query having to know what a
+    /// refund is, and the refund row is what a manager reads when the takings
+    /// look short.
+    /// </para>
+    /// <para>
+    /// Storing the amount negative means every existing sum over <c>payments</c>
+    /// keeps working and quietly becomes a net figure — which is the safe
+    /// direction for a total to be wrong in.
+    /// </para>
+    /// </summary>
+    private const string Refunds = """
+        ALTER TABLE payments ADD COLUMN is_refund INTEGER NOT NULL DEFAULT 0;
+
+        CREATE TABLE refunds (
+          id           TEXT PRIMARY KEY,
+          order_id     TEXT NOT NULL,
+          shift_id     TEXT,
+          staff_id     TEXT,
+          amount_pence INTEGER NOT NULL,
+          tender_type  TEXT NOT NULL,
+          reason       TEXT NOT NULL,
+          lines_json   TEXT NOT NULL DEFAULT '[]',
+          is_full      INTEGER NOT NULL DEFAULT 0,
+          at           TEXT NOT NULL
+        );
+
+        CREATE INDEX idx_refunds_order ON refunds(order_id);
+        CREATE INDEX idx_refunds_shift ON refunds(shift_id);
+        """;
 
     /// <summary>
     /// Splits a place from a person's relationship to it.
