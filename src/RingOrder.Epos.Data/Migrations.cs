@@ -24,7 +24,67 @@ public static class SchemaMigrations
         new(2, "order_discount_reason", OrderDiscountReason),
         new(3, "print_devices_and_routing", PrintDevicesAndRouting),
         new(4, "address_cache", AddressCache),
+        new(5, "addresses_and_customer_links", AddressesAndCustomerLinks),
     ];
+
+    /// <summary>
+    /// Splits a place from a person's relationship to it.
+    /// <para>
+    /// Addresses used to live as a JSON blob on the customer row, which meant the
+    /// same door was stored once per customer who lived at it, could not be
+    /// indexed, and could not be told apart from the personal data wrapped around
+    /// it. Now <c>addresses</c> holds the building — public geography, shared,
+    /// deduplicated on a fingerprint — and <c>customer_addresses</c> holds the
+    /// link plus the parts that belong to the household, like the note telling a
+    /// driver which bell to ring.
+    /// </para>
+    /// <para>
+    /// This is what makes erasure possible without gutting the business: deleting
+    /// a customer takes their links and their notes, and leaves a delivery map
+    /// that never named anybody.
+    /// </para>
+    /// <para>
+    /// The tables arrive empty. Existing <c>customers.addresses_json</c> is moved
+    /// across by <c>AddressBackfill</c>, in C#, so the fingerprint that decides
+    /// whether two rows are the same door is computed by exactly one piece of
+    /// code rather than by an SQL approximation of it.
+    /// </para>
+    /// </summary>
+    private const string AddressesAndCustomerLinks = """
+        CREATE TABLE addresses (
+          id          TEXT PRIMARY KEY,
+          fingerprint TEXT NOT NULL UNIQUE,
+          line1       TEXT NOT NULL,
+          line2       TEXT,
+          town        TEXT NOT NULL DEFAULT '',
+          postcode    TEXT NOT NULL DEFAULT '',
+          outward     TEXT NOT NULL DEFAULT '',
+          latitude    REAL,
+          longitude   REAL,
+          source      TEXT NOT NULL DEFAULT 'Manual',
+          created_at  TEXT NOT NULL
+        );
+
+        CREATE INDEX idx_addresses_postcode ON addresses(postcode);
+        CREATE INDEX idx_addresses_outward ON addresses(outward);
+
+        CREATE TABLE customer_addresses (
+          id           TEXT PRIMARY KEY,
+          customer_id  TEXT NOT NULL,
+          address_id   TEXT NOT NULL,
+          label        TEXT NOT NULL DEFAULT 'Home',
+          notes        TEXT,
+          is_default   INTEGER NOT NULL DEFAULT 0,
+          created_at   TEXT NOT NULL,
+          last_used_at TEXT,
+          UNIQUE(customer_id, address_id)
+        );
+
+        CREATE INDEX idx_customer_addresses_customer ON customer_addresses(customer_id);
+        CREATE INDEX idx_customer_addresses_address ON customer_addresses(address_id);
+
+        ALTER TABLE customers ADD COLUMN last_order_at TEXT;
+        """;
 
     /// <summary>
     /// Answers from the postcode lookup, kept forever.

@@ -20,8 +20,10 @@ public sealed class AppServices
     public AuditRepository Audit { get; }
     public BundleImporter BundleImporter { get; }
     public PrintDeviceRepository PrintDevices { get; }
+    public AddressRepository Addresses { get; }
     public AddressCacheRepository AddressCache { get; }
     public AddressLookupService AddressLookup { get; }
+    public DataRetention Retention { get; }
     public PrintQueue PrintQueue { get; }
     public BackupService Backups { get; }
     public PosSession Session { get; }
@@ -46,7 +48,10 @@ public sealed class AppServices
         Menu = new MenuRepository(Db);
         Orders = new OrderRepository(Db);
         PrintJobs = new PrintJobRepository(Db);
-        Customers = new CustomerRepository(Db);
+        Addresses = new AddressRepository(Db);
+        Customers = new CustomerRepository(Db, Addresses);
+        Retention = new DataRetention(Db);
+        MoveAddressesOutOfCustomerRows();
         Staff = new StaffRepository(Db);
         Shifts = new ShiftRepository(Db);
         Audit = new AuditRepository(Db);
@@ -63,7 +68,7 @@ public sealed class AppServices
         // of on the next restart.
         AddressLookup = new AddressLookupService(
             AddressCache,
-            Customers,
+            Addresses,
             () => AddressLookupFactory.Create(
                 _cachedSettings.AddressLookupProvider, _cachedSettings.AddressLookupApiKey),
             () => _cachedSettings.AddressLookupCacheEnabled);
@@ -81,12 +86,75 @@ public sealed class AppServices
         // The queue is work, not an archive: printed jobs older than a week are
         // dead weight, and their payloads are raster bitmaps.
         PrintJobs.PurgePrintedBefore(DateTimeOffset.Now.AddDays(-7));
+
+        SweepDormantCustomersIfAsked();
     }
 
     public static AppServices Start()
     {
         Instance = new AppServices();
         return Instance;
+    }
+
+    /// <summary>
+    /// Removes dormant customer records, but only where the shop has both set a
+    /// period and asked for it to happen on its own.
+    /// <para>
+    /// Two switches rather than one because this deletes a merchant's phone book.
+    /// Retention is their decision as data controller, and an automatic default
+    /// would be us making it for them.
+    /// </para>
+    /// </summary>
+    private void SweepDormantCustomersIfAsked()
+    {
+        var settings = _cachedSettings;
+        if (!settings.CustomerRetentionAutomatic || settings.CustomerRetentionMonths <= 0) return;
+
+        try
+        {
+            var dormant = Retention.FindDormant(settings.CustomerRetentionMonths, DateTimeOffset.Now);
+            if (dormant.Count == 0) return;
+
+            var outcome = Retention.Erase(dormant.Select(d => d.Id).ToList());
+
+            // Counts only — an audit trail that repeated the names would reinstate
+            // exactly what was just erased.
+            AppLog.Info("privacy",
+                $"retention sweep at {settings.CustomerRetentionMonths} months: {outcome.Summary}");
+            Audit.Record(new AuditEntry
+            {
+                Action = "customers.erased.retention",
+                Detail = outcome.Summary,
+            });
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("privacy", "retention sweep failed", ex);
+        }
+    }
+
+    /// <summary>
+    /// Completes migration 5 in code. A no-op on every start after the first, and
+    /// resumable if the first one was interrupted — see <see cref="AddressBackfill"/>
+    /// for why the fingerprint cannot be computed in SQL.
+    /// </summary>
+    private void MoveAddressesOutOfCustomerRows()
+    {
+        try
+        {
+            var report = AddressBackfill.Run(Db, Addresses);
+            if (!report.DidWork) return;
+
+            AppLog.Info("addresses", report.Summary);
+            foreach (var warning in report.Warnings)
+                AppLog.Warn("addresses", warning);
+        }
+        catch (Exception ex)
+        {
+            // The old blob is only emptied once its rows are written, so a
+            // failure here leaves the data where it was and the till still opens.
+            AppLog.Error("addresses", "moving addresses out of customer rows failed", ex);
+        }
     }
 
     /// <summary>

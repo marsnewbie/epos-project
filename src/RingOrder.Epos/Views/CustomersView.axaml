@@ -58,6 +58,11 @@
         <Button Classes="cash" Content="{Binding LblStartOrder}"
                 Command="{Binding StartOrderCommand}" HorizontalAlignment="Left" Width="200" Margin="0,8,0,0" Height="48" />
 
+        <!-- An erasure request. Armed by the first press, done by the second. -->
+        <Button Classes="danger" Content="{Binding LblErase}" Classes.on="{Binding EraseArmed}"
+                Command="{Binding EraseCustomerCommand}"
+                HorizontalAlignment="Left" Width="220" Margin="0,16,0,0" />
+
         <Border Background="#f4f6f8" CornerRadius="8" Padding="12" Margin="0,24,0,0"
                 BorderBrush="#d0d5dd" BorderThickness="1">
           <StackPanel Spacing="8">

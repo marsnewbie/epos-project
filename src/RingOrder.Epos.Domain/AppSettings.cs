@@ -86,6 +86,25 @@ public sealed class AppSettings
     /// </summary>
     public bool AddressLookupCacheEnabled { get; set; } = true;
 
+    /// <summary>
+    /// Months of inactivity after which a customer record is no longer needed.
+    /// <para>
+    /// Zero means "no automatic removal", and that is the shipped default on
+    /// purpose. UK GDPR says personal data is not kept longer than the purpose
+    /// requires, but the shop is the data controller and that judgement is
+    /// theirs — a till that silently deleted a merchant's phone book on first
+    /// upgrade would be indefensible. Settings shows them the count and the
+    /// obligation, and the decision stays a deliberate click.
+    /// </para>
+    /// </summary>
+    public int CustomerRetentionMonths { get; set; }
+
+    /// <summary>
+    /// Whether the dormant sweep runs by itself once a period is set. Off until
+    /// the merchant has seen what a sweep would remove.
+    /// </summary>
+    public bool CustomerRetentionAutomatic { get; set; }
+
     public decimal DefaultDeliveryFee { get; set; }
     public string? LastMenuImportAt { get; set; }
     public int NextOrderSequence { get; set; } = 1;

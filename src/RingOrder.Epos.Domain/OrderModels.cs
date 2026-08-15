@@ -186,23 +186,31 @@ public sealed class PosOrder
     public bool HasUnsentLines => UnsentLineCount > 0;
 }
 
+/// <summary>
+/// A person the shop takes orders from. Personal data in the plainest sense —
+/// the ICO's own example of it is a name with an address — so everything here is
+/// held under the retention rules in <c>docs/PRIVACY.md</c> and can be erased on
+/// request without taking the shop's accounts with it.
+/// </summary>
 public sealed class Customer
 {
     public string Id { get; set; } = Guid.NewGuid().ToString("N");
     public string Name { get; set; } = "";
     public string Phone { get; set; } = "";
     public string? Notes { get; set; }
+
+    /// <summary>Links to places, loaded from <c>customer_addresses</c>.</summary>
     public List<CustomerAddress> Addresses { get; set; } = [];
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.Now;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.Now;
-}
 
-public sealed class CustomerAddress
-{
-    public string Id { get; set; } = Guid.NewGuid().ToString("N");
-    public string Label { get; set; } = "Home";
-    public string Line1 { get; set; } = "";
-    public string? Line2 { get; set; }
-    public string Postcode { get; set; } = "";
-    public bool IsDefault { get; set; }
+    /// <summary>
+    /// Last time this customer ordered. Retention counts from here, not from
+    /// when the record was created — a regular of ten years is not stale.
+    /// </summary>
+    public DateTimeOffset? LastOrderAt { get; set; }
+
+    public CustomerAddress? DefaultAddress =>
+        Addresses.FirstOrDefault(a => a.IsDefault) ?? Addresses.FirstOrDefault();
 }

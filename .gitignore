@@ -39,9 +39,17 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 
-# Local secrets (if any later)
+# Local secrets. Patterns are deliberately wide: a bare ".env" rule does not
+# match ".env.local", ".env.local.txt" or ".env.production", and a credential
+# left untracked-but-not-ignored is one "git add -A" from being published.
 .env
+.env.*
+*.env
+secrets.json
+*secrets.json
 *.local.json
+*.key
+api-key*
 run-err.txt
 run-out.txt
 

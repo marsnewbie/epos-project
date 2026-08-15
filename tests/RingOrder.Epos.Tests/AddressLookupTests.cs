@@ -250,17 +250,12 @@ public class AddressLookupTests : IDisposable
     // ── Falling back to the shop's own history ──────────────────────────────
 
     [Fact]
-    public async Task When_the_provider_is_off_the_shop_still_knows_its_regulars()
+    public async Task When_the_provider_is_off_the_shop_still_knows_where_it_delivers()
     {
         var fixture = NewFixture(AddressLookupResult.Empty(
             AddressLookupStatus.NotConfigured, "off", "off"));
 
-        fixture.Customers.Upsert(new Customer
-        {
-            Name = "Mrs Ahmed",
-            Phone = "0121 296 6775",
-            Addresses = [new CustomerAddress { Line1 = "12 Bristol Road", Postcode = "B29 6AA" }],
-        });
+        Deliver(fixture, "Mrs Ahmed", "0121 296 6775", "12 Bristol Road", "B29 6AA");
 
         var result = await fixture.Service.FindAsync("b296aa");
 
@@ -269,36 +264,27 @@ public class AddressLookupTests : IDisposable
     }
 
     [Fact]
-    public async Task History_matches_however_the_address_was_typed_years_ago()
+    public async Task A_postcode_saved_unspaced_is_still_found_when_typed_with_a_space()
     {
         var fixture = NewFixture(AddressLookupResult.Empty(
             AddressLookupStatus.Unavailable, "down", "fake"));
 
-        fixture.Customers.Upsert(new Customer
-        {
-            Name = "Old record",
-            Phone = "01210000001",
-            Addresses = [new CustomerAddress { Line1 = "9 Bristol Road", Postcode = "b296aa" }],
-        });
+        Deliver(fixture, "Old record", "01210000001", "9 Bristol Road", "b296aa");
 
         Assert.Equal("history", (await fixture.Service.FindAsync("B29 6AA")).Source);
     }
 
     [Fact]
-    public async Task The_same_street_saved_under_two_customers_is_offered_once()
+    public async Task One_door_shared_by_two_customers_is_offered_once()
     {
         var fixture = NewFixture(AddressLookupResult.Empty(
             AddressLookupStatus.NotConfigured, "off", "off"));
 
-        foreach (var phone in new[] { "01210000002", "01210000003" })
-            fixture.Customers.Upsert(new Customer
-            {
-                Name = $"Customer {phone}",
-                Phone = phone,
-                Addresses = [new CustomerAddress { Line1 = "12 Bristol Road", Postcode = "B29 6AA" }],
-            });
+        Deliver(fixture, "Flatmate one", "01210000002", "12 Bristol Road", "B29 6AA");
+        Deliver(fixture, "Flatmate two", "01210000003", "12 Bristol Road", "B29 6AA");
 
         Assert.Single((await fixture.Service.FindAsync("B29 6AA")).Candidates);
+        Assert.Equal(1, fixture.Addresses.Count());
     }
 
     [Fact]
@@ -308,12 +294,7 @@ public class AddressLookupTests : IDisposable
         // who fumbled the postcode.
         var fixture = NewFixture(Found());
 
-        fixture.Customers.Upsert(new Customer
-        {
-            Name = "Regular",
-            Phone = "01210000005",
-            Addresses = [new CustomerAddress { Line1 = "12 Bristol Road", Postcode = "B29 6AA" }],
-        });
+        Deliver(fixture, "Regular", "01210000005", "12 Bristol Road", "B29 6AA");
 
         var result = await fixture.Service.FindAsync("B29");
 
@@ -327,17 +308,21 @@ public class AddressLookupTests : IDisposable
     {
         var fixture = NewFixture(Found());
 
-        fixture.Customers.Upsert(new Customer
-        {
-            Name = "Regular",
-            Phone = "01210000004",
-            Addresses = [new CustomerAddress { Line1 = "99 Somewhere Else", Postcode = "B29 6AA" }],
-        });
+        Deliver(fixture, "Regular", "01210000004", "99 Somewhere Else", "B29 6AA");
 
         var result = await fixture.Service.FindAsync("B29 6AA");
 
         Assert.Equal("fake", result.Source);
         Assert.Equal("12 Bristol Road", result.Candidates.Single().StreetLine);
+    }
+
+    /// <summary>A customer the shop has delivered to, saved the way the till saves one.</summary>
+    private static void Deliver(
+        Fixture fixture, string name, string phone, string line1, string postcode)
+    {
+        var customer = new Customer { Name = name, Phone = phone };
+        fixture.Customers.Upsert(customer);
+        fixture.Customers.SaveAddress(customer, line1, null, null, postcode);
     }
 
     // ── Fixtures ────────────────────────────────────────────────────────────
@@ -371,7 +356,11 @@ public class AddressLookupTests : IDisposable
     }
 
     private sealed record Fixture(
-        EposDb Db, AddressLookupService Service, CountingLookup Provider, CustomerRepository Customers);
+        EposDb Db,
+        AddressLookupService Service,
+        CountingLookup Provider,
+        CustomerRepository Customers,
+        AddressRepository Addresses);
 
     private EposDb NewDb()
     {
@@ -384,10 +373,11 @@ public class AddressLookupTests : IDisposable
     {
         var db = NewDb();
         var provider = new CountingLookup(answer);
-        var customers = new CustomerRepository(db);
+        var addresses = new AddressRepository(db);
+        var customers = new CustomerRepository(db, addresses);
         var service = new AddressLookupService(
-            new AddressCacheRepository(db), customers, () => provider, () => true);
-        return new Fixture(db, service, provider, customers);
+            new AddressCacheRepository(db), addresses, () => provider, () => true);
+        return new Fixture(db, service, provider, customers, addresses);
     }
 
     public void Dispose()

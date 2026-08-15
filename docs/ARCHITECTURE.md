@@ -138,6 +138,41 @@ from a business that cannot charge it is worse than one that says nothing.
 `TaxCalculator` is pure, and its tests include the property that matters on a
 receipt: net plus VAT reconstructs the gross, for every penny from 1p to £50.
 
+## Places and people
+
+`addresses` holds doors; `customer_addresses` links a person to one. They are
+separate tables because they are separate things, and keeping them apart pays off
+four ways.
+
+**Deduplication.** A door is stored once however many customers live behind it —
+flatmates ordering separately, a household that changed its number — matched on
+`AddressFingerprint`, which reduces "Flat 2, 14 Bristol Rd." and
+"FLAT 2  14 BRISTOL RD" to one identity by keeping only letters and digits.
+
+**Several addresses per customer**, each with its own label and its own note for
+the driver, and exactly one default.
+
+**A place can be enriched.** An address first typed by hand gains coordinates the
+first time a lookup covers the same door, without a second row appearing.
+
+**Erasure becomes possible.** A street with nobody attached is geography. The
+*link* is the personal data, so removing a customer takes their links and their
+notes while the shop keeps a delivery map that never named anybody — which is
+what lets one operation satisfy both GDPR erasure and the HMRC duty to keep six
+years of sales. See [PRIVACY.md](PRIVACY.md).
+
+The till's own-history fallback reads `addresses`, not the phone book, so the
+feature that makes postcode lookup useful without a paid provider never opens a
+customer record to do it.
+
+Addresses used to be a JSON blob on the customer row. Migration 5 creates the
+tables and `AddressBackfill` moves the data across in C# — not in SQL, because
+the fingerprint that decides whether two rows are the same door must be computed
+by one piece of code, and an SQL approximation of it would create duplicates the
+moment it disagreed by a punctuation mark. Each customer moves in its own
+transaction and its blob is emptied as it goes, so the pass is resumable and
+re-running it does nothing.
+
 ## Postcode lookup
 
 Type a postcode, press Find, pick the house. The uncomfortable fact underneath is

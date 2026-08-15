@@ -39,6 +39,29 @@ public partial class AddressLookupPanel : ObservableObject
 
     public ObservableCollection<AddressCandidate> Candidates { get; } = [];
 
+    /// <summary>
+    /// What was chosen, and where the provider said it is.
+    /// <para>
+    /// Kept so the address is stored as a *found* place with its coordinates
+    /// rather than as loose text. Without this the delivery-zone work would have
+    /// to look every saved address up again — paying a second time for something
+    /// the till already knew.
+    /// </para>
+    /// </summary>
+    public AddressCandidate? LastPicked { get; private set; }
+
+    public double? LastLatitude { get; private set; }
+    public double? LastLongitude { get; private set; }
+
+    /// <summary>
+    /// True when <paramref name="street"/> is still what was picked. Someone who
+    /// edits the box afterwards has overridden the provider, and their text must
+    /// not be filed under the provider's coordinates.
+    /// </summary>
+    public bool StillMatches(string? street) =>
+        LastPicked is not null &&
+        string.Equals(LastPicked.StreetLine, (street ?? "").Trim(), StringComparison.OrdinalIgnoreCase);
+
     [ObservableProperty] private string _status = "";
     [ObservableProperty] private bool _isBusy;
 
@@ -82,6 +105,8 @@ public partial class AddressLookupPanel : ObservableObject
 
             foreach (var candidate in result.Candidates) Candidates.Add(candidate);
 
+            LastLatitude = result.Latitude;
+            LastLongitude = result.Longitude;
             Status = result.Message;
 
             // One address is not a choice; fill it in and let them carry on.
@@ -130,6 +155,7 @@ public partial class AddressLookupPanel : ObservableObject
         _picking = true;
         try
         {
+            LastPicked = candidate;
             _onPicked(candidate);
             SelectedCandidate = null;
             Candidates.Clear();
@@ -146,6 +172,10 @@ public partial class AddressLookupPanel : ObservableObject
     {
         _inFlight?.Cancel();
         _inFlight = null;
+
+        LastPicked = null;
+        LastLatitude = null;
+        LastLongitude = null;
 
         _picking = true;
         try

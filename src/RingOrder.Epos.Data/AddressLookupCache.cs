@@ -121,18 +121,18 @@ public sealed class AddressCacheRepository
 public sealed class AddressLookupService
 {
     private readonly AddressCacheRepository _cache;
-    private readonly CustomerRepository _customers;
+    private readonly AddressRepository _addresses;
     private readonly Func<IAddressLookup> _provider;
     private readonly Func<bool> _cacheEnabled;
 
     public AddressLookupService(
         AddressCacheRepository cache,
-        CustomerRepository customers,
+        AddressRepository addresses,
         Func<IAddressLookup> provider,
         Func<bool> cacheEnabled)
     {
         _cache = cache;
-        _customers = customers;
+        _addresses = addresses;
         _provider = provider;
         _cacheEnabled = cacheEnabled;
     }
@@ -175,12 +175,28 @@ public sealed class AddressLookupService
         return FromHistory(postcode) ?? result;
     }
 
+    /// <summary>
+    /// Doors the shop has already delivered to at this postcode.
+    /// <para>
+    /// Reads the shared <c>addresses</c> table, which holds places and no people
+    /// — so the fallback that makes this feature useful without a paid provider
+    /// never opens the phone book to do it.
+    /// </para>
+    /// </summary>
     private AddressLookupResult? FromHistory(UkPostcode postcode)
     {
-        if (postcode.IsEmpty) return null;
+        var places = _addresses.ByPostcode(postcode);
+        if (places.Count == 0) return null;
 
-        var candidates = _customers.FindAddressesByPostcode(postcode);
-        if (candidates.Count == 0) return null;
+        var candidates = places
+            .Select(p => new AddressCandidate
+            {
+                Line1 = p.Line1,
+                Line2 = p.Line2,
+                Town = p.Town,
+                Postcode = p.Postcode,
+            })
+            .ToList();
 
         return new AddressLookupResult
         {
@@ -188,7 +204,7 @@ public sealed class AddressLookupService
             Candidates = candidates,
             Town = candidates[0].Town,
             Source = "history",
-            Message = $"{candidates.Count} from your own delivery history.",
+            Message = $"{candidates.Count} from addresses this shop has delivered to.",
         };
     }
 }

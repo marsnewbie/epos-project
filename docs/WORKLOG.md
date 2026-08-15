@@ -585,3 +585,79 @@ per-dish links, 37 option choices — unchanged.
 markup compiles, but nobody has yet clicked a candidate on a running till, and no
 real provider key has been exercised against a live API. Both are worth ten
 minutes during the printer session.
+
+---
+
+## 2026-08-15 — Places apart from people, and what erasure means
+
+Two things landed together because they turned out to be the same design.
+
+**The Ideal Postcodes key arrived**, and the chain was proven against the live
+API for the first time: `B44 0QN` returns 24 real doors, `BIRMINGHAM` comes back
+cased down to `Birmingham`, coordinates and the postcode land on every candidate.
+That closes the "nobody has exercised a real key" note from the last entry.
+
+First, though, `.gitignore` had `.env` — which does **not** match `.env.local.txt`.
+The key was never committed, but it was one `git add -A` away. The patterns are
+now deliberately wide: `.env.*`, `*.env`, `*secrets.json`, `*.key`, `api-key*`.
+
+**Address is now separate from CustomerAddress.** `addresses` holds a door;
+`customer_addresses` holds one person's link to it, with the label and the note
+for the driver. That buys four things at once: a door is stored once however many
+customers live behind it, one customer can hold several addresses, a place typed
+by hand gains coordinates the first time a lookup covers it, and — the reason it
+matters most — the personal data is now isolated in the link.
+
+Which is the GDPR answer, not a separate feature. A street with nobody attached
+is geography. **Erasing a customer removes the links and leaves the map.**
+
+**Erasure keeps the sale and drops the identity.** HMRC wants six years of records
+behind a VAT return; GDPR gives a right to be forgotten; they are reconciled by
+scrubbing name, phone, address, `customer_id` and — most easily forgotten —
+`online_payload`, the raw marketplace JSON that holds the customer's details long
+after the columns beside it were tidied. Totals, VAT and service type stay.
+Orders taken before the caller was saved to the phone book are matched on the
+normalised phone number, because an erasure that left those behind is not one.
+
+**Retention ships as 0: nothing is removed automatically.** The merchant is the
+data controller, and a till that deleted their phone book on first upgrade would
+be indefensible. Settings → Customer data states the obligation, shows how many
+records are past whatever period they try, and leaves the button unpressed. A
+second switch, also off, lets it run at startup once they have seen the number.
+Both erasure paths log counts only — an audit line repeating the names would
+reinstate exactly what it recorded the removal of.
+
+New: [docs/PRIVACY.md](PRIVACY.md), written for the merchant question "what does
+it actually do with my customers' data", including what erasure does *not* touch
+(free-text order notes, and backups until they age out).
+
+Migration 5 creates the tables; `AddressBackfill` moves the old
+`customers.addresses_json` across in C#, not SQL, because the fingerprint that
+decides whether two rows are the same door must be computed by one piece of code.
+Each customer moves in its own transaction and its blob is emptied as it goes, so
+the pass is resumable and re-running it does nothing.
+
+**A defect found while looking at the backup folder.** `BackupBeforeMigration`
+wrote to the machine-wide shop directory whatever database was being migrated, so
+every test run since the project began had been dropping a five-row database into
+the live shop's backups — 23 of them had accumulated. The restore instruction is
+"take the newest pre-migration file", and the newest was usually a test. Backups
+now go beside the database they came from; the strays are deleted; a test asserts
+it. This was the more dangerous bug of the day: a safety feature that could have
+handed someone an empty database during a real recovery.
+
+Also closed: an address chosen from a lookup was being filed as `Manual` with no
+coordinates, throwing away exactly what the delivery-zone work will need. It is
+now stored as `Lookup` with its latitude and longitude — unless the text was
+edited afterwards, in which case the staff member overrode the provider and their
+words are not filed under the provider's coordinates.
+
+Migration 5 ran on the live shop database with its pre-migration backup.
+Verified after: 170 dishes, 21 categories, 11 shared option groups, 14 per-dish
+links, 37 option choices — unchanged.
+
+146 tests.
+
+**Still not clicked on a running till:** the results list, the erase-customer
+button and the Customer data screen are covered by tests and compile, but the
+interaction itself is unexercised. Worth ten minutes alongside the printer.

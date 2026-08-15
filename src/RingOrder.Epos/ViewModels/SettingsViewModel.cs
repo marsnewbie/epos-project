@@ -1,4 +1,4 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RingOrder.Epos.Data;
@@ -103,6 +103,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private string _supportResult = "";
     [ObservableProperty] private bool _hasFailedJobs;
     [ObservableProperty] private bool _isSupport;
+    [ObservableProperty] private bool _isPrivacy;
     [ObservableProperty] private string _callerIdMode = "simulate";
     [ObservableProperty] private string _callerIdCom = "COM3";
     [ObservableProperty] private bool _callerIdEnabled;
@@ -188,6 +189,7 @@ public partial class SettingsViewModel : ViewModelBase
         IsOnline = Section == "Online";
         IsShift = Section == "Shift";
         IsSupport = Section == "Support";
+        IsPrivacy = Section == "Privacy";
         IsTax = Section == "Tax";
         if (IsMenu) ReloadMenuBrowser();
         if (IsNotes) ReloadNoteRows();
@@ -195,6 +197,7 @@ public partial class SettingsViewModel : ViewModelBase
         if (IsSupport) ReloadSupport();
         if (IsTax) ReloadTax();
         if (IsDelivery) ReloadAddressLookup();
+        if (IsPrivacy) ReloadRetention();
     }
 
     public void Reload()
@@ -1199,6 +1202,103 @@ public partial class SettingsViewModel : ViewModelBase
         var removed = _app.AddressCache.Clear();
         RefreshAddressCacheSummary();
         _setStatus(UiText.Pick($"Cleared {removed} saved postcodes", $"已清空 {removed} 个邮编缓存"));
+    }
+
+    // ── Customer data and retention ─────────────────────────────────────────
+
+    [ObservableProperty] private int _retentionMonths;
+    [ObservableProperty] private bool _retentionAutomatic;
+    [ObservableProperty] private string _retentionSummary = "";
+    [ObservableProperty] private bool _hasDormantCustomers;
+
+    partial void OnRetentionMonthsChanged(int value) => RefreshRetentionSummary();
+
+    private void ReloadRetention()
+    {
+        var settings = _app.GetSettings();
+        RetentionMonths = settings.CustomerRetentionMonths;
+        RetentionAutomatic = settings.CustomerRetentionAutomatic;
+        RefreshRetentionSummary();
+    }
+
+    /// <summary>
+    /// States the obligation and the count, and leaves the decision alone. The
+    /// shop is the data controller; the till's job is to make the choice
+    /// informed, not to make it for them.
+    /// </summary>
+    private void RefreshRetentionSummary()
+    {
+        var total = _app.Customers.Count();
+
+        if (RetentionMonths <= 0)
+        {
+            HasDormantCustomers = false;
+            RetentionSummary = UiText.Pick(
+                $"{total} customers on file, kept indefinitely. UK GDPR asks that personal data is not held for longer than it is needed — set a period to see how many are past it.",
+                $"通讯录中有 {total} 位客户，目前永久保留。英国 GDPR 要求个人数据不得保存超过必要期限——设置一个期限即可查看有多少已超期。");
+            return;
+        }
+
+        var dormant = _app.Retention.FindDormant(RetentionMonths, DateTimeOffset.Now);
+        HasDormantCustomers = dormant.Count > 0;
+
+        RetentionSummary = dormant.Count == 0
+            ? UiText.Pick(
+                $"{total} customers on file, none inactive for more than {RetentionMonths} months.",
+                $"通讯录中有 {total} 位客户，没有超过 {RetentionMonths} 个月未下单的。")
+            : UiText.Pick(
+                $"{dormant.Count} of {total} customers have not ordered in over {RetentionMonths} months. Erasing them removes names, phone numbers and saved addresses. Orders, takings and VAT are kept — HMRC requires six years.",
+                $"{total} 位客户中有 {dormant.Count} 位超过 {RetentionMonths} 个月未下单。清除会删除姓名、电话和已存地址；订单、营业额和税额保留——HMRC 要求保存六年。");
+    }
+
+    [RelayCommand]
+    private async Task SaveRetentionAsync()
+    {
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditSettings,
+                UiText.Pick("Change customer retention", "修改客户数据保留期")))
+            return;
+
+        var settings = _app.GetSettings();
+        settings.CustomerRetentionMonths = Math.Clamp(RetentionMonths, 0, 120);
+        settings.CustomerRetentionAutomatic = RetentionAutomatic && settings.CustomerRetentionMonths > 0;
+        _app.SaveSettings(settings);
+
+        _app.Session.Record("settings.retention",
+            detail: settings.CustomerRetentionMonths == 0
+                ? "no automatic removal"
+                : $"{settings.CustomerRetentionMonths} months, automatic {settings.CustomerRetentionAutomatic}");
+
+        ReloadRetention();
+        _setStatus(UiText.Pick("Retention saved", "保留期已保存"));
+    }
+
+    /// <summary>
+    /// Erases every dormant record now. Deliberately a separate, explicit action
+    /// rather than something the Save button does on the way past.
+    /// </summary>
+    [RelayCommand]
+    private async Task EraseDormantAsync()
+    {
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditSettings,
+                UiText.Pick("Erase dormant customers", "清除超期客户数据")))
+            return;
+
+        var dormant = _app.Retention.FindDormant(RetentionMonths, DateTimeOffset.Now);
+        if (dormant.Count == 0)
+        {
+            _setStatus(UiText.Pick("Nothing to erase", "没有需要清除的记录"));
+            return;
+        }
+
+        var outcome = _app.Retention.Erase(dormant.Select(d => d.Id).ToList());
+
+        // Counts only. An audit line that repeated the names would put the data
+        // straight back into the record it was just removed from.
+        _app.Session.Record("customers.erased.retention", detail: outcome.Summary);
+        AppLog.Info("privacy", $"retention sweep: {outcome.Summary}");
+
+        ReloadRetention();
+        _setStatus(UiText.Pick($"Erased {outcome.Customers} customers", $"已清除 {outcome.Customers} 位客户"));
     }
 
     // ── Support ─────────────────────────────────────────────────────────────

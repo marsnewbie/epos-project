@@ -1569,23 +1569,27 @@ public partial class TillViewModel : ViewModelBase
             var existing = _app.Customers.FindByPhone(_ticket.CustomerPhone!);
             var c = existing ?? new Customer { Phone = _ticket.CustomerPhone! };
             if (!string.IsNullOrWhiteSpace(_ticket.CustomerName)) c.Name = _ticket.CustomerName!;
-            if (!string.IsNullOrWhiteSpace(_ticket.DeliveryAddress) || !string.IsNullOrWhiteSpace(_ticket.DeliveryPostcode))
-            {
-                var already = c.Addresses.Any(a =>
-                    string.Equals(a.Line1, _ticket.DeliveryAddress, StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(a.Postcode, _ticket.DeliveryPostcode, StringComparison.OrdinalIgnoreCase));
-                if (!already)
-                {
-                    c.Addresses.Add(new CustomerAddress
-                    {
-                        Line1 = _ticket.DeliveryAddress ?? "",
-                        Postcode = _ticket.DeliveryPostcode ?? "",
-                        IsDefault = c.Addresses.Count == 0,
-                    });
-                }
-            }
+
             _app.Customers.Upsert(c);
             _ticket.CustomerId = c.Id;
+
+            // The repository decides whether this is a door the shop already
+            // knows; a near-miss on spelling used to add a second copy. When the
+            // address came from a lookup it is filed as one, with the
+            // coordinates, so delivery pricing never has to ask again.
+            var found = AddressLookup.StillMatches(_ticket.DeliveryAddress);
+
+            _app.Customers.SaveAddress(
+                c,
+                _ticket.DeliveryAddress,
+                line2: null,
+                town: found ? AddressLookup.LastPicked!.Town : null,
+                _ticket.DeliveryPostcode,
+                found ? AddressSource.Lookup : AddressSource.Manual,
+                latitude: found ? AddressLookup.LastLatitude : null,
+                longitude: found ? AddressLookup.LastLongitude : null);
+
+            _app.Customers.RecordOrder(c.Id, DateTimeOffset.Now);
         }
 
         _app.Orders.Upsert(_ticket);

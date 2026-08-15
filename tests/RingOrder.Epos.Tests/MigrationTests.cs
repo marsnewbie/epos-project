@@ -28,6 +28,64 @@ public class MigrationTests : IDisposable
     }
 
     [Fact]
+    public void A_migration_backup_lands_beside_its_own_database()
+    {
+        // It used to land in the machine-wide shop folder whatever database was
+        // being migrated, so a test run — or a copy opened during a support
+        // session — dropped a tiny database into the live shop's backups. The
+        // restore instruction is "take the newest pre-migration file".
+        var scratch = Path.Combine(Path.GetTempPath(), $"ringorder-bk-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(scratch);
+        var dbPath = Path.Combine(scratch, "data.sqlite");
+
+        try
+        {
+            SeedVersionOne(dbPath);
+
+            // An upgrade from v1: there is something to lose, so a copy is taken.
+            using (var db = new EposDb(dbPath)) db.Migrate();
+
+            var beside = Path.Combine(scratch, "backups");
+            Assert.True(Directory.Exists(beside), "backups belong beside the database being migrated");
+            Assert.NotEmpty(Directory.GetFiles(beside, "pre-migration-*.sqlite"));
+        }
+        finally
+        {
+            SqliteConnection.ClearAllPools();
+            try { Directory.Delete(scratch, recursive: true); } catch { /* the OS will get it */ }
+        }
+    }
+
+    /// <summary>A database as the first release left it, with nothing newer stamped on.</summary>
+    private static void SeedVersionOne(string dbPath)
+    {
+        using var conn = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = dbPath,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+        }.ToString());
+        conn.Open();
+        SchemaMigrations.CurrentVersion(conn);
+
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = SchemaMigrations.All.Single(m => m.Version == 1).Sql;
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var stamp = conn.CreateCommand())
+        {
+            stamp.CommandText =
+                "INSERT INTO schema_migrations(version,name,applied_at) VALUES(1,'initial',$a)";
+            stamp.Parameters.AddWithValue("$a", DateTimeOffset.Now.ToString("o"));
+            stamp.ExecuteNonQuery();
+        }
+
+        conn.Close();
+        SqliteConnection.ClearAllPools();
+    }
+
+    [Fact]
     public void Migrating_again_does_nothing()
     {
         using var db = new EposDb(_dbPath);

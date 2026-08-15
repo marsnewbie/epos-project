@@ -85,6 +85,7 @@ public partial class CustomersViewModel : ViewModelBase
         EditAddress = addr?.Line1 ?? "";
         EditPostcode = addr?.Postcode ?? "";
         AddressLookup.Reset();
+        EraseArmed = false;
     }
 
     [RelayCommand]
@@ -99,26 +100,79 @@ public partial class CustomersViewModel : ViewModelBase
         var c = SelectedCustomer ?? _app.Customers.FindByPhone(EditPhone) ?? new Customer();
         c.Name = EditName.Trim();
         c.Phone = EditPhone.Trim();
-        if (!string.IsNullOrWhiteSpace(EditAddress) || !string.IsNullOrWhiteSpace(EditPostcode))
-        {
-            c.Addresses =
-            [
-                new CustomerAddress
-                {
-                    Line1 = EditAddress.Trim(),
-                    // Stored normalised so tomorrow's postcode search finds it
-                    // however it was typed today.
-                    Postcode = UkPostcode.Normalise(EditPostcode) is { IsValid: true } p
-                        ? p.Value
-                        : EditPostcode.Trim(),
-                    IsDefault = true,
-                }
-            ];
-        }
         _app.Customers.Upsert(c);
+
+        // A saved address is a link to a shared place, so the postcode is
+        // normalised and the door deduplicated by the repository rather than
+        // copied onto this customer's row.
+        var found = AddressLookup.StillMatches(EditAddress);
+
+        _app.Customers.SaveAddress(
+            c,
+            EditAddress,
+            line2: null,
+            town: found ? AddressLookup.LastPicked!.Town : null,
+            EditPostcode,
+            found ? AddressSource.Lookup : AddressSource.Manual,
+            makeDefault: true,
+            latitude: found ? AddressLookup.LastLatitude : null,
+            longitude: found ? AddressLookup.LastLongitude : null);
         Refresh();
         SelectedCustomer = Customers.FirstOrDefault(x => x.Id == c.Id);
         _setStatus($"Saved customer {c.Name}");
+    }
+
+    /// <summary>
+    /// A customer asking to be forgotten. Two presses, because it cannot be
+    /// undone — the second press is the confirmation, and it lapses if they walk
+    /// away rather than sitting armed for the next person at the till.
+    /// </summary>
+    [ObservableProperty] private bool _eraseArmed;
+
+    public string LblErase => EraseArmed
+        ? UiText.Pick("Press again to erase", "再按一次确认清除")
+        : UiText.Pick("Erase customer", "清除客户数据");
+
+    partial void OnEraseArmedChanged(bool value) => OnPropertyChanged(nameof(LblErase));
+
+    [RelayCommand]
+    private async Task EraseCustomerAsync()
+    {
+        if (SelectedCustomer is null)
+        {
+            _setStatus(UiText.Pick("Pick a customer first", "请先选择客户"));
+            return;
+        }
+
+        if (!EraseArmed)
+        {
+            EraseArmed = true;
+            _setStatus(UiText.Pick(
+                "This cannot be undone. Press again to erase.",
+                "此操作不可撤销。再按一次执行清除。"));
+            return;
+        }
+
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditSettings,
+                UiText.Pick("Erase customer data", "清除客户数据")))
+        {
+            EraseArmed = false;
+            return;
+        }
+
+        var outcome = _app.Retention.EraseCustomer(SelectedCustomer.Id);
+
+        // The audit line carries counts, never the name that was just removed.
+        _app.Session.Record("customers.erased.request", detail: outcome.Summary);
+        AppLog.Info("privacy", $"erasure request: {outcome.Summary}");
+
+        EraseArmed = false;
+        SelectedCustomer = null;
+        EditName = EditPhone = EditAddress = EditPostcode = "";
+        Refresh();
+        _setStatus(UiText.Pick(
+            $"Erased. Orders kept: {outcome.Orders} de-identified.",
+            $"已清除。订单保留：{outcome.Orders} 笔已去除身份信息。"));
     }
 
     [RelayCommand]

@@ -90,12 +90,39 @@ public sealed class EposDb : IDisposable
     private string BackupBeforeMigration(SqliteConnection conn, int fromVersion)
     {
         var name = $"pre-migration-v{fromVersion}-{DateTime.Now:yyyyMMdd-HHmmss}.sqlite";
-        var dest = System.IO.Path.Combine(LocalPaths.BackupDirectory, name);
+        var dest = System.IO.Path.Combine(BackupDirectory, name);
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "VACUUM INTO $dest";
         cmd.Parameters.AddWithValue("$dest", dest);
         cmd.ExecuteNonQuery();
         return dest;
+    }
+
+    /// <summary>
+    /// Where this database's backups go — beside the database, not at a fixed
+    /// machine-wide path.
+    /// <para>
+    /// It used to be fixed, which meant any database migrated on the machine
+    /// wrote its pre-migration copy into the live shop's backup folder: every
+    /// test run, and any copy a support session opened to investigate. The
+    /// restore instruction is "take the newest pre-migration file", and the
+    /// newest could easily have been a five-row test database — restoring it
+    /// over a trading shop would have been the worst possible outcome of a
+    /// safety feature.
+    /// </para>
+    /// </summary>
+    private string BackupDirectory
+    {
+        get
+        {
+            if (string.Equals(_path, LocalPaths.DatabasePath, StringComparison.OrdinalIgnoreCase))
+                return LocalPaths.BackupDirectory;
+
+            var beside = System.IO.Path.Combine(
+                System.IO.Path.GetDirectoryName(_path) ?? ".", "backups");
+            Directory.CreateDirectory(beside);
+            return beside;
+        }
     }
 
     /// <summary>

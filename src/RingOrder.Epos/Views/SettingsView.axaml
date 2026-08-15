@@ -19,6 +19,7 @@
         <Button Classes="btn" Classes.on="{Binding IsShift}" Content="{Binding LblSecShift}" Command="{Binding GoSectionCommand}" CommandParameter="Shift" />
         <Button Classes="btn" Classes.on="{Binding IsOnline}" Content="{Binding LblSecOnline}" Command="{Binding GoSectionCommand}" CommandParameter="Online" Margin="0,12,0,0" />
         <Button Classes="btn" Classes.on="{Binding IsTax}" Content="VAT" Command="{Binding GoSectionCommand}" CommandParameter="Tax" />
+        <Button Classes="btn" Classes.on="{Binding IsPrivacy}" Content="Customer data" Command="{Binding GoSectionCommand}" CommandParameter="Privacy" />
         <Button Classes="btn" Classes.on="{Binding IsSupport}" Content="Support" Command="{Binding GoSectionCommand}" CommandParameter="Support" />
         <Button Classes="cash" Content="{Binding LblSave}" Command="{Binding SaveCommand}" Height="52" Margin="0,16,0,0" />
         <TextBlock Text="{Binding LblUiLangNote}" Classes="muted" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0" />
@@ -294,6 +295,45 @@
 
             <Button Classes="primary" Content="Save VAT settings" Command="{Binding SaveTaxCommand}"
                     HorizontalAlignment="Left" Width="220" Margin="0,8,0,0" />
+          </StackPanel>
+        </Border>
+
+        <!--
+          Customer data: the shop is the data controller, so this screen states
+          the obligation and shows the count, and leaves the decision to them.
+          Nothing here happens on a timer the merchant did not ask for.
+        -->
+        <Border Classes="panel" Padding="16" IsVisible="{Binding IsPrivacy}">
+          <StackPanel Spacing="10">
+            <TextBlock Text="Customer data" Classes="title" />
+            <TextBlock TextWrapping="Wrap" Classes="muted"
+                       Text="A name with an address is personal data. This till keeps the place and the person apart: streets are shared and stay, while names, phone numbers, saved addresses and driver notes belong to the customer and can be removed on request." />
+
+            <TextBlock Text="Keep customers for" Classes="title" Margin="0,12,0,0" />
+            <Grid ColumnDefinitions="140,*">
+              <NumericUpDown Value="{Binding RetentionMonths}" Minimum="0" Maximum="120"
+                             Increment="6" FormatString="0" Height="44" />
+              <TextBlock Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"
+                         Classes="muted" Text="months of inactivity — 0 keeps everything" />
+            </Grid>
+
+            <Border Classes="panel-flat" Padding="12">
+              <TextBlock Text="{Binding RetentionSummary}" TextWrapping="Wrap" />
+            </Border>
+
+            <CheckBox IsChecked="{Binding RetentionAutomatic}"
+                      Content="Erase dormant records automatically once a period is set" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+              <Button Classes="primary" Content="Save retention" Width="180"
+                      Command="{Binding SaveRetentionCommand}" />
+              <Button Classes="danger" Content="Erase dormant now" Width="200"
+                      Command="{Binding EraseDormantCommand}"
+                      IsEnabled="{Binding HasDormantCustomers}" />
+            </StackPanel>
+
+            <TextBlock TextWrapping="Wrap" Classes="muted" FontSize="12" Margin="0,8,0,0"
+                       Text="Erasing removes the customer, their saved addresses and the driver notes attached to them, and strips the name, phone, address and web-order payload from their past orders. The orders themselves — takings and VAT — are kept, because HMRC requires six years." />
           </StackPanel>
         </Border>
 

@@ -15,6 +15,7 @@ each already cost something once.
 | [docs/SHOP_BUNDLE.md](docs/SHOP_BUNDLE.md) | The configuration file, and how a new shop goes live |
 | [docs/INTERFACE.md](docs/INTERFACE.md) | Interface and interaction rules, and the reasoning behind them |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Packaging, updates, backup, and supporting a shop remotely |
+| [docs/PRIVACY.md](docs/PRIVACY.md) | Personal data: what is held, for how long, and what erasure removes |
 | [docs/TESTING.md](docs/TESTING.md) | What to run, and what to check by hand |
 | [docs/WORKLOG.md](docs/WORKLOG.md) | What changed and why, newest last |
 
@@ -66,7 +67,7 @@ never commit to it.
 ```
 AGENTS.md                     this file
 README.md                     what it is and how to run it
-docs/                         the six documents above
+docs/                         the seven documents above
 shops/demo/                   the one shop in the repo, used by tests
 src/RingOrder.Epos/           Avalonia UI (MVVM)
 src/RingOrder.Epos.Domain/    orders, menu, staff, shifts, the bundle model
@@ -113,3 +114,7 @@ raised as a fault by someone reasoning from a name rather than from the code.
 | The bundle is read at runtime | It is a seed. After import the till owns the data and Settings is the source of truth |
 | Postcode lookup is off because it is unfinished | It is off because it costs money. There is no free source of UK house numbers — every provider that has them licenses the Royal Mail address file — so switching it on is the merchant's decision, not our default |
 | The address cache is a performance optimisation | It is a billing one. Each postcode is paid for once for the life of the shop instead of once per phone call, which is what makes a per-lookup provider viable at all |
+| `Address` and `CustomerAddress` are the same thing | `Address` is a door and is shared between customers. `CustomerAddress` is one person's link to it, and carries the label and the driver note. The link is the personal data; the door is not |
+| Erasing a customer should delete their addresses | It deletes the *links*. The place stays — a street with nobody attached is geography, and the shop keeps its delivery map |
+| An erasure deletes the orders too | Orders keep their money and VAT and lose their identity. HMRC requires six years of sale records; GDPR erasure does not override a legal retention duty |
+| Retention defaults to something sensible | It defaults to **0 — never remove**. The merchant is the data controller and a till that deleted their phone book on upgrade would be indefensible. Settings shows the count and the obligation; the click is theirs |
