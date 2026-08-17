@@ -337,3 +337,80 @@ That costs nobody a service when it is wrong.
 Settle before the first paying shop; nothing else waits on it. And keep it
 small — if it grows past a signature check and a line in Settings, it has become
 the thing this section says not to build.
+
+## Protecting the local product — decided
+
+### The threat model, stated so nobody argues with the wrong one
+
+**Do not try to make the executable un-reverse-engineerable. That goal does not
+exist.** Code on a customer's PC that a CPU can execute can be analysed, and
+every hour spent chasing that is an hour not spent on the product.
+
+What must actually work is smaller and entirely achievable:
+
+| Who | What happens |
+|---|---|
+| A restaurant owner copies the installer to a friend | Machine ID does not match → will not activate |
+| Someone handy edits the licence file, 2028 → 2099 | ECDSA signature invalid → will not run |
+
+That covers essentially all real-world piracy for a product like this. A
+professional reverse engineer spending weeks patching the binary is not a threat
+an early POS should spend development time fighting.
+
+### Six measures, and no more
+
+1. **ECDSA offline licence** binding Restaurant ID + Machine ID + expiry (two
+   years). The signing key never leaves us.
+2. **Release hygiene.** Customers get no source, no development configuration,
+   no test tooling. **PDBs and debug symbols are not shipped.**
+3. **Modest .NET obfuscation.** Not to be unbreakable — to make casual
+   decompile-and-edit cost more than it is worth.
+4. **DPAPI / Credential Manager for local secrets.** Tokens and device
+   credentials that must live on the machine are not written to JSON in the
+   clear.
+5. **Real secrets stay server-side** — above all the licence signing key and any
+   cloud credentials.
+6. **No card data on the till.** The terminal and the acquirer handle the card;
+   we keep the transaction reference, the status and the masked figure and
+   nothing else. `PaymentResult` is already built this way — the till never sees
+   a full PAN.
+
+### Two consequences of choosing Machine ID
+
+Binding to the machine is the right call for the copy-to-a-friend case, but two
+things follow and both are operational rather than optional:
+
+- **There must be a re-issue path.** Hard disks die and merchants replace PCs.
+  A shop that cannot trade on Monday because its licence names last week's
+  motherboard is a worse outcome than the copying this prevents. Re-issuing has
+  to be something support can do in minutes.
+- **Choose a fingerprint that tolerates ordinary change.** Motherboard and
+  system disk are stable enough; a NIC MAC address is not — it moves with a USB
+  dock or a replaced adapter and would revoke a licence for plugging in a
+  monitor.
+
+### What is not done yet
+
+**Point 4 is an open gap, not a future nicety.** `SettingsRepository`
+serialises the whole `AppSettings` to JSON in the `settings` table, so
+`OnlinePassword` and `AddressLookupApiKey` are stored in the clear — and are
+therefore in every one of the fourteen days of backups, and in any copy of the
+database sent to support.
+
+## Where the money comes from — decided
+
+Recorded here because it explains why the section above is deliberately light.
+
+**RingOrder POS Core** — one payment, a two-year licence. Ordering, payment,
+printing, drawer, Caller ID, terminal, tables, local reports. **Works completely
+offline.** Renewed at two years.
+
+**RingOrder Cloud** — a monthly subscription. Online ordering, remote reports,
+multi-store, cloud backup, remote menu management, loyalty, CRM, and whatever
+comes next.
+
+**A shop that stops paying for Cloud keeps trading on the till.** That is the
+point, and it is why no kill switch exists. The two products fail independently.
+
+The moat is not the Windows application — it is the ecosystem around it. The
+till is the part customers can hold, and the least valuable part to protect.
