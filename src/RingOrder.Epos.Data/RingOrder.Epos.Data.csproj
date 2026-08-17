@@ -12,6 +12,10 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.11" />
+    <!-- DPAPI. Secrets that must live on the merchant's machine are not written
+         to the database in the clear, because the database leaves the shop in
+         every nightly backup and in every copy sent to support. -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
   </ItemGroup>
 
 </Project>

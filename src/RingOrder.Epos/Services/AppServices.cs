@@ -87,6 +87,14 @@ public sealed class AppServices
         Session = new PosSession(Staff, Shifts, Audit);
         ProvisionIfNeeded();
 
+        // Secrets written before DPAPI existed are encrypted here, once. Said
+        // out loud in the log because the old value has already travelled: it is
+        // in every backup taken until now, and in any database sent to support.
+        if (Settings.ProtectStoredSecrets())
+            AppLog.Warn("settings",
+                "encrypted secrets that were stored in the clear. Earlier backups still " +
+                "contain the readable values — rotate the website password and lookup key.");
+
         _cachedSettings = Settings.Load();
 
         // Built from the settings on every call rather than captured once, so

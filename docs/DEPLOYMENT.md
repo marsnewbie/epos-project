@@ -389,13 +389,31 @@ things follow and both are operational rather than optional:
   dock or a replaced adapter and would revoke a licence for plugging in a
   monitor.
 
-### What is not done yet
+### Point 4, as built
 
-**Point 4 is an open gap, not a future nicety.** `SettingsRepository`
-serialises the whole `AppSettings` to JSON in the `settings` table, so
-`OnlinePassword` and `AddressLookupApiKey` are stored in the clear — and are
-therefore in every one of the fourteen days of backups, and in any copy of the
-database sent to support.
+`OnlinePassword` and `AddressLookupApiKey` are encrypted at rest with Windows
+DPAPI at **machine scope** — `LocalSecret`. Machine scope rather than user
+scope because everything about this till is machine-wide: a second Windows
+account must not find an empty till, and the background workers are not
+necessarily running as whoever typed the key. The trade is that any account on
+that PC can decrypt, which is right — the threat is the copy that leaves the
+building, not the counter staff.
+
+The stored form is self-describing (`dpapi:` prefix), so a value written before
+this existed still reads and nothing needed a migration. A one-time pass at
+startup encrypts anything still in the clear and logs that it did.
+
+A secret that cannot be decrypted comes back **empty, never as ciphertext**.
+DPAPI is bound to the machine, so a database restored onto different hardware
+cannot read these back; the shop retypes the key. Handing back the undecryptable
+blob would send it to the website as a password.
+
+**Encrypting does not undo an exposure.** Anything already written in the clear
+is in the backups that were taken before the change. When this shipped, the
+development machine had the website password readable in all eight backups and
+the Ideal Postcodes key — a credential that spends money per lookup — in four of
+them. **Rotate any credential that was stored before this change**; the old
+files are still readable.
 
 ## Where the money comes from — decided
 
