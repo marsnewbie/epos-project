@@ -148,6 +148,52 @@ public sealed class PrintService
         return Task.FromResult(targets.Count);
     }
 
+    /// <summary>
+    /// The X or Z reading, on paper.
+    /// <para>
+    /// Routed to a Report rule if the shop has one, otherwise to the printer the
+    /// drawer hangs off — which is the counter machine, which is where whoever
+    /// is counting the drawer is standing.
+    /// </para>
+    /// </summary>
+    public Task<int> PrintShiftReportAsync(ShiftReport report)
+    {
+        var settings = _app.GetSettings();
+        var devices = _app.PrintDevices.GetDeviceMap();
+        var targets = PrintRouting.RouteStandalone(
+            PrintDocument.Report, _app.PrintDevices.GetRoutes(), devices);
+
+        if (targets.Count == 0)
+        {
+            var enabled = devices.Values.Where(d => d.IsEnabled).ToList();
+            var front = enabled.FirstOrDefault(d => d.HasCashDrawer) ?? enabled.FirstOrDefault();
+            if (front is null) return Task.FromResult(0);
+            targets = [new PrintRouting.Target(front, 1, null)];
+        }
+
+        foreach (var target in targets)
+        {
+            var payload = TicketRenderer.RenderShiftReport(report, settings, target.Device);
+
+            // No order behind this one, so the job carries the shift number as
+            // its reference. The reprint list shows that rather than a blank.
+            _app.PrintJobs.Enqueue(new PrintJob
+            {
+                OrderId = "",
+                OrderNumber = $"{report.Title} {report.ShiftNumber}",
+                DeviceId = target.Device.Id,
+                Document = PrintDocument.Report,
+                Template = report.Kind == ShiftReportKind.Z ? "z-report" : "x-report",
+                Copies = target.Copies,
+                Status = PrintJobStatus.Pending,
+                Payload = payload,
+            });
+        }
+
+        _app.PrintQueue.Wake();
+        return Task.FromResult(targets.Count);
+    }
+
     public async Task VoidOrderAsync(PosOrder order, string reason, bool printKitchen)
     {
         order.Status = PosOrderStatus.Voided;

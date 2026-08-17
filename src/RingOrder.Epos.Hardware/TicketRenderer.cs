@@ -346,6 +346,143 @@ public static class TicketRenderer
         b.ColumnsAscii("Total VAT", EscPos.Money(TaxCalculator.TotalVat(bands)));
     }
 
+    /// <summary>
+    /// The X or Z reading — the one piece of paper an owner checks every night.
+    /// <para>
+    /// Laid out so the drawer block is last and reads downwards the way the
+    /// count is actually done: what was in it, what went in, what came out,
+    /// what should be there. Anyone reconciling a short drawer at eleven at
+    /// night is following that column with a finger.
+    /// </para>
+    /// </summary>
+    public static byte[] RenderShiftReport(
+        ShiftReport report, AppSettings settings, PrintDevice? device = null)
+    {
+        var enc = string.IsNullOrWhiteSpace(settings.PrintEncoding) ? "gbk" : settings.PrintEncoding;
+        var b = NewBuilder(enc, settings.PrintChineseAsRaster, device);
+
+        b.Center().KitchenLine(
+            string.IsNullOrWhiteSpace(settings.ShopName) ? "RingOrder EPOS" : settings.ShopName,
+            large: true);
+        b.Normal();
+        if (!string.IsNullOrWhiteSpace(settings.ShopAddress)) b.Line(settings.ShopAddress);
+        if (!string.IsNullOrWhiteSpace(settings.VatNumber)) b.Line($"VAT No: {settings.VatNumber}");
+
+        b.Bold(true).KitchenLine(report.Title, large: true).Bold(false).Left().Separator('=');
+
+        b.Line($"Shift    {report.ShiftNumber}");
+        if (!string.IsNullOrWhiteSpace(report.TerminalId))
+            b.Line($"Till     {report.TerminalId}");
+        b.Line($"Opened   {report.OpenedAt.ToLocalTime():dd/MM/yyyy HH:mm}  {report.OpenedBy}");
+        if (report.ClosedAt is { } closed)
+            b.Line($"Closed   {closed.ToLocalTime():dd/MM/yyyy HH:mm}  {report.ClosedBy}");
+        b.Line($"Printed  {report.PrintedAt.ToLocalTime():dd/MM/yyyy HH:mm}");
+
+        // An X changes nothing, and saying so stops anyone treating a mid-shift
+        // reading as the close.
+        if (report.Kind == ShiftReportKind.X)
+            b.Line("Shift is still open — this reading changes nothing");
+
+        var t = report.Totals;
+
+        // ── Sales ───────────────────────────────────────────────────────────
+        b.Separator('=').Bold(true).Line("SALES").Bold(false);
+        b.ColumnsAscii("Gross taken", EscPos.Money(t.GrossSales));
+        if (t.HasRefunds)
+        {
+            b.ColumnsAscii($"Refunds ({t.RefundCount})", "-" + EscPos.Money(t.TotalRefunds));
+            b.Bold(true).ColumnsAscii("Net kept", EscPos.Money(t.TotalTaken)).Bold(false);
+        }
+
+        if (report.DiscountCount > 0)
+            b.ColumnsAscii($"Discounts ({report.DiscountCount})", "-" + EscPos.Money(report.Discounts));
+        if (report.DeliveryFees > 0)
+            b.ColumnsAscii("Delivery fees", EscPos.Money(report.DeliveryFees));
+        if (report.Surcharges > 0)
+            b.ColumnsAscii("Small-order fees", EscPos.Money(report.Surcharges));
+
+        // ── Tenders ─────────────────────────────────────────────────────────
+        b.Separator('-').Bold(true).Line("BY TENDER").Bold(false);
+        foreach (var slice in report.ByTender)
+            b.ColumnsAscii(slice.Label, EscPos.Money(slice.Amount));
+        b.Bold(true).ColumnsAscii("Total taken", EscPos.Money(t.TotalTaken)).Bold(false);
+
+        WriteSlices(b, "BY SERVICE TYPE", report.ByServiceType);
+        WriteSlices(b, "BY CHANNEL", report.ByChannel);
+
+        // ── VAT ─────────────────────────────────────────────────────────────
+        // Same rule as the receipt: silent unless the shop is registered.
+        if (!string.IsNullOrWhiteSpace(settings.VatNumber) && report.Vat.Count > 0)
+        {
+            b.Separator('-').Bold(true).Line("VAT").Bold(false);
+            b.ColumnsAscii("Rate", "Net        VAT");
+            foreach (var band in report.Vat)
+                b.ColumnsAscii(band.RateLabel, $"{EscPos.Money(band.Net),9}  {EscPos.Money(band.Vat),9}");
+            b.Bold(true).ColumnsAscii("Total VAT", EscPos.Money(report.TotalVat)).Bold(false);
+        }
+
+        // ── Orders ──────────────────────────────────────────────────────────
+        b.Separator('-').Bold(true).Line("ORDERS").Bold(false);
+        b.ColumnsAscii("Paid in full", t.OrdersPaid.ToString());
+        b.ColumnsAscii("Value of settled sales", EscPos.Money(t.GrossPaid));
+        if (t.OrdersOpen > 0)
+        {
+            b.ColumnsAscii("Still open", t.OrdersOpen.ToString());
+            b.ColumnsAscii("Still owed", EscPos.Money(t.OutstandingDue));
+        }
+        if (t.OrdersVoided > 0)
+            b.ColumnsAscii("Voided", t.OrdersVoided.ToString());
+
+        // Takings and settled sales are different questions, and an owner who
+        // does not know that will hunt for a fault that is not there. Said once,
+        // plainly, and only when there is actually money on an open ticket.
+        if (report.HasUnsettledMoney)
+        {
+            foreach (var wrapped in WrapLines(
+                         "Takings exceed settled sales by whatever has been part-paid on tickets that are still open.",
+                         EscPos.ColsFontA))
+                b.Line(wrapped);
+        }
+
+        // ── The drawer ──────────────────────────────────────────────────────
+        b.Separator('=').Bold(true).Line("DRAWER").Bold(false);
+        b.ColumnsAscii("Opening float", EscPos.Money(t.OpeningFloat));
+        b.ColumnsAscii("Cash sales", EscPos.Money(t.CashSales));
+        if (t.CashRefunds > 0)
+            b.Line($"  (after {EscPos.Money(t.CashRefunds)} cash refunded)");
+        if (t.CashMovements != 0)
+            b.ColumnsAscii("Pay in / pay out", EscPos.Money(t.CashMovements));
+
+        b.Large().Bold(true)
+            .ColumnsAscii("EXPECTED", EscPos.Money(t.ExpectedCash), cols: 24)
+            .Bold(false).Normal();
+
+        if (report.DeclaredCash is { } counted)
+        {
+            b.ColumnsAscii("Counted", EscPos.Money(counted));
+            var variance = report.Variance ?? 0;
+            var verdict = variance == 0
+                ? "BALANCES"
+                : variance > 0
+                    ? $"OVER {EscPos.Money(variance)}"
+                    : $"SHORT {EscPos.Money(-variance)}";
+            b.Large().Bold(true).ColumnsAscii("VARIANCE", verdict, cols: 24).Bold(false).Normal();
+        }
+
+        b.Separator('=').Center();
+        b.Line(report.Kind == ShiftReportKind.Z ? "End of shift" : "Shift continues");
+        b.FeedAndCut();
+        return b.Build();
+    }
+
+    private static void WriteSlices(EscPosTicketBuilder b, string heading, IReadOnlyList<ReportSlice> slices)
+    {
+        if (slices.Count == 0) return;
+        b.Separator('-').Bold(true).Line(heading).Bold(false);
+        foreach (var slice in slices)
+            b.ColumnsAscii($"{slice.Label} ({slice.Count})", EscPos.Money(slice.Amount));
+    }
+
     public static byte[] RenderTestPage(string printerName, AppSettings settings, PrintDevice? device = null)
     {
         var enc = string.IsNullOrWhiteSpace(settings.PrintEncoding) ? "gbk" : settings.PrintEncoding;

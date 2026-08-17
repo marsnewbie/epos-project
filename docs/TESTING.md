@@ -28,6 +28,14 @@ part of finishing a change, not an extra.
 | Privacy | That erasing a customer removes the person and keeps the sale — including the web-order payload, which is the easiest thing to leave behind |
 | Refunds | That only what was taken can go back, never twice, never without a reason; that the drawer and the shift report follow; and that a refunded sale is still a paid sale |
 | Delivery zones | That B47 never matches a B44 rule, that the most specific level wins, that a free-over of zero is not free, that the surcharge is flat rather than the shortfall — and that what is taxed is what is charged |
+| Shift readings | That gross, refunds and net stay three numbers; that a void is counted and then kept out of every breakdown; that VAT is summed per order so the reading agrees with the receipts; that an X carries no count and a Z carries the variance; and that a kitchen rule never catches the reading |
+| Caller ID | Both wire formats, that a withheld number never becomes a caller named "P", that two calls in one stream do not merge, and that a name containing a label word is not split on it |
+| Card terminal | That a lost answer is recovered by querying the reference rather than retrying the sale, that a reference the terminal never saw means nobody was charged, and that the manual terminal never pretends to know |
+| Restore | That the live database is kept before it is overwritten, that the replaced database's write-ahead files go with it, that a marker naming a missing backup does not survive to the next start, and that a restore runs once rather than at every start after |
+
+Test classes run one at a time — see `AssemblyInfo.cs`. The teardown in almost
+every class clears the SQLite pool process-wide, which is fine serially and a
+race in parallel.
 
 The migration test seeds the old database with raw SQL matching that version's
 schema. Using today's repository would test nothing, because it already knows

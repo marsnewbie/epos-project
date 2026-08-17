@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using RingOrder.Epos.Domain;
+using RingOrder.Epos.Hardware;
 using RingOrder.Epos.Services;
 
 namespace RingOrder.Epos.ViewModels;
@@ -1287,16 +1288,87 @@ public partial class TillViewModel : ViewModelBase
                 : PosOrderStatus.Open;
             var order = PersistTicket(keepStatus);
 
-            var result = await _app.CardTerminal.StartSaleAsync(payAmount);
-            if (!result.Success)
-                throw new InvalidOperationException(result.Message ?? UiText.Pick("Card declined", "刷卡失败"));
-
+            // The tender is built first so its id can be the terminal's
+            // reference. A reference the till chose is what makes a lost answer
+            // recoverable — see IPaymentTerminal.
             var card = new OrderTender
             {
-                Type = TenderType.CardManual,
+                Type = _app.CardTerminal is ManualCardTerminal
+                    ? TenderType.CardManual
+                    : TenderType.CardIntegrated,
                 Amount = payAmount,
-                Reference = result.Message ?? "card",
             };
+
+            var result = await _app.CardTerminal.StartAsync(new PaymentRequest
+            {
+                Reference = card.Id,
+                Amount = payAmount,
+                OrderNumber = order.OrderNumber,
+            });
+
+            // A lost answer is not a decline. Ask the terminal what it did with
+            // the reference rather than retrying, because a retry is how a
+            // customer gets charged twice.
+            var wasRecovered = false;
+            if (result.NeedsResolving)
+            {
+                _setStatus(UiText.Pick("No answer from the card machine — checking",
+                    "刷卡机无响应 — 正在查询"));
+
+                result = await _app.CardTerminal.QueryAsync(card.Id);
+                wasRecovered = true;
+
+                // Written down rather than left on a status line that the next
+                // action overwrites. A sale that needed the terminal to be asked
+                // what it had done is exactly what someone reconstructs later,
+                // and by then the screen has moved on.
+                _app.Session.Record("payment.recovered", order.Id,
+                    $"{order.OrderNumber} £{payAmount:0.00} ref {card.Id[..8]} — {result.Outcome}");
+                AppLog.Warn("payment",
+                    $"lost answer on {order.OrderNumber} ref {card.Id[..8]}; terminal says {result.Outcome}");
+            }
+
+            if (result.NeedsResolving)
+            {
+                // Still unknown. Neither taking the money nor releasing the
+                // ticket is safe, so the till does neither and says so.
+                await UiPrompt.AlertAsync(
+                    UiText.Pick("Check the card machine", "请检查刷卡机"),
+                    UiText.Pick(
+                        $"The card machine did not answer for £{payAmount:0.00}.\n\n" +
+                        $"Reference {card.Id[..8]}\n\n" +
+                        "Check the machine before taking payment again — the customer may already have been charged.",
+                        $"刷卡机未对 £{payAmount:0.00} 作出响应。\n\n" +
+                        $"参考号 {card.Id[..8]}\n\n" +
+                        "再次收款前请先检查刷卡机 — 顾客可能已经被扣款。"));
+
+                _setStatus(UiText.Pick("Card unresolved — ticket left unpaid",
+                    "刷卡状态未知 — 账单保持未付"));
+                return;
+            }
+
+            if (!result.IsApproved)
+                throw new InvalidOperationException(
+                    result.Message ?? UiText.Pick("Card declined", "刷卡失败"));
+
+            // A terminal may authorise less than was asked for.
+            if (result.AmountAuthorised > 0 && result.AmountAuthorised < payAmount)
+            {
+                card.Amount = result.AmountAuthorised;
+                payAmount = result.AmountAuthorised;
+            }
+
+            // The reference goes on the tender, and a recovered payment says so,
+            // because "this one had to be chased" is the first thing anyone
+            // wants to know when a card sale is queried weeks later.
+            card.Reference = wasRecovered
+                ? $"{result.AuthCode ?? "card"} (recovered)"
+                : result.AuthCode ?? result.Message ?? "card";
+
+            if (wasRecovered)
+                _setStatus(UiText.Pick(
+                    $"Card recovered — the machine had taken £{payAmount:0.00}",
+                    $"已向刷卡机确认 — £{payAmount:0.00} 实际已扣款"));
             _app.Session.Stamp(card);
             order.Tenders.Add(card);
             var fullyPaid = order.IsFullyPaid;

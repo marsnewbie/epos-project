@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using RingOrder.Epos.Data;
 using RingOrder.Epos.Domain;
 using RingOrder.Epos.Services;
 
@@ -32,6 +33,66 @@ public partial class StaffRow : ObservableObject
     public string ActiveLabel => Member.IsActive ? "Switch off" : "Switch on";
 
     [ObservableProperty] private StaffRole _selectedRole;
+}
+
+/// <summary>
+/// One closed shift in the Settings list, so a Z reading can be looked at or
+/// reprinted. Read-only: a closed shift is an account of a session that has
+/// finished, and nothing on this screen may alter it.
+/// </summary>
+public sealed class ShiftHistoryRow
+{
+    public ShiftHistoryRow(Shift shift)
+    {
+        Id = shift.Id;
+        Number = shift.Number;
+        Label = $"Shift {shift.Number} · {shift.OpenedAt.ToLocalTime():dd/MM HH:mm}" +
+                (shift.ClosedAt is { } c ? $" – {c.ToLocalTime():HH:mm}" : "");
+
+        // The variance is what anyone scanning this list is looking for, so it
+        // is on the row rather than one click inside it.
+        Variance = shift.Variance switch
+        {
+            null => "",
+            0 => "balanced",
+            > 0 => $"over {shift.Variance:0.00}",
+            _ => $"short {-shift.Variance:0.00}",
+        };
+        IsOut = shift.Variance is not (null or 0);
+    }
+
+    public string Id { get; }
+    public int Number { get; }
+    public string Label { get; }
+    public string Variance { get; }
+    public bool IsOut { get; }
+}
+
+/// <summary>One backup file offered on the restore list.</summary>
+public sealed class BackupRow
+{
+    public BackupRow(BackupFile file)
+    {
+        Path = file.Path;
+        Label = $"{file.TakenAt.LocalDateTime:ddd d MMM yyyy HH:mm}";
+        Size = file.SizeLabel;
+
+        // What a file is says more than its name does. "Before the upgrade to
+        // schema 7" is what someone recovering actually needs to recognise.
+        Kind = file switch
+        {
+            { IsPreRestore: true } => "kept before an earlier restore",
+            { IsPreMigration: true } => "taken automatically before a schema upgrade",
+            _ => file.Name.StartsWith("manual-", StringComparison.OrdinalIgnoreCase)
+                ? "taken by hand"
+                : "nightly",
+        };
+    }
+
+    public string Path { get; }
+    public string Label { get; }
+    public string Kind { get; }
+    public string Size { get; }
 }
 
 /// <summary>One printer in Settings, editable in place.</summary>

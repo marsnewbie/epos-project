@@ -816,3 +816,289 @@ The lesson worth keeping: **the two products are one price list.** Delivery rule
 are not ours to design independently. `AGENTS.md` now says so.
 
 Migration 8 ran on the live shop database with its backup. 197 tests.
+
+---
+
+## 2026-08-16 — X and Z readings, and what a shift report is allowed to say
+
+`ShiftRepository` had carried a comment saying "this is what an X or Z report
+prints" since the schema rebuild, and nothing printed one. `PrintDocument.Report`
+was in the enum with nothing producing it. Closed end to end — the third time
+this shape of gap has turned up, and the second where the enum member was the
+only evidence it existed.
+
+**No migration, and no snapshot table.** A shift's totals are summed from the
+rows carrying its id, which is the rule the rest of the till already follows. A
+stored copy could drift from the rows it claims to summarise, and then neither
+number is worth anything.
+
+**The reading is pure.** `ShiftReportBuilder` takes the shift, its totals, its
+orders and the tax classes, and returns a `ShiftReport`. Like `TaxCalculator`
+and `RefundPolicy` it does no I/O, so the arithmetic on the one piece of paper an
+owner checks every night is tested without a database or a printer.
+
+**VAT is summed per order, never recomputed on the day's gross.** This is worth
+a penny-level test and has one. VAT rounds on each sale because that is what the
+customer was charged and what their receipt says; working it out again on the
+shift total rounds once instead of two hundred times, and the report would then
+disagree with the pile of receipts behind it. That discrepancy is exactly what an
+accountant asks about a year later.
+
+**A void is counted and then kept out of everything else.** A void says the sale
+never happened, so leaving it in the service-type split would inflate the first
+figure an owner reads.
+
+**Two things the report must not claim.** Both were found by reading the code
+rather than by a failing test, and both had already been written down wrongly in
+my first draft:
+
+- A payment is written against the **order's** shift, not the shift that was
+  open when the money was taken (`OrderRepository` binds `order.ShiftId`). That
+  is deliberate — it is what stops a reopened ticket moving yesterday's money
+  into today. The consequence is that **settling an old unpaid ticket adds to
+  the shift it was rung up in**, so a Z reprinted later can differ from the one
+  that came out at close. The counted cash, the expected figure and the variance
+  are frozen on the shift row and never move. There is a test pinning this down,
+  because it is surprising and someone will otherwise call it a bug.
+- Takings and settled-sales value differ whenever money is sitting on an open
+  ticket. My first version explained that difference as orders crossing shifts,
+  which this schema does not do. The report now names the real cause and only
+  when there is actually an open ticket.
+
+**Settings, Shift was a sum over "today" and is now a reading per shift.** Not a
+cosmetic change: a shop trading past midnight had every figure silently split
+across two dates, and one that opened twice in a day had both sessions added
+together. The drawer is counted per shift, so the reading has to be per shift.
+Closed shifts are listed with their variance, and any Z can be viewed or
+reprinted.
+
+**The Z prints itself at close**, queued and never awaited — a printer out of
+paper must not leave a shift half-closed, and the reading can be reprinted.
+
+`PrintRouting.RouteStandalone` is new: a report belongs to no order, so it has no
+service type or channel to match on. A rule that narrows on those was written
+about tickets, and letting it apply here would silently swallow the one document
+an owner prints by hand. Two tests cover that.
+
+The screen and the paper share `ShiftReport` but not their layout — ESC/POS needs
+sizes and bold that mean nothing in a text box. What must not fork is the
+arithmetic, and it cannot: both render the same record.
+
+`ShiftTotals` moved from `RingOrder.Epos.Data` into the Domain project. It is a
+pure value type describing a shift and it was the only thing stopping the report
+from living in Domain.
+
+### A flake this uncovered, and its cause
+
+Adding a sixteenth test class made `BundleImportTests` fail about one run in ten
+while passing on its own — the worst shape of flake, because the test that fails
+is not the one at fault.
+
+Nearly every test class tears down with `SqliteConnection.ClearAllPools()`, which
+is **process-wide**, and xunit runs test classes in parallel. One class's
+teardown was pulling pooled connections out from under another class mid-test.
+Parallelisation is now off for the assembly: the suite runs in about three
+seconds, so it costs nothing worth measuring. The deeper fix is for each class to
+clear only its own pool — which `EposDb.Dispose` already does correctly — and the
+`ClearAllPools` calls beside it can go whenever someone is in there.
+
+213 tests, six consecutive clean runs.
+
+**Not clicked on a running till**, consistent with the last four rounds: the
+readings screen, the reprint buttons and the automatic Z at close are covered by
+tests and the XAML compiles, but nobody has pressed them. Now being addressed
+properly rather than noted again — see the next entry.
+
+---
+
+## 2026-08-16 — Caller ID and the card terminal, designed before the hardware arrives
+
+Both had been interfaces with a fake behind them since the beginning:
+`SimulatedCallerId` and a `ManualCardTerminal` that returned success
+unconditionally. The hardware is not here yet, so the protocols are built to the
+industry shapes now and the devices plug into them later.
+
+### Caller ID
+
+**There is no single format.** BT lines here deliver MDMF over several lines;
+cheap USB boxes emit SDMF all on one; a few firmwares invent their own labels.
+`CallerIdDecoder` is pure and line-at-a-time, so each of those is a test rather
+than a shop reporting that the popup stopped working.
+
+**`P` is not a phone number.** A withheld call sends `NMBR = P` and an
+unavailable one `NMBR = O`. Stored as a number that puts a customer called "P"
+in the phone book and searches for them on every withheld call afterwards.
+Withheld and unavailable are also told apart, because one is the caller's choice
+and the other is the network failing to help, and they deserve different wording
+on screen.
+
+**One call, one popup.** A phone rings six times and some boxes repeat the
+number on every ring. Deduplicated on the number within twenty seconds.
+
+**It reconnects on its own.** A till runs for weeks and someone unplugs the
+phone box to hoover; a caller display that stays dead until the next restart is
+one the shop stops trusting. Failures are recorded rather than thrown, because a
+till must open whether or not the box is plugged in.
+
+A bug caught by its own test: the first version emitted the call as soon as the
+number was known, and MDMF sends `NAME` *after* `NMBR` — so the caller's name
+was thrown away every time the network supplied one. A call now ends only at a
+boundary (blank line, next RING, or the read timeout).
+
+### The card terminal
+
+Rebuilt around the one failure that matters: **charging a customer twice.**
+
+**The till assigns the reference, not the terminal.** That is what makes a lost
+answer recoverable — a till that waited for the terminal to name the transaction
+has nothing to ask about afterwards. The reference is the tender's id.
+
+**`Unknown` is not a decline.** It is its own outcome, and it is the reason
+`PaymentResult` carries an enum rather than a bool. The cable gets pulled, the
+terminal reboots, the answer never arrives. A till that reads that as "declined"
+tells the cashier to take the money again from a customer who has already paid.
+
+**A sale is never retried. It is queried.** `QueryAsync(reference)` asks the
+terminal what became of it. Approved means record it; a reference the terminal
+has never heard of means nobody was charged and is the only case where the till
+may safely conclude the money did not move; still unknown means the till does
+neither and says so on a dialog naming the reference.
+
+`ManualCardTerminal` stays, and is not a placeholder — most small takeaways run
+a standalone machine and tell the till what happened. What it cannot do is
+check, so its `QueryAsync` returns `Unknown` rather than inventing an approval.
+A till asserting something it cannot know about a customer's money is the thing
+being designed against.
+
+`SimulatedPaymentTerminal` behaves like real hardware with none attached, and
+can be told to lose an answer — the case that is impossible to stage on a real
+terminal on demand and is exactly the one that has to work.
+
+`IHardware.cs` gave up both to `CallerId.cs` and `PaymentTerminal.cs`. Its name
+described nothing, which is the same tidy-up `EscPos.cs` had.
+
+231 tests.
+
+---
+
+## 2026-08-17 — The simulator was lying, and a restore that can be undone
+
+### The simulated terminal returned too fast to be honest
+
+Reported from a real run: arming "next card loses its answer" produced an
+ordinary paid sale with no sign of the recovery. The recovery *had* happened and
+the result was right — but `Task.FromResult` returns synchronously, so the
+till's "no answer — checking" line was set and overwritten inside one
+continuation and the UI thread never yielded to paint it. A lost answer looked
+identical to an ordinary sale.
+
+Two fixes, and the second matters more:
+
+- **The simulator now takes time**, because real hardware does. A simulator that
+  returns instantly does not simulate the thing it exists to test.
+- **A recovered payment is written down**: an audit entry, a log line, and
+  "(recovered)" on the tender's reference. A status line is not evidence. This
+  till already has the rule — *a component that can fail silently must report
+  its own health somewhere a human looks* — and "we had to ask the terminal what
+  it had done with a customer's money" is exactly what someone reconstructs
+  weeks later, by which time the screen has moved on.
+
+### Restore
+
+`DEPLOYMENT.md` has said "restoring means stopping the till and copying a file"
+since the backup work. Closed.
+
+**The swap happens at the next start**, never while running. WAL means two more
+files beside the database and a pool of live connections; copying over that from
+inside the process yields a database that is neither the backup nor the
+original. So a restore is a marker file, honoured before anything opens the
+database and deleted first — a marker naming a file someone has since deleted
+must not make the till fail the same way at every start, which is a shop that
+cannot open.
+
+The replaced database's `-wal` and `-shm` are deleted. Left behind, SQLite
+replays them over the restored file and undoes part of the restore, which is
+worse than failing outright.
+
+**The live database is kept first.** A restore has to be undoable; "I restored
+the wrong day" must not be the end of a shop's records. **And the confirmation
+counts the damage** — "43 orders worth £912.60 will be gone" — because a prompt
+that names no consequence is one people learn to click through.
+
+`RestoreRequest` takes its paths rather than reading `LocalPaths`. Not caution
+for its own sake: `BackupBeforeMigration` once wrote to a fixed machine-wide
+path and every test run for months dropped a five-row database into the trading
+shop's backups. A restore reaching the wrong folder is that same bug with the
+destruction already done. Verified after this round that the live backup folder
+holds only real backups and no marker.
+
+238 tests.
+
+---
+
+## 2026-08-17 — Licensing decided, and support scripts that found a real fault
+
+### Licensing
+
+**An offline signed licence file. Decided, not built** — see
+[DEPLOYMENT.md](DEPLOYMENT.md).
+
+The cloud services were priced (Keygen: free dev tier, self-hostable CE;
+Cryptolens from ~€199; LicenseSpring from ~$299/mo) and rejected on
+**architecture, not cost**. All three assume the client reports to a server, and
+this till's first rule is that it sells food with the router unplugged. A licence
+check needing the internet is the remote dependency the product already refused.
+
+ECDSA P-256 in `System.Security.Cryptography`: no package, no service, no monthly
+cost, about 150 lines. It carries the merchant, the type, the dates and the
+**edition** — which is the right home for it, because `edition` in the shop
+bundle is a field a merchant can edit and in a signed licence it is not.
+
+Three decisions taken deliberately: it **expires but only nags**, never stopping
+a shop trading; it is **not on the receipt**, only in Settings and diagnostics;
+and it is **not bound to the machine**, because a hardware fingerprint breaks
+when a merchant replaces a dying PC and defends against copying that is not a
+real risk here. The opt-in heartbeat would reveal a shop running two tills
+anyway — **detect, do not enforce**, which costs nobody a service when it is
+wrong.
+
+**And then a steer that settles how much of this is worth building at all**,
+recorded because the instinct to over-build here is strong and the next session
+will otherwise re-derive it differently: an EPOS is a mature product, nothing in
+this codebase is a secret, and a competitor gains nothing from a copy. **The
+till is phase one.** The parts worth protecting go to the cloud — as web orders
+already have — where access is controlled by the service rather than by a file
+on a shop's PC, and the till receives and prints. Licensing here is a label, not
+a lock. If it ever grows past a signature check and a line in Settings, it has
+become the thing the deployment doc says not to build.
+
+### Support scripts
+
+`tools/support/ringorder-support.ps1`. Everything in it is also in Settings →
+Support; it exists for when that screen cannot be reached, which is when it is
+needed most.
+
+`Restore` from the script only writes the marker — the swap is always done by
+the till at startup. A script cannot know whether the till is holding the file,
+and this is not the place to find out.
+
+**Two bugs in it, both found by running it rather than reading it:**
+
+- `Collect` piped the report functions into `Out-String`. They report through
+  `Write-Host`, which goes to the console and **not** to the pipeline, so the
+  file that reached us would have been almost empty — a diagnostics tool that
+  silently collects nothing being about the worst shape of this particular
+  feature. Rewritten around `Start-Transcript`.
+- `Format-Table` streams lazily and its output landed after whatever printed
+  next, so the sections in the collected file came out interleaved. Forced with
+  `Out-String`.
+
+### What it found on the development machine
+
+`Printers` reported `GLPrinter80` **offline with 29 jobs stacked in the Windows
+spooler** — every ticket printed during this week's testing had queued and never
+come out. The app was right at every step: it queued the jobs and its own status
+light reads the queue. But nothing had told anyone that Windows was holding
+them, which is precisely the silent, expensive failure the script was written
+for. It found one on its first run, on our own machine, before any merchant had
+it.

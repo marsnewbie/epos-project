@@ -32,6 +32,8 @@ public partial class SettingsViewModel : ViewModelBase
     public ObservableCollection<RouteRow> Routes { get; } = [];
     public ObservableCollection<PrintJob> FailedJobs { get; } = [];
     public ObservableCollection<TaxClassRow> TaxClasses { get; } = [];
+    public ObservableCollection<ShiftHistoryRow> ShiftHistory { get; } = [];
+    public ObservableCollection<BackupRow> Backups { get; } = [];
     public PrintTransport[] Transports { get; } = Enum.GetValues<PrintTransport>();
 
     /// <summary>Stations a category or dish can be sent to.</summary>
@@ -106,8 +108,46 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private bool _isPrivacy;
     [ObservableProperty] private string _callerIdMode = "simulate";
     [ObservableProperty] private string _callerIdCom = "COM3";
+    [ObservableProperty] private string _cardTerminalMode = "manual";
+
+    /// <summary>
+    /// True when the simulated terminal is the one running, which is the only
+    /// time the failure switches below mean anything.
+    /// </summary>
+    public bool IsSimulatedTerminal => _app.CardTerminal is SimulatedPaymentTerminal;
+
+    /// <summary>
+    /// Arms the next card sale to decline.
+    /// <para>
+    /// Here because the failure paths are the ones nobody can stage on demand,
+    /// and therefore the ones that reach a merchant untested. A real terminal
+    /// cannot be asked to decline the next sale; this one can.
+    /// </para>
+    /// </summary>
+    [RelayCommand]
+    private void ArmCardDecline()
+    {
+        if (_app.CardTerminal is not SimulatedPaymentTerminal sim) return;
+        sim.NextDeclines = true;
+        _setStatus("Next card payment will decline");
+    }
+
+    /// <summary>
+    /// Arms the next card sale to succeed at the terminal while the answer never
+    /// reaches the till — the case the recovery path exists for.
+    /// </summary>
+    [RelayCommand]
+    private void ArmCardLostAnswer()
+    {
+        if (_app.CardTerminal is not SimulatedPaymentTerminal sim) return;
+        sim.NextLosesTheAnswer = true;
+        _setStatus("Next card payment will be taken but the answer will be lost");
+    }
     [ObservableProperty] private bool _callerIdEnabled;
     [ObservableProperty] private string _shiftSummary = "";
+    [ObservableProperty] private bool _hasOpenShiftReading;
+    [ObservableProperty] private ShiftHistoryRow? _selectedShift;
+    [ObservableProperty] private BackupRow? _selectedBackup;
     [ObservableProperty] private string _newNoteEn = "";
     [ObservableProperty] private string _newNoteZh = "";
 
@@ -194,7 +234,7 @@ public partial class SettingsViewModel : ViewModelBase
         if (IsMenu) ReloadMenuBrowser();
         if (IsNotes) ReloadNoteRows();
         if (IsShift) ReloadShift();
-        if (IsSupport) ReloadSupport();
+        if (IsSupport) { ReloadSupport(); ReloadBackups(); }
         if (IsTax) ReloadTax();
         if (IsDelivery) { ReloadDeliveryZones(); ReloadAddressLookup(); }
         if (IsPrivacy) ReloadRetention();
@@ -231,6 +271,7 @@ public partial class SettingsViewModel : ViewModelBase
         CallerIdEnabled = s.CallerIdEnabled;
         CallerIdMode = s.CallerIdMode;
         CallerIdCom = s.CallerIdComPort;
+        CardTerminalMode = s.CardTerminalMode;
         MenuInfo = UiText.Pick(
             $"Items: {_app.Menu.CountItems()} | Last import: {s.LastMenuImportAt ?? "n/a"}",
             $"菜品: {_app.Menu.CountItems()} | 上次导入: {s.LastMenuImportAt ?? "无"}");
@@ -371,40 +412,143 @@ public partial class SettingsViewModel : ViewModelBase
             NoteRows.Add(new QuickNoteEditRow(n.En, n.Zh));
     }
 
+    /// <summary>
+    /// The shift section is a real X reading now, not a sum over "today".
+    /// <para>
+    /// A trading day and a shift are not the same thing, and the difference is
+    /// not academic: a shop that trades past midnight had every figure here
+    /// silently split across two dates, and one that opened twice in a day had
+    /// both sessions added together. The drawer is counted per shift, so the
+    /// reading has to be per shift.
+    /// </para>
+    /// </summary>
     private void ReloadShift()
     {
-        var all = _app.Orders.GetToday();
-        var active = all.Where(o => o.Status is not (PosOrderStatus.Voided or PosOrderStatus.Cancelled)).ToList();
-        var paidDone = active.Where(o => o.Status is PosOrderStatus.Paid or PosOrderStatus.Completed).ToList();
-        var cash = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.Cash).Sum(t => t.Amount);
-        var card = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.CardManual).Sum(t => t.Amount);
-        var online = active.SelectMany(o => o.Tenders).Where(t => t.Type == TenderType.PrepaidOnline).Sum(t => t.Amount);
-        var dueOpen = active.Where(o => o.IsUnpaid).Sum(o => o.BalanceDue);
-        var voided = all.Count(o => o.Status == PosOrderStatus.Voided);
+        var open = _app.Session.Shift is { Status: ShiftStatus.Open } s ? s : null;
+        HasOpenShiftReading = open is not null;
 
-        // Refunds get their own lines rather than being netted into the takings.
-        // "Took £1,200, refunded £45" is a different conversation from
-        // "took £1,155", and only one of them tells an owner to go and look.
-        var refunds = all.SelectMany(o => o.Refunds).ToList();
-        var cashBack = refunds.Where(r => r.Tender == TenderType.Cash).Sum(r => r.Amount);
-        var otherBack = Money.Round(refunds.Sum(r => r.Amount) - cashBack);
+        ShiftSummary = open is null
+            ? "No shift is open. Open one from the top bar to take a reading.\n\n" +
+              "Closed shifts are listed below — a Z reading can be reprinted at any time."
+            : ShiftReportText.Render(
+                _app.ShiftReports.Build(open, ShiftReportKind.X),
+                showVat: !string.IsNullOrWhiteSpace(_app.GetSettings().VatNumber));
 
-        var refundBlock = refunds.Count == 0
-            ? ""
-            : $"Refunds: {refunds.Count} · £{refunds.Sum(r => r.Amount):0.00} " +
-              $"(cash £{cashBack:0.00} · other £{otherBack:0.00})\n" +
-              $"Net after refunds: £{cash + card + online - refunds.Sum(r => r.Amount):0.00}\n";
+        ShiftHistory.Clear();
+        foreach (var shift in _app.Shifts.Recent(30).Where(x => x.Status == ShiftStatus.Closed))
+            ShiftHistory.Add(new ShiftHistoryRow(shift));
+    }
 
-        ShiftSummary =
-            $"Cash taken (incl. partial): £{cash:0.00}\n" +
-            $"Card taken (incl. partial): £{card:0.00}\n" +
-            $"Online paid: £{online:0.00}\n" +
-            refundBlock +
-            $"Open balance due: £{dueOpen:0.00}\n" +
-            $"Paid-in-full tickets: {paidDone.Count}\n" +
-            $"Gross of paid tickets: £{paidDone.Sum(o => o.Total):0.00}\n" +
-            $"Voided: {voided}\n" +
-            $"Unpaid (still due): {active.Count(o => o.IsUnpaid)}";
+    private void ReloadBackups()
+    {
+        Backups.Clear();
+        foreach (var file in RestoreRequest.List()) Backups.Add(new BackupRow(file));
+    }
+
+    /// <summary>
+    /// Asks for a backup to be put back at the next start.
+    /// <para>
+    /// Gated on <see cref="Permission.EditSettings"/>, and the confirmation says
+    /// what will actually be destroyed rather than asking "are you sure?". A
+    /// prompt that names no consequence is one people learn to click through.
+    /// </para>
+    /// </summary>
+    [RelayCommand]
+    private async Task RestoreBackupAsync()
+    {
+        if (SelectedBackup is not { } chosen)
+        {
+            _setStatus("Choose a backup first");
+            return;
+        }
+
+        if (!await UiPrompt.RequireAsync(_app, Permission.EditSettings, "Restore a backup"))
+            return;
+
+        // Counting what is at stake beats a generic warning: "you will lose
+        // today's 43 orders and £912.60" is a decision, "are you sure" is not.
+        var since = new FileInfo(chosen.Path).LastWriteTime;
+        var losing = _app.Orders.GetToday()
+            .Where(o => o.CreatedAt.LocalDateTime > since &&
+                        o.Status is not (PosOrderStatus.Voided or PosOrderStatus.Cancelled))
+            .ToList();
+
+        var damage = losing.Count == 0
+            ? "No orders have been taken since it was made."
+            : $"{losing.Count} order(s) worth £{losing.Sum(o => o.Total):0.00} have been taken " +
+              "since it was made. They will be gone.";
+
+        if (!await UiPrompt.ConfirmAsync(
+                "Restore this backup?",
+                $"The till will go back to how it was on {chosen.Label}.\n\n" +
+                $"{damage}\n\n" +
+                "The current database is kept first, so this can be undone.\n\n" +
+                "Nothing changes until the till is restarted."))
+            return;
+
+        RestoreRequest.Write(chosen.Path);
+        _app.Session.Record("db.restore.requested", null, chosen.Label);
+        AppLog.Warn("restore", $"requested {Path.GetFileName(chosen.Path)}");
+
+        await UiPrompt.AlertAsync(
+            "Restart to finish",
+            "Close the till and start it again. The backup is put back before " +
+            "anything opens the database.\n\nUntil then, nothing has changed.");
+
+        _setStatus("Restore will run at the next start");
+    }
+
+    /// <summary>
+    /// A reading of the open shift, on paper. Safe to take as often as anyone
+    /// likes: it reads rows and writes nothing.
+    /// </summary>
+    [RelayCommand]
+    private async Task PrintXReadingAsync()
+    {
+        if (_app.ShiftReports.BuildCurrentX() is not { } report)
+        {
+            _setStatus("No shift is open");
+            return;
+        }
+
+        var queued = await _app.Print.PrintShiftReportAsync(report);
+        _setStatus(queued > 0 ? "X reading printing" : "No printer is configured");
+    }
+
+    /// <summary>
+    /// Reprints a closed shift's Z. Reproducible rather than stored — a closed
+    /// shift's rows do not change, so this is the same paper it was at close.
+    /// </summary>
+    [RelayCommand]
+    private async Task ReprintZReadingAsync(ShiftHistoryRow? row)
+    {
+        var target = row ?? SelectedShift;
+        if (target is null) return;
+
+        var shift = _app.Shifts.GetById(target.Id);
+        if (shift is null)
+        {
+            _setStatus("That shift is no longer in the database");
+            return;
+        }
+
+        var queued = await _app.Print.PrintShiftReportAsync(_app.ShiftReports.BuildZ(shift));
+        _setStatus(queued > 0
+            ? $"Z reading for shift {shift.Number} printing"
+            : "No printer is configured");
+    }
+
+    /// <summary>Shows a closed shift's Z on screen without using paper.</summary>
+    [RelayCommand]
+    private void ViewZReading(ShiftHistoryRow? row)
+    {
+        var target = row ?? SelectedShift;
+        if (target is null) return;
+        if (_app.Shifts.GetById(target.Id) is not { } shift) return;
+
+        ShiftSummary = ShiftReportText.Render(
+            _app.ShiftReports.BuildZ(shift),
+            showVat: !string.IsNullOrWhiteSpace(_app.GetSettings().VatNumber));
     }
 
     partial void OnMenuSearchChanged(string value) => ReloadMenuRows();
@@ -771,6 +915,7 @@ public partial class SettingsViewModel : ViewModelBase
         s.CallerIdEnabled = CallerIdEnabled;
         s.CallerIdMode = CallerIdMode.Trim();
         s.CallerIdComPort = CallerIdCom.Trim();
+        s.CardTerminalMode = CardTerminalMode.Trim().ToLowerInvariant() == "simulated" ? "simulated" : "manual";
         s.QuickNotes = NoteRows.Select(n => new QuickNoteDef { En = n.En.Trim(), Zh = n.Zh.Trim() })
             .Where(n => !string.IsNullOrWhiteSpace(n.En))
             .ToList();

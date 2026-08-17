@@ -75,6 +75,53 @@ public static class UiPrompt
         return result;
     }
 
+    /// <summary>
+    /// Something the cashier has to read and acknowledge, with nothing to
+    /// decide. One button, because a Cancel on a statement of fact invites the
+    /// reader to think it undoes the fact.
+    /// </summary>
+    public static async Task AlertAsync(string title, string message)
+    {
+        var owner = Owner;
+        if (owner is null) return;
+
+        var dlg = new Window
+        {
+            Title = title,
+            Width = 460,
+            Height = 280,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+            CanResize = false,
+            Background = Bg,
+        };
+
+        var ok = new Button { Content = UiText.Ok, Width = 140, Height = 48 };
+        ok.Classes.Add("cash");
+        ok.Click += (_, _) => dlg.Close();
+
+        dlg.Content = new Border
+        {
+            Padding = new Thickness(20),
+            Child = new StackPanel
+            {
+                Spacing = 14,
+                Children =
+                {
+                    new TextBlock { Text = title, FontSize = 18, FontWeight = FontWeight.Bold, Foreground = Fg },
+                    new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, Foreground = FgMuted },
+                    new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        HorizontalAlignment = HorizontalAlignment.Right,
+                        Children = { ok },
+                    },
+                },
+            },
+        };
+
+        await dlg.ShowDialog(owner);
+    }
+
     public static async Task<string?> PromptTextAsync(string title, string watermark, bool password = false, string? initial = null)
     {
         var owner = Owner;

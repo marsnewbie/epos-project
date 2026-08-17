@@ -113,6 +113,51 @@ public sealed class Shift
             : null;
 }
 
+/// <summary>
+/// Totals for one trading session, computed from the rows that carry its id.
+/// This is what an X or Z report prints.
+/// </summary>
+public sealed record ShiftTotals(
+    decimal OpeningFloat,
+    decimal CashSales,
+    decimal CardSales,
+    decimal PrepaidSales,
+    decimal OtherSales,
+    decimal CashMovements,
+    decimal OutstandingDue,
+    int OrdersPaid,
+    int OrdersOpen,
+    int OrdersVoided,
+    decimal GrossPaid,
+    decimal CashRefunds = 0,
+    decimal NonCashRefunds = 0,
+    int RefundCount = 0)
+{
+    /// <summary>
+    /// What should be in the drawer: float, plus cash taken, plus pay-ins.
+    /// <para>
+    /// <see cref="CashSales"/> is already net of cash refunds, because a refund
+    /// is stored as a negative payment — which is exactly right here. Money
+    /// handed back across the counter is money no longer in the till.
+    /// </para>
+    /// </summary>
+    public decimal ExpectedCash => Money.Round(OpeningFloat + CashSales + CashMovements);
+
+    /// <summary>What the shop kept: sales less refunds.</summary>
+    public decimal TotalTaken => Money.Round(CashSales + CardSales + PrepaidSales + OtherSales);
+
+    public decimal TotalRefunds => Money.Round(CashRefunds + NonCashRefunds);
+
+    /// <summary>
+    /// Takings before anything went back. Shown beside <see cref="TotalTaken"/>
+    /// because "we took £1,200 and refunded £45" is a different conversation from
+    /// "we took £1,155", and only one of them tells a manager to go and look.
+    /// </summary>
+    public decimal GrossSales => Money.Round(TotalTaken + TotalRefunds);
+
+    public bool HasRefunds => RefundCount > 0;
+}
+
 /// <summary>Cash added to or taken out of the drawer outside a sale.</summary>
 public sealed class CashMovement
 {

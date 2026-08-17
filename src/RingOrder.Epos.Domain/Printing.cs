@@ -225,6 +225,33 @@ public static class PrintRouting
     }
 
     /// <summary>
+    /// Devices for a document that belongs to no order — the shift reading.
+    /// <para>
+    /// Service type and channel are not consulted, because a report has neither.
+    /// A rule that narrows on them was written about tickets, and applying it
+    /// here would silently swallow the one document an owner prints by hand.
+    /// </para>
+    /// </summary>
+    public static List<Target> RouteStandalone(
+        PrintDocument document,
+        IReadOnlyList<PrintRoute> routes,
+        IReadOnlyDictionary<string, PrintDevice> devices)
+    {
+        var targets = new List<Target>();
+        foreach (var route in routes
+                     .Where(r => r.IsEnabled && r.Document == document)
+                     .OrderBy(r => r.SortOrder))
+        {
+            if (!devices.TryGetValue(route.DeviceId, out var device) || !device.IsEnabled)
+                continue;
+            if (targets.Any(t => t.Device.Id == device.Id))
+                continue;
+            targets.Add(new Target(device, route.Copies, route.FallbackDeviceId));
+        }
+        return targets;
+    }
+
+    /// <summary>
     /// A shop with no rules at all still has to print. This is what a fresh
     /// till uses until someone configures it: everything to the first device.
     /// </summary>

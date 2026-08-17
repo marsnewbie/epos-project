@@ -52,15 +52,34 @@ public partial class MainViewModel : ViewModelBase
         _clock.Start();
         ClockText = DateTime.Now.ToString("HH:mm:ss  ddd d MMM");
 
-        app.CallerId.CallReceived += (_, e) =>
-        {
+        void OnCall(object? _, CallerIdEventArgs e) =>
             Dispatcher.UIThread.Post(() =>
             {
                 Till.ApplyCallerId(e.PhoneNumber);
-                StatusText = UiText.Pick($"Caller ID: {e.PhoneNumber}", $"来电: {e.PhoneNumber}");
+                var who = string.IsNullOrWhiteSpace(e.CallerName)
+                    ? e.PhoneNumber
+                    : $"{e.CallerName} · {e.PhoneNumber}";
+                StatusText = UiText.Pick($"Caller ID: {who}", $"来电: {who}");
                 GoTill();
             });
-        };
+
+        app.CallerIdProvider.CallReceived += OnCall;
+
+        // The simulator is also subscribed when it is not the live provider, so
+        // the test call in Settings still reaches the screen on a till that has
+        // a real box attached.
+        if (!ReferenceEquals(app.CallerIdProvider, app.CallerId))
+            app.CallerId.CallReceived += OnCall;
+
+        if (app.CallerIdProvider is SerialModemCallerId serial)
+        {
+            // A withheld number is not a fault and must not look like one: the
+            // phone is ringing, there is simply nobody to look up.
+            serial.WithheldCallReceived += (_, reason) =>
+                Dispatcher.UIThread.Post(() => StatusText = reason == CallerIdWithheld.Private
+                    ? UiText.Pick("Incoming call — number withheld", "来电 — 对方隐藏号码")
+                    : UiText.Pick("Incoming call — number unavailable", "来电 — 无法获取号码"));
+        }
 
         app.OnlinePoller.OrderReceived += async (_, order) =>
         {
@@ -460,6 +479,26 @@ public partial class MainViewModel : ViewModelBase
         StatusText = UiText.Pick(
             $"Shift {shift.Number} closed — expected £{closed.ExpectedCash:0.00}, counted £{declared:0.00}, {verdict}",
             $"班次 {shift.Number} 已关 — 应有 £{closed.ExpectedCash:0.00}，实点 £{declared:0.00}，{verdict}");
+
+        // The Z reading is the point of closing a shift, so it goes on paper
+        // without being asked for. Queued, never awaited: a printer out of paper
+        // must not leave a shift half-closed, and the reading is reproducible
+        // from the rows for as long as they exist.
+        try
+        {
+            var queued = await _app.Print.PrintShiftReportAsync(_app.ShiftReports.BuildZ(shift));
+            StatusText += queued > 0
+                ? UiText.Pick(" · Z reading printing", " · Z 报表打印中")
+                : UiText.Pick(" · no printer for the Z reading", " · 无打印机，Z 报表未打");
+        }
+        catch (Exception ex)
+        {
+            // Reported, never fatal. The shift is closed and the money is
+            // counted; the paper can be reprinted from Settings.
+            AppLog.Error("shift", $"Z reading for shift {shift.Number} failed to queue", ex);
+            StatusText += UiText.Pick(" · Z reading failed — reprint from Settings",
+                " · Z 报表失败 — 可在设置中补打");
+        }
     }
 
     private async Task BootstrapOnlineAsync()

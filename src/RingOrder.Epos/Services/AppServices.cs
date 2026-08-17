@@ -29,24 +29,42 @@ public sealed class AppServices
     public RoadDistanceService RoadDistance { get; } = new();
     public RefundRepository RefundRepo { get; }
     public RefundService Refunds { get; }
+    public ShiftReportService ShiftReports { get; }
     public PrintQueue PrintQueue { get; }
     public BackupService Backups { get; }
     public PosSession Session { get; }
     public PrintService Print { get; }
     public OnlineOrderPoller OnlinePoller { get; }
+    /// <summary>
+    /// The simulator, always constructed. Settings → Hardware raises a test
+    /// call through it whatever the real provider is, so the popup can be
+    /// demonstrated on a till with no box attached.
+    /// </summary>
     public SimulatedCallerId CallerId { get; }
-    public ManualCardTerminal CardTerminal { get; }
+
+    /// <summary>The provider actually listening — the simulator, or the serial box.</summary>
+    public ICallerIdProvider CallerIdProvider { get; }
+
+    public IPaymentTerminal CardTerminal { get; }
 
     private AppSettings _cachedSettings;
 
     /// <summary>Set when the till has no catalogue yet and needs provisioning.</summary>
     public bool NeedsProvisioning { get; private set; }
 
+    /// <summary>What a restore did at this startup, when one was pending.</summary>
+    public string? RestoreOutcome { get; private set; }
+
     /// <summary>What the last bundle import did, when one happened at startup.</summary>
     public ImportReport? StartupImport { get; private set; }
 
     private AppServices()
     {
+        // Before anything opens the database. A restore requested from Settings
+        // is carried out here, on a file nothing is holding — see RestoreRequest.
+        if (RestoreRequest.ApplyPending(m => AppLog.Info("restore", m)) is { } outcome)
+            RestoreOutcome = outcome;
+
         Db = new EposDb();
         Db.Migrate(AppLog.For("db"));
         Settings = new SettingsRepository(Db);
@@ -81,14 +99,36 @@ public sealed class AppServices
                 _cachedSettings.AddressLookupProvider, _cachedSettings.AddressLookupApiKey),
             () => _cachedSettings.AddressLookupCacheEnabled);
 
-        CardTerminal = new ManualCardTerminal();
+        CardTerminal = _cachedSettings.CardTerminalMode switch
+        {
+            "simulated" => new SimulatedPaymentTerminal(),
+            _ => new ManualCardTerminal(),
+        };
+
         CallerId = new SimulatedCallerId();
+        CallerIdProvider = _cachedSettings is { CallerIdEnabled: true, CallerIdMode: "serial" }
+            ? new SerialModemCallerId(
+                _cachedSettings.CallerIdComPort,
+                _cachedSettings.CallerIdBaud,
+                message => AppLog.Warn("callerid", message))
+            : CallerId;
         OnlinePoller = new OnlineOrderPoller();
         OnlinePoller.Configure(OnlineOrderPollerOptions.FromSettings(_cachedSettings));
         Print = new PrintService(this);
         Refunds = new RefundService(this);
+        ShiftReports = new ShiftReportService(this);
         PrintQueue = new PrintQueue(PrintJobs, PrintDevices, AppLog.For("print"));
         PrintQueue.Start();
+
+        // Listening costs nothing until the phone rings, and a provider that
+        // cannot open its port retries in the background rather than failing
+        // startup — a till must open whether or not the caller box is plugged in.
+        if (!ReferenceEquals(CallerIdProvider, CallerId))
+        {
+            _ = CallerIdProvider.StartAsync().ContinueWith(
+                t => AppLog.Error("callerid", "could not start", t.Exception),
+                TaskContinuationOptions.OnlyOnFaulted);
+        }
         Backups = new BackupService(Db);
         Backups.Start();
 

@@ -264,6 +264,23 @@
             <CheckBox IsChecked="{Binding CallerIdEnabled}" Content="Enable Caller ID" Foreground="#1c1917" />
             <TextBox Classes="field" Watermark="Mode: simulate | serial" Text="{Binding CallerIdMode}" />
             <TextBox Classes="field" Watermark="COM port" Text="{Binding CallerIdCom}" />
+            <TextBlock TextWrapping="Wrap" Foreground="#57534e" FontSize="12"
+                       Text="serial drives a Caller ID box or modem on a COM port, including the virtual port a USB device presents. A withheld number shows as such rather than as a caller named P. Takes effect on restart." />
+
+            <TextBlock Text="Card terminal" FontWeight="Bold" Margin="0,12,0,0" Foreground="#1c1917" />
+            <TextBox Classes="field" Watermark="Mode: manual | simulated" Text="{Binding CardTerminalMode}" />
+            <TextBlock TextWrapping="Wrap" Foreground="#57534e" FontSize="12"
+                       Text="manual is a standalone card machine the cashier runs by hand — the till records what they say happened. simulated exercises the integrated flow, including a lost answer, with no hardware. Takes effect on restart." />
+            <StackPanel IsVisible="{Binding IsSimulatedTerminal}" Spacing="6" Margin="0,6,0,0">
+              <TextBlock TextWrapping="Wrap" Foreground="#57534e" FontSize="12"
+                         Text="Arm the next card payment to fail. A real terminal cannot be asked to decline on demand, which is why these paths otherwise reach a merchant untested." />
+              <Grid ColumnDefinitions="*,*">
+                <Button Classes="btn" Content="Next card declines" Height="40" Margin="0,0,4,0"
+                        Command="{Binding ArmCardDeclineCommand}" />
+                <Button Grid.Column="1" Classes="btn" Content="Next card loses its answer" Height="40" Margin="4,0,0,0"
+                        Command="{Binding ArmCardLostAnswerCommand}" />
+              </Grid>
+            </StackPanel>
             <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,12,0,0">
               <Button Classes="primary" Content="Test print" Command="{Binding TestPrintCommand}" Width="140" />
               <Button Classes="btn" Content="Open drawer (PIN)" Command="{Binding OpenDrawerCommand}" Width="160" Height="52" />
@@ -427,6 +444,26 @@
             </StackPanel>
             <TextBlock Text="{Binding SupportResult}" Classes="muted" TextWrapping="Wrap" />
 
+            <TextBlock Text="Restore from a backup" Classes="title" Margin="0,12,0,0" />
+            <TextBlock TextWrapping="Wrap" Foreground="#b91c1c" FontSize="12"
+                       Text="Everything taken since the backup was made is lost. The till keeps a copy of the current database first, so a restore can itself be undone. Applied on the next start, never while trading." />
+            <ListBox Classes="ticket" MaxHeight="200" ItemsSource="{Binding Backups}"
+                     SelectedItem="{Binding SelectedBackup}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:BackupRow">
+                  <Grid ColumnDefinitions="*,Auto" Margin="6,6">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Label}" Foreground="#1c1917" FontSize="13" />
+                      <TextBlock Text="{Binding Kind}" Foreground="#57534e" FontSize="11" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="{Binding Size}" Foreground="#57534e" FontSize="12" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <Button Classes="btn" Content="Restore this backup on next start" Height="44"
+                    Command="{Binding RestoreBackupCommand}" />
+
             <TextBlock Text="Tickets the printer gave up on" Classes="title" Margin="0,12,0,0"
                        IsVisible="{Binding HasFailedJobs}" />
             <TextBlock Text="Check the printer first, then send it again. These are not retried on their own — a queue that never stops is how a kitchen gets forty copies of one order."
@@ -457,8 +494,35 @@
 
         <Border Classes="panel" CornerRadius="8" Padding="16" IsVisible="{Binding IsShift}">
           <StackPanel Spacing="8">
-            <TextBlock Text="Today summary / 今日汇总" FontWeight="Bold" FontSize="18" Foreground="#1c1917" />
-            <TextBox Text="{Binding ShiftSummary}" IsReadOnly="True" AcceptsReturn="True" Classes="field" MinHeight="180" />
+            <TextBlock Text="Shift readings / 班次报表" FontWeight="Bold" FontSize="18" Foreground="#1c1917" />
+            <TextBlock TextWrapping="Wrap" Foreground="#57534e"
+                       Text="An X reading looks at the open shift and changes nothing. A Z reading is the closing account, printed automatically when the shift is closed and reprintable here at any time." />
+
+            <TextBox Text="{Binding ShiftSummary}" IsReadOnly="True" AcceptsReturn="True"
+                     Classes="field" MinHeight="240" FontFamily="Consolas,Menlo,monospace" />
+
+            <Button Classes="primary" Content="Print X reading" Height="44"
+                    Command="{Binding PrintXReadingCommand}" IsEnabled="{Binding HasOpenShiftReading}" />
+
+            <TextBlock Text="Closed shifts" FontWeight="Bold" Margin="0,8,0,0" Foreground="#1c1917" />
+            <ListBox Classes="ticket" MaxHeight="220" ItemsSource="{Binding ShiftHistory}"
+                     SelectedItem="{Binding SelectedShift}">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:ShiftHistoryRow">
+                  <Grid ColumnDefinitions="*,Auto" Margin="6,6">
+                    <TextBlock Text="{Binding Label}" Foreground="#1c1917" FontSize="13" />
+                    <TextBlock Grid.Column="1" Text="{Binding Variance}" FontSize="13" FontWeight="Bold"
+                               Foreground="{Binding IsOut, Converter={x:Static conv:BoolToVarianceBrush.Instance}}" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+            <Grid ColumnDefinitions="*,*">
+              <Button Classes="btn" Content="View reading" Height="44" Margin="0,0,4,0"
+                      Command="{Binding ViewZReadingCommand}" />
+              <Button Grid.Column="1" Classes="btn" Content="Reprint Z" Height="44" Margin="4,0,0,0"
+                      Command="{Binding ReprintZReadingCommand}" />
+            </Grid>
           </StackPanel>
         </Border>
 

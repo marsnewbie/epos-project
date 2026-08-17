@@ -16,16 +16,54 @@ installed, and we must not care which one Windows Update left them.
 One version number for every shop. Differences live in the bundle. A build made
 for one merchant is the beginning of a fleet nobody can support.
 
-## Packaging — proposed
+## Editions — decided
 
-The candidate is **Velopack**: delta updates, per-user install without
-administrator rights, and a .NET desktop story that is actively maintained. The
-alternatives considered were MSIX, which fights raw printer access and adds
-packaging friction for no gain here, and a plain Inno Setup installer, which
-leaves us writing our own updater.
+Some merchants buy the till. Some install it only to print orders from their
+RingOrder website and never ring a sale on it. **That is one binary and one
+installer, not two products** — the same rule as the shop bundle, for the same
+reason: the second build artefact is the one nobody keeps in step, and a
+print-only shop that later buys the till must not have to uninstall anything.
 
-Verify current terms and behaviour before committing — this is a decision, not a
-fact, and the tooling moves.
+The bundle carries an `edition`:
+
+- **`print`** — the web-order monitor: the order feed, printer health, reprint,
+  and the hardware, online and support settings. No Till, no shifts, no forced
+  sign-in. Lives in the tray and starts with Windows, because it sits in a
+  corner unattended and nobody is watching a full-screen window.
+- **`pos`** — everything.
+
+Most of this already works: the poller starts and prints without anyone signed
+in, because `PosSession.Stamp` uses `Staff?.Id` and a web order needs no
+cashier. What is missing is the shell, not the capability.
+
+## Packaging — decided
+
+**Velopack.** MIT, free for commercial use with no paid tier, delta updates,
+per-user install without administrator rights, actively maintained for .NET
+desktop.
+
+Checked 2026-08-16, and two of these moved since this file was first written:
+
+| Option | Licence | Cost | Verdict |
+|---|---|---|---|
+| **Velopack** | MIT | £0 | Chosen |
+| Inno Setup | free | £0 | Viable, but we write the updater, the rollback and the staged rollout |
+| WiX | **v6 requires an Open Source Maintenance Fee if you use it to generate revenue** | ask FireGiant | No longer the free option it was |
+| MSIX | free | £0 | Still rejected: fights raw printer access |
+
+### The ProgramData problem — decided
+
+Velopack's per-user install is its main attraction, and it collides with
+`LocalPaths`: the data root is `%PROGRAMDATA%\RingOrder\EPOS`, and an install
+with no administrator rights may not be able to create or write it. The fallback
+to `%LOCALAPPDATA%` then fires — which this codebase deliberately treats as a
+fault worth a loud warning, because a per-user copy is invisible to support and
+to a second Windows account.
+
+So the smoothest install path triggers the failure mode we already decided was
+bad. **First run elevates once**, does exactly one thing — create
+`C:\ProgramData\RingOrder\EPOS` and grant Users write access — and everything
+after that is per-user and silent.
 
 ## Code signing — proposed, and not optional
 
@@ -34,10 +72,36 @@ experience is a warning they were told to expect from viruses, and the call is
 "your software is broken".
 
 Since 2023, OV certificates require hardware tokens or a cloud HSM, which makes a
-cloud signing service the practical route for a small company. **Azure Trusted
-Signing** is the current candidate. Confirm eligibility, pricing and the
-organisation-verification requirements before planning around it — some
-programmes require a trading history.
+cloud signing service the practical route for a small company.
+
+**Azure Trusted Signing is now called Azure Artifact Signing.** Checked
+2026-08-16:
+
+| Route | Cost | Notes |
+|---|---|---|
+| **Azure Artifact Signing** | Basic ~$9.99/mo (5,000 signatures), Premium ~$99.99/mo | Short-lived certificates, auto-renewed, auto-timestamped, private key never held by us. The pricing page publishes no figures — confirm in the Azure pricing calculator |
+| OV certificate | ~£169–£220/yr **plus** HSM | FIPS 140 L2 key storage is mandatory: hardware token £70–£200, or cloud HSM (SSL.com eSigner ~$180/yr) |
+
+Two things that changed the calculation:
+
+- **From 2026-02-15 code signing certificates last at most one year**, so a
+  self-held certificate means repeating identity validation annually. That
+  favours the managed service.
+- **Eligibility widened.** Microsoft's current quickstart lists Public Trust
+  certificates as available to organisations in the US, Canada, the EU, **the
+  UK**, Australia, New Zealand, Japan, South Korea, Singapore, Switzerland,
+  Norway and Israel. Individual developers are US/Canada only. Earlier guidance
+  saying US/Canada organisations with three years of trading was narrower than
+  what is published now.
+
+**Still unconfirmed:** whether the three-year verifiable-history requirement
+still applies to organisations. The current prerequisites do not restate it, but
+recent Microsoft Q&A threads still show organisation validations failing on it.
+Ask Microsoft rather than planning around either answer.
+
+**Identity validation takes 1–20 business days**, possibly longer. It is a
+scheduling item, not an engineering one: start it now, because no code waits on
+it and the first real install does.
 
 Budget for this early. It gates the first real install.
 
@@ -83,8 +147,31 @@ The failure this exists for is mundane: a cheap PC's disk dies and the shop
 loses its order history and its customer phone book. Nobody thinks about it
 until the morning it happens.
 
-**Still missing:** an off-site copy, and a restore tool. Restoring today means
-stopping the till and copying a file over `data.sqlite`.
+### Restore — built
+
+Settings → Support lists every backup with its date, size and what it is
+("nightly", "taken automatically before a schema upgrade", "kept before an
+earlier restore"), and puts one back.
+
+Three things make it safe enough to hand a merchant:
+
+- **The swap happens at the next start**, before anything opens the database.
+  SQLite in WAL mode has two more files beside the main one and a pool of live
+  connections; copying over that from inside the running process produces a
+  database that is neither the backup nor the original. A restore is therefore a
+  *request* — a marker file — and a crash between asking and starting changes
+  nothing. The write-ahead files of the replaced database are deleted, or SQLite
+  replays them over the restored one and quietly undoes half the restore.
+- **The live database is kept first**, as `pre-restore-<timestamp>.sqlite`, so a
+  restore can itself be undone. "I restored the wrong day" must not be the end
+  of a shop's records.
+- **The confirmation names the damage** — "43 orders worth £912.60 have been
+  taken since it was made. They will be gone." A prompt that names no
+  consequence is one people learn to click through.
+
+**Still missing:** an off-site copy. Everything above protects against a mistake
+and a corrupt file; none of it protects against the PC being stolen or the disk
+dying, which is the failure the backups exist for in the first place.
 
 ## Supporting a shop remotely — partly built
 
@@ -110,14 +197,38 @@ bundle contained.
   each. Deliberate, never automatic: a queue that retries forever is how a
   kitchen ends up with forty copies of one order.
 
-**Still wanted, in this order:**
+- **Support scripts** — `tools/support/ringorder-support.ps1`, shipped beside the
+  executable and signed with it. Everything it reports is also in Settings →
+  Support; it exists for when that screen cannot be reached, which is exactly
+  when it is needed: the app will not start, or a remote session is being driven
+  by someone who has never seen the till.
 
-1. **Support scripts** beside the app, so the same checks run without the UI:
-   status, printer test, backup now, export diagnostics, set version.
-2. **Heartbeat** — each till reporting version, printer health, last Z report and
+  ```
+  .\ringorder-support.ps1            status, backups, recent errors
+  .\ringorder-support.ps1 Printers   queues, offline printers, stuck spooler jobs
+  .\ringorder-support.ps1 Logs       tail the current log
+  .\ringorder-support.ps1 Collect    one file to send us
+  .\ringorder-support.ps1 Backup     copy the database now
+  .\ringorder-support.ps1 Restore    queue a backup for the next start
+  ```
+
+  Read-only by default; the two commands that write say so and ask first.
+  `Backup` warns when the till is running, because a plain file copy — unlike
+  the app's `VACUUM INTO` — can catch a half-written page. `Restore` only writes
+  the marker: the swap is always done by the till at startup, never by a script
+  that cannot know who is holding the file.
+
+  It flags the things that are silent and expensive: a stale nightly backup, a
+  fallback to the per-user data folder, an offline printer, and jobs piled up in
+  the Windows spooler.
+
+**Still wanted:**
+
+1. **Heartbeat** — each till reporting version, printer health, last Z report and
    error count to a dashboard of ours. Opt-in, no personal data. Somewhere around
    twenty shops this stops being a luxury: it turns "an angry phone call" into
-   "we already knew".
+   "we already knew". Needs a server that does not exist yet.
+2. **An off-site backup copy.** See Backup above.
 
 ## The merchant's PC — not built, but write it down
 
@@ -166,8 +277,63 @@ real difference from a till that finds out when the customer complains.
 device, sets the section's station on the category, and adds a rule — no bundle
 edit, no call to us. That is the test of whether the routing model is real.
 
-## Licensing — undecided
+## Licensing — decided, and deliberately slight
 
-Worth settling before the first paying shop: is there an expiry, is there a kill
-switch, does the receipt say who it is licensed to. There are good arguments for
-recording the licence and none for silently stopping a shop from trading.
+**Do not spend effort here.** A till is not where this business is defended.
+
+The reasoning is worth stating because the obvious instinct is the wrong one. An
+EPOS is a mature, well-understood product; nothing in this codebase is a secret,
+and a competitor gains nothing from a copy of it. The till is **phase one**:
+conventional features, done properly, on the merchant's own machine. What comes
+later — and what is already true of web orders — is that **the parts worth
+protecting live in the cloud**, where access is controlled by the service and
+not by a file on a shop's PC. The till receives and prints.
+
+So licensing here records who a machine belongs to. It is not a lock, it is a
+label, and building it as anything more would be effort spent guarding the half
+that does not need guarding.
+
+**An offline signed licence file. No server, no activation, no kill switch.**
+
+The cloud licensing services were priced and rejected on architecture rather
+than on cost: Keygen (free Dev tier, self-hostable CE), Cryptolens (from ~€199),
+LicenseSpring (free basic, paid from ~$299/month). All three assume the client
+reports to a server. This till's first rule is that it sells food with the
+router unplugged, and *nothing asks permission from a server to sell food*. A
+licence check that needs the internet is a remote dependency the product has
+already refused once.
+
+Keygen CE is free and self-hostable, and is still a Rails app and a Postgres to
+run — infrastructure for a problem we do not have.
+
+### What it is
+
+A JSON licence signed with **ECDSA P-256 / SHA-256** — `System.Security.Cryptography`,
+no package, no service, no monthly cost. The public key is compiled in; the
+private key stays with us. Roughly 150 lines.
+
+It carries the merchant, the licence type, the issue date, an expiry, and the
+**edition** — which is the right home for it. `edition` in the shop bundle is a
+plain field a merchant can edit; in a signed licence it is not.
+
+### What it does not do
+
+**It never stops a shop trading.** An expired licence says so at startup and in
+Settings; the till keeps taking money. A till that downed tools on a Friday
+evening would cost more trust than the renewal it was chasing.
+
+**It does not phone home, and there is no remote kill switch.**
+
+**It is not on the receipt.** Paper is narrow and a customer does not care who
+the till is licensed to. It appears in Settings → Support and in the diagnostics
+export, which is where anyone asking the question is already looking.
+
+**It is not bound to the machine.** A hardware fingerprint breaks when a
+merchant replaces a dying PC — which happens — and generates support calls to
+defend against copying that is not a real risk in this market. The opt-in
+heartbeat would show a shop running two tills anyway: **detect, do not enforce.**
+That costs nobody a service when it is wrong.
+
+Settle before the first paying shop; nothing else waits on it. And keep it
+small — if it grows past a signature check and a line in Settings, it has become
+the thing this section says not to build.

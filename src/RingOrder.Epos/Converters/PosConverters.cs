@@ -51,6 +51,25 @@ public sealed class BoolToOpacityConverter : IValueConverter
         => throw new NotSupportedException();
 }
 
+/// <summary>
+/// A shift that did not balance is red; one that did is the ordinary text
+/// colour. Red means "broken or wrong" everywhere on this till — see
+/// INTERFACE.md — and a drawer that is out is exactly that.
+/// </summary>
+public sealed class BoolToVarianceBrush : IValueConverter
+{
+    public static BoolToVarianceBrush Instance { get; } = new();
+
+    private static readonly IBrush Out = new SolidColorBrush(Color.Parse("#b91c1c"));
+    private static readonly IBrush Balanced = new SolidColorBrush(Color.Parse("#57534e"));
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => value is true ? Out : Balanced;
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
 public sealed class InvertBoolConverter : IValueConverter
 {
     public static InvertBoolConverter Instance { get; } = new();

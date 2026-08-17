@@ -67,6 +67,20 @@ public sealed class AppSettings
     public int CallerIdBaud { get; set; } = 9600;
 
     /// <summary>
+    /// Which card terminal the till drives.
+    /// <para>
+    /// <c>manual</c> is the shipped default and is not a placeholder: most small
+    /// takeaways run a standalone terminal and tell the till it went through.
+    /// <c>simulated</c> exercises the integrated flow — including a lost answer —
+    /// without hardware. A vendor value goes here when an integration exists.
+    /// </para>
+    /// </summary>
+    public string CardTerminalMode { get; set; } = "manual"; // manual | simulated
+
+    /// <summary>Host, <c>host:port</c> or COM port, once a real terminal is driven.</summary>
+    public string CardTerminalAddress { get; set; } = "";
+
+    /// <summary>
     /// Which postcode lookup to ask, if any. Off by default: the feature costs
     /// money at every provider that can name a house number, and a till that
     /// silently starts spending a merchant's credits is not a till they trust.

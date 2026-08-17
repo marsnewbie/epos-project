@@ -103,8 +103,18 @@ somewhere else, and the once they do not is the one that goes wrong.
 someone opens Orders. Nobody is watching the screen when it arrives, so a
 notification that fades has not notified anyone.
 
+**Shift readings.** An X looks at the open shift and changes nothing; a Z is the
+closing account and prints itself when the shift is closed. Both live in
+Settings → Shift, where closed shifts are listed with their variance so the one
+night that did not balance is findable without opening anything.
+
+The reading is per **shift**, never per day. A shop trading past midnight would
+otherwise have every figure split across two dates, and one that opened twice in
+a day would have both sessions added together — and the drawer is counted per
+shift.
+
 ## Still to build
 
-- Settings sections for printers-as-devices, tax, receipt layout, backup and diagnostics
 - Keyboard shortcuts for tills with a numeric keypad
-- A Delivery screen for driver dispatch, and Reports
+- A Delivery screen for driver dispatch
+- The print-only edition's tray shell — see [DEPLOYMENT.md](DEPLOYMENT.md)
