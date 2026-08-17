@@ -28,7 +28,30 @@ public static class SchemaMigrations
         new(6, "refunds", Refunds),
         new(7, "delivery_zones", DeliveryZones),
         new(8, "delivery_miles_and_levels", DeliveryMilesAndLevels),
+        new(9, "driver_dispatch", DriverDispatch),
     ];
+
+    /// <summary>
+    /// Who took a delivery out, when it left and when it came back.
+    /// <para>
+    /// Three nullable columns on <c>orders</c> and nothing else. A run is not a
+    /// table: "what is out with Wei" is every order carrying his id with no
+    /// <c>delivered_at</c>, derived the same way shift totals are, so nothing
+    /// can accumulate into a figure that disagrees with the rows behind it.
+    /// </para>
+    /// <para>
+    /// All three are null for every existing order and for every shop that
+    /// never sends a driver, which is the point: a merchant whose deliveries all
+    /// go through Uber Eats sees nothing change.
+    /// </para>
+    /// </summary>
+    private const string DriverDispatch = """
+        ALTER TABLE orders ADD COLUMN driver_staff_id TEXT;
+        ALTER TABLE orders ADD COLUMN dispatched_at   TEXT;
+        ALTER TABLE orders ADD COLUMN delivered_at    TEXT;
+
+        CREATE INDEX idx_orders_driver ON orders(driver_staff_id) WHERE driver_staff_id IS NOT NULL;
+        """;
 
     /// <summary>
     /// Brings delivery into line with the RingOrder website.

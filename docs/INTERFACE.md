@@ -113,8 +113,17 @@ otherwise have every figure split across two dates, and one that opened twice in
 a day would have both sessions added together — and the drawer is counted per
 shift.
 
+**The delivery board.** What is in the shop, what is on the road, and how much
+of the shop's money each driver is carrying. It appears only when someone is
+graded as a driver, because plenty of merchants deliver entirely through Uber
+Eats and must never see a screen about drivers.
+
+Cash with drivers is shown in red and stated on the shift reading *below* the
+expected figure, never added into it. That money is genuinely not in the drawer,
+and a count that looks short at eleven o'clock is usually a driver who has not
+come back — a till that cannot say so sends someone looking for a thief.
+
 ## Still to build
 
 - Keyboard shortcuts for tills with a numeric keypad
-- A Delivery screen for driver dispatch
 - The print-only edition's tray shell — see [DEPLOYMENT.md](DEPLOYMENT.md)

@@ -107,6 +107,10 @@
                   Content="{Binding NavOrders}" Command="{Binding GoOrdersCommand}" />
           <Button Classes="rail" Classes.on="{Binding IsCustomersNav}"
                   Content="{Binding NavCustomers}" Command="{Binding GoCustomersCommand}" />
+          <!-- Hidden unless the shop grades someone as a driver. A merchant
+               whose deliveries all go through Uber Eats never sees it. -->
+          <Button Classes="rail" Classes.on="{Binding IsDispatchNav}" IsVisible="{Binding ShowDispatchNav}"
+                  Content="{Binding NavDispatch}" Command="{Binding GoDispatchCommand}" />
           <Button Classes="rail" Classes.on="{Binding IsSettingsNav}"
                   Content="{Binding NavSettings}" Command="{Binding GoSettingsCommand}"
                   Margin="0,16,0,0" />

@@ -457,6 +457,17 @@ public static class TicketRenderer
             .ColumnsAscii("EXPECTED", EscPos.Money(t.ExpectedCash), cols: 24)
             .Bold(false).Normal();
 
+        // Printed below the expected figure and never added into it. This money
+        // is genuinely not in the drawer; a shift that looks short at eleven is
+        // usually a driver who has not come back yet.
+        if (report.CashOutWithDrivers > 0)
+        {
+            b.Separator('-');
+            b.ColumnsAscii("Still out with drivers", EscPos.Money(report.CashOutWithDrivers));
+            foreach (var driver in report.DriversOut)
+                b.ColumnsAscii($"  {driver.Name} ({driver.Orders})", EscPos.Money(driver.CashHeld));
+        }
+
         if (report.DeclaredCash is { } counted)
         {
             b.ColumnsAscii("Counted", EscPos.Money(counted));

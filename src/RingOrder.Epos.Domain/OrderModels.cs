@@ -172,6 +172,18 @@ public sealed class PosOrder
     /// </summary>
     public List<Refund> Refunds { get; set; } = [];
 
+    /// <summary>
+    /// Driver carrying this delivery. Their name is on the money they bring
+    /// back, which is the point of recording it.
+    /// </summary>
+    public string? DriverStaffId { get; set; }
+
+    /// <summary>When it left the shop. Null means it is still on the counter.</summary>
+    public DateTimeOffset? DispatchedAt { get; set; }
+
+    /// <summary>When the driver came back and any money owed was handed over.</summary>
+    public DateTimeOffset? DeliveredAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.Now;
     public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.Now;
 

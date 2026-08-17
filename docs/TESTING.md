@@ -32,6 +32,7 @@ part of finishing a change, not an extra.
 | Caller ID | Both wire formats, that a withheld number never becomes a caller named "P", that two calls in one stream do not merge, and that a name containing a label word is not split on it |
 | Card terminal | That a lost answer is recovered by querying the reference rather than retrying the sale, that a reference the terminal never saw means nobody was charged, and that the manual terminal never pretends to know |
 | Restore | That the live database is kept before it is overwritten, that the replaced database's write-ahead files go with it, that a marker naming a missing backup does not survive to the next start, and that a restore runs once rather than at every start after |
+| Driver dispatch | That only deliveries reach the board, that a prepaid delivery puts no cash in a driver's pocket, that each driver totals separately, that a shop with no drivers sees nothing, and that a concern warns rather than blocks |
 | Local secrets | That the row written to disk does not contain the readable password, that a value stored before encryption existed still reads, that saving leaves the caller's object usable, and that an undecryptable secret comes back empty rather than as ciphertext |
 
 Test classes run one at a time — see `AssemblyInfo.cs`. The teardown in almost

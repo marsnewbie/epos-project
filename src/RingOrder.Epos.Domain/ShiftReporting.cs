@@ -56,6 +56,8 @@ public sealed record ShiftReport(
     decimal Discounts,
     decimal DeliveryFees,
     decimal Surcharges,
+    IReadOnlyList<DriverLoad> DriversOut,
+    decimal CashOutWithDrivers,
     decimal? DeclaredCash,
     decimal? Variance)
 {
@@ -160,6 +162,16 @@ public static class ShiftReportText
         if (t.CashMovements != 0) Money("Pay in / pay out", t.CashMovements);
         Money("EXPECTED IN DRAWER", t.ExpectedCash);
 
+        // Below the expected figure, not inside it: this money is genuinely not
+        // in the drawer, and adding it in would make the count look wrong.
+        if (r.CashOutWithDrivers > 0)
+        {
+            sb.AppendLine();
+            Money("Still out with drivers", r.CashOutWithDrivers);
+            foreach (var d in r.DriversOut)
+                Row($"  {d.Name} ({d.Orders})", d.CashHeld.ToString("0.00"));
+        }
+
         if (r.DeclaredCash is { } counted)
         {
             Money("Counted", counted);
@@ -224,6 +236,14 @@ public static class ShiftReportBuilder
             Discounts: Money.Round(sales.Sum(o => o.DiscountTotal)),
             DeliveryFees: Money.Round(sales.Sum(o => o.DeliveryFee)),
             Surcharges: Money.Round(sales.Sum(o => o.BelowMinimumSurcharge)),
+
+            // The one figure the drawer cannot account for by itself. A shift
+            // that looks short at eleven o'clock is usually a driver who has
+            // not come back, and a till that cannot say so sends someone
+            // looking for a thief. Empty for a shop with no drivers.
+            DriversOut: DispatchBoard.Loads(sales, staffName),
+            CashOutWithDrivers: DispatchBoard.CashOutWithDrivers(sales),
+
             DeclaredCash: shift.DeclaredCash,
             Variance: shift.Variance);
     }

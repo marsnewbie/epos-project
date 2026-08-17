@@ -50,6 +50,12 @@ public static class Permissions
     {
         StaffRole.Manager => true,
         StaffRole.Supervisor => permission is not (Permission.EditSettings or Permission.ManageStaff),
+
+        // A driver is named on deliveries and on the cash they bring back, and
+        // that is the whole of it. Falling through to the cashier default would
+        // have handed everyone with a van the till.
+        StaffRole.Driver => false,
+
         _ => permission is Permission.TakeOrders,
     };
 }

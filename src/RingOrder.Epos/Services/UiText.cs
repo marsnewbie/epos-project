@@ -30,6 +30,9 @@ public static class UiText
     public static string NavOrders => Pick("Orders", "订单");
     public static string NavOnline => Pick("Web orders", "网单");
     public static string NavCustomers => Pick("Customers", "顾客");
+    // "Delivery" rather than "Drivers": the screen is about the deliveries, and
+    // a shop with one driver still has a delivery board.
+    public static string NavDispatch => Pick("Delivery", "配送");
     public static string NavSettings => Pick("Settings", "设置");
 
     // ── Dialogs ────────────────────────────────────────────────────

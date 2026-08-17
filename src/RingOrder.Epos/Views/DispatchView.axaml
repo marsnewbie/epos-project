@@ -1,0 +1,121 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RingOrder.Epos.ViewModels"
+             xmlns:conv="using:RingOrder.Epos.Converters"
+             xmlns:domain="using:RingOrder.Epos.Domain"
+             x:Class="RingOrder.Epos.Views.DispatchView"
+             x:DataType="vm:DispatchViewModel"
+             Background="{StaticResource Page}">
+  <Grid ColumnDefinitions="*,*,320" Margin="4">
+
+    <!-- Waiting in the shop -->
+    <Border Classes="panel" CornerRadius="8" Padding="12" Margin="0,0,6,0">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="In the shop" Classes="title" Margin="0,0,0,8" />
+        <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+          <ComboBox ItemsSource="{Binding Drivers}" SelectedItem="{Binding SelectedDriver}"
+                    Height="52" HorizontalAlignment="Stretch" Margin="0,0,6,0">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="domain:StaffMember">
+                <TextBlock Text="{Binding Name}" FontSize="16" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <Button Grid.Column="1" Classes="primary" Content="Send out" Height="52" Width="140"
+                  Command="{Binding SendOutCommand}" />
+        </Grid>
+        <ScrollViewer>
+          <ItemsControl ItemsSource="{Binding Waiting}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:DispatchRow">
+                <Border Classes="panel-flat" Padding="10" Margin="0,0,0,6" CornerRadius="6">
+                  <Grid ColumnDefinitions="Auto,*">
+                    <CheckBox IsChecked="{Binding IsPicked}" VerticalAlignment="Top" Margin="0,0,8,0" />
+                    <StackPanel Grid.Column="1">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{Binding Number}" FontWeight="Bold" Foreground="#1c1917" FontSize="15" />
+                        <TextBlock Grid.Column="1" Text="{Binding Waited}" Foreground="#57534e" FontSize="12" />
+                      </Grid>
+                      <TextBlock Text="{Binding Customer}" Foreground="#1c1917" FontSize="13" />
+                      <TextBlock Text="{Binding Where}" Foreground="#57534e" FontSize="12" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding Money}" FontSize="13" FontWeight="SemiBold"
+                                 Foreground="{Binding CarriesCash, Converter={x:Static conv:BoolToVarianceBrush.Instance}}" />
+                      <TextBlock Text="{Binding Concern}" IsVisible="{Binding HasConcern}"
+                                 Foreground="#b45309" FontSize="12" TextWrapping="Wrap" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+
+    <!-- Out on the road -->
+    <Border Grid.Column="1" Classes="panel" CornerRadius="8" Padding="12" Margin="0,0,6,0">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="On the road" Classes="title" Margin="0,0,0,8" />
+        <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+          <Button Classes="cash" Content="Back — take the cash" Height="52" Margin="0,0,6,0"
+                  Command="{Binding SettleReturnCommand}" />
+          <Button Grid.Column="1" Classes="btn" Content="Recall" Height="52" Width="110"
+                  Command="{Binding RecallCommand}" />
+        </Grid>
+        <ScrollViewer>
+          <ItemsControl ItemsSource="{Binding OnTheRoad}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:DispatchRow">
+                <Border Classes="panel-flat" Padding="10" Margin="0,0,0,6" CornerRadius="6">
+                  <Grid ColumnDefinitions="Auto,*">
+                    <CheckBox IsChecked="{Binding IsPicked}" VerticalAlignment="Top" Margin="0,0,8,0" />
+                    <StackPanel Grid.Column="1">
+                      <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="{Binding Number}" FontWeight="Bold" Foreground="#1c1917" FontSize="15" />
+                        <TextBlock Grid.Column="1" Text="{Binding Waited}" Foreground="#57534e" FontSize="12" />
+                      </Grid>
+                      <TextBlock Text="{Binding DriverName}" Foreground="#c2410c" FontSize="13" FontWeight="SemiBold" />
+                      <TextBlock Text="{Binding Where}" Foreground="#57534e" FontSize="12" TextWrapping="Wrap" />
+                      <TextBlock Text="{Binding Money}" FontSize="13" FontWeight="SemiBold" Foreground="#1c1917" />
+                    </StackPanel>
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+
+    <!-- Who is holding the shop's money -->
+    <Border Grid.Column="2" Classes="panel" CornerRadius="8" Padding="12">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="Cash with drivers" Classes="title" Margin="0,0,0,8" />
+        <TextBlock DockPanel.Dock="Top" Text="{Binding CashOutSummary}" IsVisible="{Binding HasCashOut}"
+                   FontSize="20" FontWeight="Bold" Foreground="#b91c1c" Margin="0,0,0,10" TextWrapping="Wrap" />
+        <TextBlock DockPanel.Dock="Top" TextWrapping="Wrap" Foreground="#57534e" FontSize="12"
+                   Text="This money is not in the drawer. The shift reading shows it below the expected figure, so a count that looks short can be explained without going looking for a thief."
+                   Margin="0,0,0,10" />
+        <ScrollViewer>
+          <ItemsControl ItemsSource="{Binding Loads}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="domain:DriverLoad">
+                <Border Classes="panel-flat" Padding="10" Margin="0,0,0,6" CornerRadius="6">
+                  <StackPanel>
+                    <TextBlock Text="{Binding Name}" FontWeight="Bold" Foreground="#1c1917" FontSize="15" />
+                    <TextBlock FontSize="13" Foreground="#57534e">
+                      <Run Text="{Binding Orders}" /><Run Text=" delivery(s)" />
+                    </TextBlock>
+                    <TextBlock FontSize="17" FontWeight="Bold" Foreground="#b91c1c">
+                      <Run Text="£" /><Run Text="{Binding CashHeld, StringFormat={}{0:0.00}}" />
+                    </TextBlock>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+  </Grid>
+</UserControl>

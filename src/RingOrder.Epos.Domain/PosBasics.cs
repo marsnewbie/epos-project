@@ -81,6 +81,19 @@ public enum StaffRole
 
     /// <summary>Everything, including settings and menu.</summary>
     Manager,
+
+    /// <summary>
+    /// Takes deliveries out and brings the money back.
+    /// <para>
+    /// A driver is staff because they handle the shop's cash, and anything that
+    /// takes money and cannot name the person who took it is unfinished. They
+    /// are not cashiers: this role grants nothing at the till. A driver who also
+    /// works the counter is graded <see cref="Cashier"/>, and still appears on
+    /// the dispatch board — the board lists people who can be sent out, not a
+    /// rank.
+    /// </para>
+    /// </summary>
+    Driver,
 }
 
 public enum ShiftStatus

@@ -25,6 +25,7 @@ public partial class MainViewModel : ViewModelBase
             Till.LoadOrderForContinue(order);
             GoTill();
         });
+        Dispatch = new DispatchViewModel(app, SetStatus);
         Customers = new CustomersViewModel(app, SetStatus, customer =>
         {
             Till.StartDeliveryForCustomer(customer);
@@ -129,6 +130,7 @@ public partial class MainViewModel : ViewModelBase
     public TillViewModel Till { get; }
     public OrdersViewModel Orders { get; }
     public CustomersViewModel Customers { get; }
+    public DispatchViewModel Dispatch { get; }
     public SettingsViewModel SettingsVm { get; }
 
     [ObservableProperty] private bool _isLocked = true;
@@ -170,6 +172,16 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty] private bool _isTillNav = true;
     [ObservableProperty] private bool _isOrdersNav;
     [ObservableProperty] private bool _isCustomersNav;
+    [ObservableProperty] private bool _isDispatchNav;
+
+    /// <summary>
+    /// Whether this shop sends its own drivers out. Derived from whether anyone
+    /// is graded a driver, so a merchant whose deliveries all go through Uber
+    /// Eats never sees a screen about drivers, and one who hires a driver gets
+    /// it by adding them in Settings.
+    /// </summary>
+    [ObservableProperty] private bool _showDispatchNav;
+    [ObservableProperty] private string _navDispatch = "Delivery";
     [ObservableProperty] private bool _isSettingsNav;
 
     [RelayCommand]
@@ -198,6 +210,9 @@ public partial class MainViewModel : ViewModelBase
     });
 
     [RelayCommand]
+    private void GoDispatch() => Navigate("dispatch", Dispatch, UiText.NavDispatch, Dispatch.Refresh);
+
+    [RelayCommand]
     private void GoSettings() => Navigate("settings", SettingsVm, UiText.NavSettings, () =>
     {
         SettingsVm.RefreshUiLabels();
@@ -214,6 +229,7 @@ public partial class MainViewModel : ViewModelBase
         IsTillNav = key == "till";
         IsOrdersNav = key == "orders";
         IsCustomersNav = key == "customers";
+        IsDispatchNav = key == "dispatch";
         IsSettingsNav = key == "settings";
         SectionTitle = title;
         CurrentPage = page;
@@ -258,6 +274,8 @@ public partial class MainViewModel : ViewModelBase
         NavTill = UiText.NavTill;
         NavOrders = UiText.NavOrders;
         NavCustomers = UiText.NavCustomers;
+        NavDispatch = UiText.NavDispatch;
+        ShowDispatchNav = _app.Dispatch.ShopUsesOwnDrivers();
         NavSettings = UiText.NavSettings;
         LblLanguage = UiText.LanguageToggle;
         LblDrawer = UiText.Drawer;

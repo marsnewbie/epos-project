@@ -30,6 +30,7 @@ public sealed class AppServices
     public RefundRepository RefundRepo { get; }
     public RefundService Refunds { get; }
     public ShiftReportService ShiftReports { get; }
+    public DispatchService Dispatch { get; }
     public PrintQueue PrintQueue { get; }
     public BackupService Backups { get; }
     public PosSession Session { get; }
@@ -125,6 +126,7 @@ public sealed class AppServices
         Print = new PrintService(this);
         Refunds = new RefundService(this);
         ShiftReports = new ShiftReportService(this);
+        Dispatch = new DispatchService(this);
         PrintQueue = new PrintQueue(PrintJobs, PrintDevices, AppLog.For("print"));
         PrintQueue.Start();
 

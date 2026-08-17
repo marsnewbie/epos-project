@@ -33,12 +33,14 @@ public sealed class OrderRepository
                   subtotal_pence,delivery_fee_pence,discount_total_pence,discount_reason,below_minimum_pence,total_pence,
                   notes,requested_for,fulfilment_label,payment_label,ticket_footer,
                   online_external_id,online_payload,kitchen_printed,front_printed,online_acked,
+                  driver_staff_id,dispatched_at,delivered_at,
                   created_at,updated_at)
                 VALUES(
                   $id,$on,$svc,$ch,$pn,$cw,$st,$term,$staff,$shift,
                   $cid,$cn,$cp,$da,$dp,$tn,$hl,$vr,
                   $sub,$df,$disc,$dreason,$bms,$tot,
-                  $notes,$rf,$fl,$pl,$tf,$oe,$op,$kp,$fp,$oa,$ca,$ua)
+                  $notes,$rf,$fl,$pl,$tf,$oe,$op,$kp,$fp,$oa,
+                  $drv,$disp,$deliv,$ca,$ua)
                 ON CONFLICT(id) DO UPDATE SET
                   order_number=excluded.order_number,
                   service_type=excluded.service_type,
@@ -73,6 +75,9 @@ public sealed class OrderRepository
                   kitchen_printed=excluded.kitchen_printed,
                   front_printed=excluded.front_printed,
                   online_acked=excluded.online_acked,
+                  driver_staff_id=excluded.driver_staff_id,
+                  dispatched_at=excluded.dispatched_at,
+                  delivered_at=excluded.delivered_at,
                   updated_at=excluded.updated_at
                 """;
             Bind(cmd, order);
@@ -364,6 +369,9 @@ public sealed class OrderRepository
         cmd.Parameters.AddWithValue("$kp", o.KitchenPrinted ? 1 : 0);
         cmd.Parameters.AddWithValue("$fp", o.FrontPrinted ? 1 : 0);
         cmd.Parameters.AddWithValue("$oa", o.OnlineAcked ? 1 : 0);
+        cmd.Parameters.AddWithValue("$drv", (object?)o.DriverStaffId ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$disp", (object?)o.DispatchedAt?.ToString("o") ?? DBNull.Value);
+        cmd.Parameters.AddWithValue("$deliv", (object?)o.DeliveredAt?.ToString("o") ?? DBNull.Value);
         cmd.Parameters.AddWithValue("$ca", o.CreatedAt.ToString("o"));
         cmd.Parameters.AddWithValue("$ua", o.UpdatedAt.ToString("o"));
     }
@@ -406,6 +414,9 @@ public sealed class OrderRepository
             FulfilmentLabel = SN("fulfilment_label"),
             PaymentLabel = SN("payment_label"),
             TicketFooter = SN("ticket_footer"),
+            DriverStaffId = SN("driver_staff_id"),
+            DispatchedAt = SN("dispatched_at") is { } sent ? DateTimeOffset.Parse(sent) : null,
+            DeliveredAt = SN("delivered_at") is { } done ? DateTimeOffset.Parse(done) : null,
             OnlineExternalId = SN("online_external_id"),
             OnlinePayload = SN("online_payload"),
             KitchenPrinted = B("kitchen_printed"),

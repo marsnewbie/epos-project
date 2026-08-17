@@ -1102,3 +1102,55 @@ light reads the queue. But nothing had told anyone that Windows was holding
 them, which is precisely the silent, expensive failure the script was written
 for. It found one on its first run, on our own machine, before any merchant had
 it.
+
+---
+
+## 2026-08-17 — The delivery board, and the money that is not in the drawer
+
+`INTERFACE.md` had listed "a Delivery screen for driver dispatch" since the
+interface work. Built, and it turned out to close a hole in the shift reading
+made a day earlier.
+
+**The gap.** Cash that goes out with a driver is neither in the drawer nor a
+completed sale. A shift that looks £60 short at eleven o'clock is usually a
+driver who has not come back yet, and a till that cannot say so sends someone
+looking for a thief. The Z reading now states it **below** the expected figure
+and never inside it — that money is genuinely not in the till, and folding it in
+would make an honest count look wrong.
+
+**Both kinds of merchant run the same binary.** Some shops employ drivers; some
+deliver entirely through Uber Eats and Deliveroo. The board appears only when
+someone is graded a driver — derived from the staff list rather than from a
+setting, so a merchant who hires a driver gets the screen by adding them, and one
+who never will never sees a screen about drivers. Nothing configured behaves
+exactly as before.
+
+**A prepaid delivery puts no cash in a driver's pocket.** Web and marketplace
+orders were paid at checkout, so the driver carries food and not money. Counting
+the order total would have shown every driver owing the shop the price of their
+whole round. `CashToCollect` is the unpaid balance, never the total.
+
+**Drivers are staff.** They carry the shop's cash and anything that takes money
+and cannot name the person who took it is unfinished. `StaffRole.Driver` grants
+**nothing** at the till, though — falling through to the cashier default would
+have handed everyone with a van the till, which the permission switch now says
+explicitly rather than by omission.
+
+**Settling names two people.** The tender is stamped with whoever is signed in
+(who received the money) while the order keeps the driver who collected it.
+Those are usually different people, and "the drawer is short" needs to tell them
+apart.
+
+**A run is not a table.** Three nullable columns on `orders` — driver, out, back
+— and "what is Wei carrying" is derived from them, the same way shift totals are
+summed rather than accumulated. Nothing can drift from the rows behind it.
+
+**Concerns warn and never block.** Sending an order the kitchen has not printed,
+or one with no address, says so on the row and sends it anyway. Same rule as a
+delivery minimum: the person holding the bag can see things the till cannot, and
+a rule staff work around loses the record along with the sale.
+
+Migration 9 adds the three columns, all null for every existing order and for
+every shop that never sends a driver.
+
+259 tests.
