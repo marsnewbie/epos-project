@@ -1154,3 +1154,48 @@ Migration 9 adds the three columns, all null for every existing order and for
 every shop that never sends a driver.
 
 259 tests.
+
+---
+
+## 2026-08-17 — The unclicked screens, and the cheapest thing that was never switched on
+
+Five screens had been shipped without anyone pressing a button on them. The
+first move was not to write tests.
+
+**Every view already declared `x:DataType`, and nothing was checking it.**
+`AvaloniaUseCompiledBindingsByDefault` was never set, so those declarations only
+fed IntelliSense: bindings still resolved by reflection at runtime and a wrong
+name did nothing, quietly, on a screen nobody had opened. One line in the csproj
+turns the whole class of fault into a build error across all six views at once —
+far more coverage than any test written by hand, and it was free.
+
+**It found a real one immediately.** The Orders list bound to
+`PosOrder.OrderType`, a property removed in the schema rebuild when
+`ServiceType` and `OrderChannel` were split. That line has been rendering a
+blank on the orders list ever since, for two days of use, and nothing said so.
+
+The other twenty-eight complaints were not faults: `{Binding DataContext.X,
+ElementName=Root}` reaches the parent view model correctly at runtime, but the
+compiler cannot know the type behind an element reference. They are now
+`{Binding #Root.((vm:SettingsViewModel)DataContext).X}` — the cast is what makes
+them checkable. This also resolves a note from the postcode-lookup work, which
+recorded parent-relative command bindings as unverifiable; they are verifiable,
+with the type spelled out.
+
+**Then headless tests**, for what a compiler cannot reach. `ViewLoadTests`
+builds each screen with the real `App`, real styles and real tokens, shows it and
+lays it out.
+
+`AppServices` no longer starts unless there is a desktop lifetime to show a
+window in. That is right on its own terms — nothing should open the shop's
+database, start print workers or poll a merchant's website when there is no till
+on screen — and it is what lets the tests load the real application without
+touching the live database.
+
+**A limit, checked rather than assumed.** These tests catch anything that
+*throws*. They do not catch a missing `StaticResource`: Avalonia leaves the
+property at its default and logs. Proven by pointing a view at a brush that does
+not exist and watching the test go green, then correcting the comment that had
+claimed otherwise. Colours are still checked by looking.
+
+265 tests.

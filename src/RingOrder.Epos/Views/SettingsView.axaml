@@ -75,7 +75,7 @@
                                    ShowButtonSpinner="False" />
                     <CheckBox Grid.Column="5" IsChecked="{Binding IsActive}" VerticalAlignment="Center" />
                     <Button Grid.Column="6" Classes="btn" Content="✕" Width="34" Height="44" Padding="0"
-                            Command="{Binding DataContext.RemoveDeliveryZoneCommand, ElementName=Root}"
+                            Command="{Binding #Root.((vm:SettingsViewModel)DataContext).RemoveDeliveryZoneCommand}"
                             CommandParameter="{Binding}" />
                   </Grid>
                 </DataTemplate>
@@ -159,7 +159,7 @@
                     <StackPanel Spacing="6">
                       <Grid ColumnDefinitions="*,170,Auto">
                         <TextBox Classes="field" Watermark="Name, e.g. Kitchen" Text="{Binding Name}" Margin="0,0,8,0" />
-                        <ComboBox Grid.Column="1" ItemsSource="{Binding DataContext.Transports, ElementName=Root}"
+                        <ComboBox Grid.Column="1" ItemsSource="{Binding #Root.((vm:SettingsViewModel)DataContext).Transports}"
                                   SelectedItem="{Binding Transport}" Height="44"
                                   HorizontalAlignment="Stretch" Margin="0,0,8,0" />
                         <CheckBox Grid.Column="2" IsChecked="{Binding IsEnabled}" Content="On"
@@ -180,13 +180,13 @@
 
                       <Grid ColumnDefinitions="*,*,*">
                         <Button Classes="btn" Content="Save" Margin="0,0,6,0"
-                                Command="{Binding DataContext.SavePrinterCommand, ElementName=Root}"
+                                Command="{Binding #Root.((vm:SettingsViewModel)DataContext).SavePrinterCommand}"
                                 CommandParameter="{Binding}" />
                         <Button Grid.Column="1" Classes="primary" Content="Test print" Margin="0,0,6,0"
-                                Command="{Binding DataContext.TestPrinterCommand, ElementName=Root}"
+                                Command="{Binding #Root.((vm:SettingsViewModel)DataContext).TestPrinterCommand}"
                                 CommandParameter="{Binding}" />
                         <Button Grid.Column="2" Classes="btn" Content="Remove"
-                                Command="{Binding DataContext.DeletePrinterCommand, ElementName=Root}"
+                                Command="{Binding #Root.((vm:SettingsViewModel)DataContext).DeletePrinterCommand}"
                                 CommandParameter="{Binding}" />
                       </Grid>
                     </StackPanel>
@@ -238,10 +238,10 @@
 
                       <Grid ColumnDefinitions="*,*">
                         <Button Classes="btn" Content="Save rule" Margin="0,0,6,0"
-                                Command="{Binding DataContext.SaveRouteCommand, ElementName=Root}"
+                                Command="{Binding #Root.((vm:SettingsViewModel)DataContext).SaveRouteCommand}"
                                 CommandParameter="{Binding}" />
                         <Button Grid.Column="1" Classes="btn" Content="Remove rule"
-                                Command="{Binding DataContext.DeleteRouteCommand, ElementName=Root}"
+                                Command="{Binding #Root.((vm:SettingsViewModel)DataContext).DeleteRouteCommand}"
                                 CommandParameter="{Binding}" />
                       </Grid>
                     </StackPanel>
@@ -324,21 +324,21 @@
                         </StackPanel>
 
                         <ComboBox Grid.Column="1"
-                                  ItemsSource="{Binding DataContext.StaffRoles, ElementName=Root}"
+                                  ItemsSource="{Binding #Root.((vm:SettingsViewModel)DataContext).StaffRoles}"
                                   SelectedItem="{Binding SelectedRole}" Height="44"
                                   HorizontalAlignment="Stretch" Margin="0,0,8,0" />
 
                         <Button Grid.Column="2" Classes="btn" Content="Save role" Width="110"
                                 Margin="0,0,8,0"
-                                Command="{Binding DataContext.SetStaffRoleCommand, ElementName=Root}"
+                                Command="{Binding #Root.((vm:SettingsViewModel)DataContext).SetStaffRoleCommand}"
                                 CommandParameter="{Binding}" />
 
                         <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8">
                           <Button Classes="btn" Content="Change PIN" Width="130"
-                                  Command="{Binding DataContext.ChangeStaffPinCommand, ElementName=Root}"
+                                  Command="{Binding #Root.((vm:SettingsViewModel)DataContext).ChangeStaffPinCommand}"
                                   CommandParameter="{Binding}" />
                           <Button Classes="btn" Content="{Binding ActiveLabel}" Width="120"
-                                  Command="{Binding DataContext.ToggleStaffActiveCommand, ElementName=Root}"
+                                  Command="{Binding #Root.((vm:SettingsViewModel)DataContext).ToggleStaffActiveCommand}"
                                   CommandParameter="{Binding}" />
                         </StackPanel>
                       </Grid>
@@ -482,7 +482,7 @@
                         <TextBlock Text="{Binding Error}" Classes="muted" TextWrapping="Wrap" />
                       </StackPanel>
                       <Button Grid.Column="1" Classes="primary" Content="Send again" Width="150"
-                              Command="{Binding DataContext.RetryFailedJobCommand, ElementName=Root}"
+                              Command="{Binding #Root.((vm:SettingsViewModel)DataContext).RetryFailedJobCommand}"
                               CommandParameter="{Binding}" />
                     </Grid>
                   </Border>
@@ -541,7 +541,7 @@
                     <TextBox Classes="field" Text="{Binding En}" Margin="0,0,6,0" />
                     <TextBox Grid.Column="1" Classes="field" Text="{Binding Zh}" Margin="0,0,6,0" />
                     <Button Grid.Column="2" Classes="btn" Content="Del"
-                            Command="{Binding DataContext.RemoveNoteCommand, ElementName=Root}"
+                            Command="{Binding #Root.((vm:SettingsViewModel)DataContext).RemoveNoteCommand}"
                             CommandParameter="{Binding}" Width="64" Height="40" />
                   </Grid>
                 </DataTemplate>
@@ -714,15 +714,15 @@
                                 <StackPanel Spacing="6">
                                   <Grid ColumnDefinitions="*,Auto">
                                     <TextBox Classes="field" Text="{Binding Name}" Watermark="Group name" Margin="0,0,6,0" />
-                                    <Button Grid.Column="1" Classes="btn" Content="{Binding DataContext.LblRemove, ElementName=Root}"
-                                            Command="{Binding DataContext.RemoveOptionGroupCommand, ElementName=Root}"
+                                    <Button Grid.Column="1" Classes="btn" Content="{Binding #Root.((vm:SettingsViewModel)DataContext).LblRemove}"
+                                            Command="{Binding #Root.((vm:SettingsViewModel)DataContext).RemoveOptionGroupCommand}"
                                             CommandParameter="{Binding}" Width="80" Height="34" FontSize="11" Margin="0" />
                                   </Grid>
                                   <Grid ColumnDefinitions="*,Auto,70,70">
-                                    <ComboBox ItemsSource="{Binding DataContext.OptionTypeChoices, ElementName=Root}"
+                                    <ComboBox ItemsSource="{Binding #Root.((vm:SettingsViewModel)DataContext).OptionTypeChoices}"
                                               SelectedItem="{Binding SelectedType}" Height="34" Margin="0,0,6,0" />
                                     <CheckBox Grid.Column="1" IsChecked="{Binding Required}"
-                                              Content="{Binding DataContext.LblRequired, ElementName=Root}"
+                                              Content="{Binding #Root.((vm:SettingsViewModel)DataContext).LblRequired}"
                                               Foreground="#1c1917" VerticalAlignment="Center" Margin="0,0,8,0" />
                                     <TextBox Grid.Column="2" Classes="field" Text="{Binding MinText}" Watermark="Min"
                                              IsVisible="{Binding IsMulti}" Margin="0,0,4,0" />
@@ -732,13 +732,13 @@
                                   <TextBlock Text="Show when (conditional)" FontSize="11" Foreground="#5b6472" />
                                   <ComboBox ItemsSource="{Binding ParentGroupOptions}" SelectedItem="{Binding SelectedShowWhen}"
                                             Height="34" />
-                                  <Button Classes="btn" Content="Refresh conditional list" Command="{Binding DataContext.RefreshShowWhenCommand, ElementName=Root}"
+                                  <Button Classes="btn" Content="Refresh conditional list" Command="{Binding #Root.((vm:SettingsViewModel)DataContext).RefreshShowWhenCommand}"
                                           Height="32" HorizontalAlignment="Left" Width="180" FontSize="11" />
 
                                   <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
-                                    <TextBlock Text="{Binding DataContext.LblChoices, ElementName=Root}" FontWeight="SemiBold" Foreground="#c2410c" VerticalAlignment="Center" />
-                                    <Button Grid.Column="1" Classes="btn" Content="{Binding DataContext.LblAddChoice, ElementName=Root}"
-                                            Command="{Binding DataContext.AddChoiceCommand, ElementName=Root}"
+                                    <TextBlock Text="{Binding #Root.((vm:SettingsViewModel)DataContext).LblChoices}" FontWeight="SemiBold" Foreground="#c2410c" VerticalAlignment="Center" />
+                                    <Button Grid.Column="1" Classes="btn" Content="{Binding #Root.((vm:SettingsViewModel)DataContext).LblAddChoice}"
+                                            Command="{Binding #Root.((vm:SettingsViewModel)DataContext).AddChoiceCommand}"
                                             CommandParameter="{Binding}" MinWidth="90" Height="32" FontSize="11" />
                                   </Grid>
                                   <ItemsControl ItemsSource="{Binding Choices}">
@@ -751,7 +751,7 @@
                                               <TextBox Grid.Column="1" Classes="field" Text="{Binding KitchenName}" Watermark="中文" Margin="0,0,4,0" />
                                               <TextBox Grid.Column="2" Classes="field" Text="{Binding PriceDeltaText}" Watermark="+£ / 0" Margin="0,0,4,0" />
                                               <Button Grid.Column="3" Classes="btn" Content="×"
-                                                      Command="{Binding DataContext.RemoveChoiceCommand, ElementName=Root}"
+                                                      Command="{Binding #Root.((vm:SettingsViewModel)DataContext).RemoveChoiceCommand}"
                                                       CommandParameter="{Binding}" Width="36" Height="32" Margin="0" />
                                             </Grid>
                                             <StackPanel Orientation="Horizontal" Spacing="12">

@@ -50,7 +50,7 @@
                 <StackPanel>
                   <TextBlock FontWeight="Bold" FontSize="15" Foreground="#1c1917" Text="{Binding OrderNumber}" />
                   <TextBlock FontSize="12" Foreground="#c2410c" Margin="0,2,0,0">
-                    <Run Text="{Binding OrderType}" />
+                    <Run Text="{Binding ServiceType}" />
                     <Run Text=" · " />
                     <Run Text="{Binding Status}" />
                   </TextBlock>

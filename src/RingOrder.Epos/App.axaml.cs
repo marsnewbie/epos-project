@@ -18,10 +18,14 @@ public partial class App : Application
     {
         try
         {
-            var services = AppServices.Start();
-
+            // Nothing is started unless there is a window to show it in. A
+            // headless host — the UI tests — loads this application for its
+            // styles and tokens, and must not open the live shop database,
+            // start print workers or begin polling a merchant's website.
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
+                var services = AppServices.Start();
+
                 desktop.MainWindow = new MainWindow
                 {
                     DataContext = new MainViewModel(services),

@@ -35,6 +35,34 @@ part of finishing a change, not an extra.
 | Driver dispatch | That only deliveries reach the board, that a prepaid delivery puts no cash in a driver's pocket, that each driver totals separately, that a shop with no drivers sees nothing, and that a concern warns rather than blocks |
 | Local secrets | That the row written to disk does not contain the readable password, that a value stored before encryption existed still reads, that saving leaves the caller's object usable, and that an undecryptable secret comes back empty rather than as ciphertext |
 
+## What the compiler checks
+
+**Bindings are compiled** (`AvaloniaUseCompiledBindingsByDefault`). Every view
+declares `x:DataType`, so a wrong property or command name is a **build error**
+rather than a binding that silently does nothing on a screen nobody has opened.
+Turning this on found one: the Orders list had bound to `PosOrder.OrderType`,
+removed when `ServiceType` and `OrderChannel` were split apart, and had been
+rendering a blank ever since.
+
+Reaching the parent view model from inside an item template is written
+`{Binding #Root.((vm:SettingsViewModel)DataContext).SaveThingCommand}`. The cast
+is what makes it checkable; the older `ElementName=Root` form was not.
+
+## Headless UI tests
+
+`ViewLoadTests` builds every screen with the real `App`, real styles and real
+tokens, and lays it out — no display needed. It catches anything that *throws*
+while a screen is constructed or arranged.
+
+It does **not** catch a missing `StaticResource`: Avalonia leaves the property at
+its default and logs, so the view still loads. That was checked rather than
+assumed, by pointing a view at a brush that does not exist and watching the test
+stay green. Colours are still a thing you check by looking.
+
+The headless application never starts `AppServices`, because there is no desktop
+lifetime in a test — a UI test that opened the live shop database would be the
+defect this project has already had twice.
+
 Test classes run one at a time — see `AssemblyInfo.cs`. The teardown in almost
 every class clears the SQLite pool process-wide, which is fine serially and a
 race in parallel.

@@ -11,6 +11,9 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <!-- Real controls, real bindings, real styles, no display. Version pinned to
+         the Avalonia the app uses; a mismatch loads two copies of the framework. -->
+    <PackageReference Include="Avalonia.Headless.XUnit" Version="11.2.5" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,6 +21,7 @@
     <ProjectReference Include="..\..\src\RingOrder.Epos.Domain\RingOrder.Epos.Domain.csproj" />
     <ProjectReference Include="..\..\src\RingOrder.Epos.Hardware\RingOrder.Epos.Hardware.csproj" />
     <ProjectReference Include="..\..\src\RingOrder.Epos.Online\RingOrder.Epos.Online.csproj" />
+    <ProjectReference Include="..\..\src\RingOrder.Epos\RingOrder.Epos.csproj" />
   </ItemGroup>
 
   <ItemGroup>
