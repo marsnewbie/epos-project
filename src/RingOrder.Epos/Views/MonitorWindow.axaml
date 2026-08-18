@@ -1,0 +1,81 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:RingOrder.Epos.ViewModels"
+        xmlns:domain="using:RingOrder.Epos.Domain"
+        x:Class="RingOrder.Epos.Views.MonitorWindow"
+        x:Name="Root"
+        x:DataType="vm:MonitorViewModel"
+        Title="RingOrder — web orders"
+        Width="720" Height="620"
+        Background="{StaticResource Page}">
+  <Grid RowDefinitions="Auto,Auto,*" Margin="12">
+
+    <!-- The two things that fail silently, permanently visible. -->
+    <Border Classes="panel" CornerRadius="8" Padding="14">
+      <StackPanel Spacing="6">
+        <TextBlock Text="{Binding ShopName}" FontWeight="Bold" FontSize="20" Foreground="#1c1917" />
+        <Grid ColumnDefinitions="Auto,*">
+          <Ellipse Width="12" Height="12" VerticalAlignment="Center" Margin="0,0,8,0"
+                   Fill="{Binding FeedOn, Converter={x:Static vm:MonitorBrushes.OnOff}}" />
+          <TextBlock Grid.Column="1" Text="{Binding FeedLabel}" FontSize="15" Foreground="#1c1917" />
+        </Grid>
+        <Grid ColumnDefinitions="Auto,*">
+          <Ellipse Width="12" Height="12" VerticalAlignment="Center" Margin="0,0,8,0"
+                   Fill="{Binding PrintersHealthy, Converter={x:Static vm:MonitorBrushes.OnOff}}" />
+          <TextBlock Grid.Column="1" Text="{Binding PrinterLabel}" FontSize="15" Foreground="#1c1917" />
+        </Grid>
+        <TextBlock Text="{Binding Status}" Foreground="#57534e" FontSize="12" TextWrapping="Wrap" />
+        <Button Classes="btn" Content="Pause / resume receiving" Height="44"
+                HorizontalAlignment="Left" Command="{Binding ToggleFeedCommand}" Margin="0,4,0,0" />
+      </StackPanel>
+    </Border>
+
+    <!-- The one thing that goes wrong. -->
+    <Border Grid.Row="1" Classes="panel" CornerRadius="8" Padding="14" Margin="0,10,0,0"
+            IsVisible="{Binding HasFailed}">
+      <StackPanel Spacing="6">
+        <TextBlock Text="Tickets the printer gave up on" FontWeight="Bold" FontSize="16"
+                   Foreground="#b91c1c" />
+        <ItemsControl ItemsSource="{Binding Failed}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="domain:PrintJob">
+              <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                <StackPanel>
+                  <TextBlock Text="{Binding OrderNumber}" FontWeight="SemiBold" Foreground="#1c1917" />
+                  <TextBlock Text="{Binding Error}" Foreground="#57534e" FontSize="12" TextWrapping="Wrap" />
+                </StackPanel>
+                <Button Grid.Column="1" Classes="primary" Content="Print again" Height="40"
+                        Command="{Binding #Root.((vm:MonitorViewModel)DataContext).ReprintCommand}"
+                        CommandParameter="{Binding}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+
+    <Border Grid.Row="2" Classes="panel" CornerRadius="8" Padding="14" Margin="0,10,0,0">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Top" Text="Recent web orders" FontWeight="Bold" FontSize="16"
+                   Foreground="#1c1917" Margin="0,0,0,8" />
+        <ScrollViewer>
+          <ItemsControl ItemsSource="{Binding Recent}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="domain:PosOrder">
+                <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+                  <StackPanel>
+                    <TextBlock Text="{Binding OrderNumber}" FontWeight="SemiBold" Foreground="#1c1917" />
+                    <TextBlock Text="{Binding CustomerName}" Foreground="#57534e" FontSize="12" />
+                  </StackPanel>
+                  <TextBlock Grid.Column="1" Foreground="#57534e" FontSize="12" VerticalAlignment="Center">
+                    <Run Text="{Binding ServiceType}" />
+                  </TextBlock>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+      </DockPanel>
+    </Border>
+  </Grid>
+</Window>

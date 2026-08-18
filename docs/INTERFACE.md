@@ -123,7 +123,30 @@ expected figure, never added into it. That money is genuinely not in the drawer,
 and a count that looks short at eleven o'clock is usually a driver who has not
 come back — a till that cannot say so sends someone looking for a thief.
 
+**The keyboard, on a till that has one.** Digits from either number row build
+the dish-number entry, `*` is the quantity separator so `3*88` is three of dish
+88, Enter adds, Escape clears — or closes the options panel first, since that is
+the thing most recently opened. `+` and `-` change the quantity on the selected
+line, because those keys sit either side of Enter where the hand already is.
+
+**Nothing fires while a field has the keyboard.** A cashier entering a house
+number or a phone number is typing digits, and a shortcut layer that swallowed
+them would put the customer's address in the dish-number box and drop it from
+the ticket without a word. Focus decides, asked of the focused control rather
+than tracked as state — state goes out of step with focus exactly once, and then
+the address field eats nothing for the rest of the shift.
+
+**The print-only edition lives in the tray.** It is a machine in a corner that
+nobody watches, so a full-screen till would be minimised on the first day and
+after that nobody could tell whether it was still running — which is the state
+that loses a shop its orders. Closing its window hides it; quitting is a
+deliberate choice from the tray menu, and the menu item says what quitting
+costs.
+
+Its whole interface is two lights and one button: whether orders are arriving,
+whether the printers are ready, and reprint for the one thing that goes wrong.
+
 ## Still to build
 
-- Keyboard shortcuts for tills with a numeric keypad
-- The print-only edition's tray shell — see [DEPLOYMENT.md](DEPLOYMENT.md)
+Nothing outstanding here. New work starts from [DEPLOYMENT.md](DEPLOYMENT.md) —
+packaging and the signed licence.

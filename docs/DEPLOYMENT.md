@@ -32,9 +32,19 @@ The bundle carries an `edition`:
   corner unattended and nobody is watching a full-screen window.
 - **`pos`** — everything.
 
-Most of this already works: the poller starts and prints without anyone signed
-in, because `PosSession.Stamp` uses `Staff?.Id` and a web order needs no
-cashier. What is missing is the shell, not the capability.
+**Built.** The poller already printed without anyone signed in — `PosSession.Stamp`
+uses `Staff?.Id` and a web order needs no cashier — so what was missing was the
+shell, not the capability. `edition: "print"` now starts a tray icon and a
+monitor window instead of the till: two lights (orders arriving, printers ready)
+and a reprint button. Closing the window hides it; quitting is deliberate, from
+the tray menu, and the menu item says what quitting costs.
+
+An unrecognised edition falls to the **full till**. A typo that quietly
+downgraded a paying shop would take their till away mid-service; one that leaves
+a print-only machine with a Till tab it never opens costs nobody a service.
+
+**Still needed from the installer:** auto-start at login, and restart-on-crash.
+The application cannot arrange either for itself.
 
 ## Packaging — decided
 

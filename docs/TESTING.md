@@ -33,6 +33,8 @@ part of finishing a change, not an extra.
 | Card terminal | That a lost answer is recovered by querying the reference rather than retrying the sale, that a reference the terminal never saw means nobody was charged, and that the manual terminal never pretends to know |
 | Restore | That the live database is kept before it is overwritten, that the replaced database's write-ahead files go with it, that a marker naming a missing backup does not survive to the next start, and that a restore runs once rather than at every start after |
 | Driver dispatch | That only deliveries reach the board, that a prepaid delivery puts no cash in a driver's pocket, that each driver totals separately, that a shop with no drivers sees nothing, and that a concern warns rather than blocks |
+| Till keyboard | That both number rows key a dish, that the keypad keys map to what sits beside them, and — the one that matters — that **nothing fires while a text field has focus**, so an address is never eaten by the dish-number box |
+| Editions | That `print` is recognised however it is spelled, and that anything unrecognised falls to the full till rather than silently downgrading a paying shop |
 | Local secrets | That the row written to disk does not contain the readable password, that a value stored before encryption existed still reads, that saving leaves the caller's object usable, and that an undecryptable secret comes back empty rather than as ciphertext |
 
 ## What the compiler checks

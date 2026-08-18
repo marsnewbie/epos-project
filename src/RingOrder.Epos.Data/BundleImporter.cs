@@ -339,6 +339,7 @@ public sealed class BundleImporter
 
     private static void ApplyToSettings(AppSettings settings, ShopBundle bundle, ShopSecrets? secrets)
     {
+        settings.Edition = ShopEdition.Normalise(bundle.Edition);
         settings.ShopName = bundle.Shop.Name;
         settings.ShopAddress = bundle.Shop.Address ?? "";
         settings.ShopPostcode = bundle.Shop.Postcode ?? "";

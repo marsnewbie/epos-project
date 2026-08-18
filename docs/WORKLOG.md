@@ -1199,3 +1199,58 @@ not exist and watching the test go green, then correcting the comment that had
 claimed otherwise. Colours are still checked by looking.
 
 265 tests.
+
+---
+
+## 2026-08-17 — The keyboard, and the machine in the corner
+
+The last two items on the interface list.
+
+### The keyboard
+
+The screen has taken `88` and `3x88` since the interface work, but only through
+an on-screen box. A shop with a numeric keypad should not have to reach for the
+glass to use what it already has.
+
+Digits from either number row build the entry, `*` is the quantity separator,
+Enter adds, Escape clears — or closes the options panel first, that being the
+thing most recently opened. `+` and `-` change the quantity on the selected
+line, because those keys sit either side of Enter where the hand already is.
+
+**The whole safety of this is one judgement about focus.** A cashier entering a
+house number or a phone number is typing digits, and a layer that swallowed them
+would put the customer's address into the dish-number box and drop it from the
+ticket without a word. Focus is asked of the focused control rather than tracked
+as state: state goes out of step with focus exactly once, and after that the
+address field eats nothing for the rest of the shift. There is a test for every
+key proving it does nothing while a field has the keyboard.
+
+Handled tunnelling rather than bubbling, so a digit reaches the entry before a
+`ListBox` on the way decides it meant type-ahead and moves the selection.
+Modified keys are left alone — Ctrl+C on a till is still Ctrl+C.
+
+### The print-only edition
+
+`edition` in the bundle, one word, and the only difference between the two
+products. `ShopEdition` is a string rather than an enum because it arrives from
+a merchant's JSON and an unknown word must fall somewhere safe rather than throw
+on a shop's first start — and it falls to the **full till**, deliberately: a typo
+that quietly downgraded a paying shop would take their till away mid-service,
+while a typo leaving a print-only machine with a Till tab it never opens costs
+nobody a service.
+
+**It lives in the tray.** That machine sits in a corner and nobody watches it. A
+full-screen till would be minimised on the first day, and after that nobody could
+tell whether it was still running — which is exactly the state that loses a shop
+its orders. Closing the window hides it; quitting is a deliberate choice from the
+tray menu, and the menu item says what quitting costs.
+
+Its whole interface is two lights and one button, because everything on it is
+either a state someone has to notice from across a room or the one thing that
+goes wrong: orders arriving, printers ready, reprint.
+
+Most of this already worked — the poller has never needed anyone signed in,
+because `PosSession.Stamp` uses `Staff?.Id` and a web order needs no cashier.
+What was missing was the shell, not the capability.
+
+293 tests.

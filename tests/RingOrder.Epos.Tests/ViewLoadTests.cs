@@ -70,6 +70,18 @@ public class ViewLoadTests
     /// <summary>The newest screen, and the one nobody has clicked.</summary>
     [AvaloniaFact] public void The_delivery_board_loads() => Show(new DispatchView());
 
+    /// <summary>The print-only edition's whole interface.</summary>
+    [AvaloniaFact]
+    public void The_web_order_monitor_loads()
+    {
+        var window = new MonitorWindow();
+        window.Show();
+        window.Measure(new Size(720, 620));
+        window.Arrange(new Rect(0, 0, 720, 620));
+
+        Assert.True(window.IsInitialized);
+    }
+
     [AvaloniaFact]
     public void The_main_window_loads_with_every_screen_in_it()
     {

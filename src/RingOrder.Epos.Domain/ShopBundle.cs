@@ -1,4 +1,4 @@
-﻿namespace RingOrder.Epos.Domain;
+namespace RingOrder.Epos.Domain;
 
 /// <summary>
 /// Everything that makes one till belong to one shop: identity, tax, menu,
@@ -13,6 +13,16 @@
 public sealed class ShopBundle
 {
     public int SchemaVersion { get; set; } = 1;
+
+    /// <summary>
+    /// Which product this shop bought: the full till, or the web-order printer.
+    /// <para>
+    /// One binary is installed everywhere and this is the only thing that says
+    /// which. A shop that starts on <c>print</c> and later buys the till changes
+    /// this word — never an uninstall, never a second download.
+    /// </para>
+    /// </summary>
+    public string Edition { get; set; } = ShopEdition.Pos;
 
     /// <summary>Ours, for support: which build of this shop's setup is installed.</summary>
     public string? ProfileVersion { get; set; }

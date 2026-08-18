@@ -28,6 +28,12 @@ public sealed class AppSettings
     public List<string> ReceiptFooterLines { get; set; } = [];
     public string UiLanguage { get; set; } = "en"; // en | zh
 
+    /// <summary>
+    /// <c>pos</c> for the full till, <c>print</c> for a machine that only
+    /// receives and prints web orders. See <see cref="ShopEdition"/>.
+    /// </summary>
+    public string Edition { get; set; } = ShopEdition.Pos;
+
     public string KitchenPrinterName { get; set; } = "GlPrinter80";
     public string FrontPrinterName { get; set; } = "GlPrinter80";
     public string PrintEncoding { get; set; } = "gbk"; // gbk | gb18030 | utf8

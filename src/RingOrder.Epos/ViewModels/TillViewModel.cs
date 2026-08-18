@@ -707,6 +707,56 @@ public partial class TillViewModel : ViewModelBase
     /// tiles — they know the numbers, and typing "3x88" is one action where
     /// tapping a tile three times is three.
     /// </summary>
+    /// <summary>
+    /// Applies a keypress from the till's keyboard. Returns true when it was
+    /// used, so the view can stop it going anywhere else.
+    /// </summary>
+    public bool ApplyShortcut(TillKeyResult key)
+    {
+        switch (key.Action)
+        {
+            case TillShortcut.AppendDigit:
+                DishNumberText += key.Digit;
+                return true;
+
+            case TillShortcut.AppendTimes:
+                // Only between a quantity and a dish number. A leading or
+                // doubled separator is a slip, and swallowing it silently is
+                // how "3**88" becomes a dish nobody ordered.
+                if (DishNumberText.Length == 0 || DishNumberText.Contains('*')) return true;
+                DishNumberText += '*';
+                return true;
+
+            case TillShortcut.Backspace:
+                if (DishNumberText.Length > 0) DishNumberText = DishNumberText[..^1];
+                return true;
+
+            case TillShortcut.Commit:
+                if (DishNumberText.Length == 0) return false;   // Enter elsewhere still works
+                AddByDishNumberCommand.Execute(null);
+                return true;
+
+            case TillShortcut.Cancel:
+                // The options panel first: it is the thing most recently opened
+                // and the thing a cashier most wants out of the way.
+                if (ShowModifierPanel) { CancelModifierCommand.Execute(null); return true; }
+                if (DishNumberText.Length == 0) return false;
+                DishNumberText = "";
+                return true;
+
+            case TillShortcut.QuantityUp:
+                QtyPlusCommand.Execute(null);
+                return true;
+
+            case TillShortcut.QuantityDown:
+                QtyMinusCommand.Execute(null);
+                return true;
+
+            default:
+                return false;
+        }
+    }
+
     [RelayCommand]
     private void AddByDishNumber()
     {
