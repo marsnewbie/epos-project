@@ -86,6 +86,9 @@
       </p>
       <div id="error"></div>
       <div id="code" class="code hidden">
+        <!-- Named, because a code with no shop beside it is a code you have to
+             remember the context of. -->
+        <span id="codeFor" style="margin:0 0 6px;font-weight:600;color:var(--ink)"></span>
         <b id="codeValue"></b>
         <span>Type it on the till: <strong>Settings → Cloud → Connect</strong>. <span id="codeExpiry"></span></span>
       </div>
@@ -95,7 +98,7 @@
     <div class="panel">
       <table>
         <thead>
-          <tr><th>Shop</th><th>Product</th><th>Tills</th><th>Versions</th><th>Last seen</th><th>Code</th></tr>
+          <tr><th>Shop</th><th>Product</th><th>Tills</th><th>Versions</th><th>Last seen</th><th>Code</th><th></th></tr>
         </thead>
         <tbody id="shops"></tbody>
       </table>
@@ -142,8 +145,17 @@ async function refresh() {
       <td><code>${s.clientVersions.join(", ") || "—"}</code></td>
       <td class="${seen.cls}">${seen.text}</td>
       <td class="quiet-text">${live ? "code live" : "—"}</td>
+      <td><button class="quiet recode" data-shop="${s.shopId}"
+                  data-edition="${s.edition}" data-terminals="${s.terminals}">New code</button></td>
     </tr>`;
-  }).join("") || `<tr><td colspan="6" class="quiet-text">No shops yet.</td></tr>`;
+  }).join("") || `<tr><td colspan="7" class="quiet-text">No shops yet.</td></tr>`;
+
+  // An existing shop should get a code from its own row. Making somebody retype
+  // a name that is already on the screen is how they end up wondering whether
+  // they are about to create a second one.
+  for (const button of document.querySelectorAll(".recode")) {
+    button.onclick = () => mint(button.dataset.shop, button.dataset.edition, Number(button.dataset.terminals));
+  }
 }
 
 async function start() {
@@ -168,22 +180,17 @@ $("signin").onclick = () => {
   start();
 };
 
-$("create").onclick = async () => {
-  const shopId = $("shopId").value.trim();
+async function mint(shopId, edition, terminals) {
   $("error").textContent = "";
-  if (!shopId) { $("error").textContent = "Give the shop a name first."; return; }
-
   $("create").disabled = true;
+
   try {
     const created = await api("/v1/admin/shop", {
       method: "POST",
-      body: JSON.stringify({
-        shopId,
-        edition: $("edition").value,
-        terminals: Number($("terminals").value) || 1,
-      }),
+      body: JSON.stringify({ shopId, edition, terminals: terminals || 1 }),
     });
 
+    $("codeFor").textContent = created.shopId;
     $("codeValue").textContent = created.activationCode;
     $("codeExpiry").textContent =
       "Valid until " + new Date(created.expiresAt).toLocaleDateString("en-GB",
@@ -196,6 +203,13 @@ $("create").onclick = async () => {
   } finally {
     $("create").disabled = false;
   }
+}
+
+$("create").onclick = () => {
+  const shopId = $("shopId").value.trim();
+  if (!shopId) { $("error").textContent = "Give the shop a name first."; return; }
+
+  mint(shopId, $("edition").value, Number($("terminals").value));
 };
 
 $("token").addEventListener("keydown", (e) => { if (e.key === "Enter") $("signin").click(); });
