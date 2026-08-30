@@ -12,8 +12,9 @@ The cloud service is its own suite, in its own language, in the same repository:
 cd cloud && npm test
 ```
 
-34 tests, no database and no network. Its handlers take a parsed body and a store
-and return a status, so every rule is exercised without a socket.
+41 tests, no database and no network. Its handlers take a parsed body and a store
+and return a status, so every rule is exercised without a socket — and the
+transport is exercised over a real one, on a port the operating system picks.
 
 Automated tests cover the arithmetic and the data. They cannot tell you whether
 a shift can be closed or a ticket can be paid, so the manual passes below are
@@ -48,6 +49,7 @@ part of finishing a change, not an extra.
 | Entitlement wire format | That a token **signed by Node** verifies in C# — the encoding trap is real, since Node signs DER by default and .NET verifies P1363 by default; that a payload edited after signing does not verify; that a version this build does not know is refused rather than guessed at; and that **a token carrying fields we have never heard of still loads**, which is what lets the service add a field without breaking every till that has not updated |
 | Entitlement identity | That the device identity is created once and survives a reinstall, that two installations never share one, that the device secret is not written in the clear, and that a token belonging to another machine is thrown away rather than carried forever |
 | Entitlement refresh | That an unreachable service changes nothing and says nothing, that a build the service refuses to talk to keeps trading, that a cloud address without credentials attempts nothing at all, and that an attempt just made is not made again |
+| The wire, both ends | That the till posts `shopId`, `deviceId`, `deviceSecret`, `activationKey` and `clientVersion` under exactly those names to exactly those paths, and reads `token` and `deviceSecret` back. `PostAsJsonAsync` happens to serialise camelCase, and "happens to" is not a contract: explicit options or a changed default would send `ShopId` to a service reading `shopId`, and every till in the field would be refused for a reason no log would explain |
 | Entitlements | That **no path locks a till** — an expired token keeps its edition, its seats and its features and only marks itself stale; that a token issued to another machine is ignored entirely; that a shop which has never reached the cloud keeps the edition it was shipped with rather than being handed the full till; that an empty feature list restricts nothing; and that a clock wound back seventeen years does not shut the shop |
 
 ## What the compiler checks

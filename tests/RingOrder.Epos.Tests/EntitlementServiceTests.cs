@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using RingOrder.Epos.Data;
 using RingOrder.Epos.Domain;
 using RingOrder.Epos.Online;
@@ -333,5 +334,94 @@ public class EntitlementServiceTests : IDisposable
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
         try { File.Delete(_dbPath); } catch { /* the temp folder can keep it */ }
         GC.SuppressFinalize(this);
+    }
+
+    // ---- the wire, as the service reads it ---------------------------------
+
+    /// <summary>
+    /// The field names the service actually looks for, asserted rather than
+    /// assumed.
+    /// <para>
+    /// <c>PostAsJsonAsync</c> serialises with web defaults, which happen to be
+    /// camelCase — and "happen to be" is not a contract. Somebody passing
+    /// explicit options, or a future default changing, would send
+    /// <c>ShopId</c> to a service reading <c>shopId</c>, and every till in the
+    /// field would start being refused for a reason no log would explain.
+    /// </para>
+    /// <para>
+    /// The names here must match `cloud/src/routes.ts`.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public async Task The_body_uses_the_field_names_the_service_reads()
+    {
+        var settings = Configured();
+        _store.SaveDeviceSecret("existing");
+
+        string? path = null;
+        string? body = null;
+
+        var service = Service(settings, ClientThat(request =>
+        {
+            path = request.RequestUri!.AbsolutePath;
+            body = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            return Json("""{"token":""}""");
+        }));
+
+        await service.RefreshAsync(force: true);
+
+        Assert.Equal("/v1/sync", path);
+        using var sent = JsonDocument.Parse(body!);
+
+        Assert.Equal("demo-shop", sent.RootElement.GetProperty("shopId").GetString());
+        Assert.Equal(_store.DeviceId(), sent.RootElement.GetProperty("deviceId").GetString());
+        Assert.Equal("existing", sent.RootElement.GetProperty("deviceSecret").GetString());
+        Assert.True(sent.RootElement.TryGetProperty("clientVersion", out _));
+    }
+
+    [Fact]
+    public async Task An_activation_posts_its_key_to_the_activation_endpoint()
+    {
+        var settings = Configured();
+        settings.CloudActivationKey = "one-time-key";
+
+        string? path = null;
+        string? body = null;
+
+        var service = Service(settings, ClientThat(request =>
+        {
+            path = request.RequestUri!.AbsolutePath;
+            body = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            return Json("""{"token":""}""");
+        }));
+
+        await service.RefreshAsync(force: true);
+
+        Assert.Equal("/v1/activate", path);
+        using var sent = JsonDocument.Parse(body!);
+        Assert.Equal("one-time-key", sent.RootElement.GetProperty("activationKey").GetString());
+
+        // A device secret it does not have must not be sent as null — the
+        // service reads a missing field and an explicit null differently.
+        Assert.False(sent.RootElement.TryGetProperty("deviceSecret", out _));
+    }
+
+    /// <summary>
+    /// The two names the till reads out of the answer. Same reasoning as the
+    /// request: `cloud/src/routes.ts` writes these.
+    /// </summary>
+    [Fact]
+    public async Task The_answer_is_read_by_the_names_the_service_writes()
+    {
+        var settings = Configured();
+        settings.CloudActivationKey = "one-time-key";
+        var token = SignedFor(_store.DeviceId(), ShopEdition.Pos);
+
+        var service = Service(settings,
+            ClientThat(_ => Json($$"""{"token":"{{token}}","deviceSecret":"issued"}""")));
+
+        Assert.Equal(RefreshOutcome.Fetched, await service.RefreshAsync(force: true));
+        Assert.Equal(token, _store.Token());
+        Assert.Equal("issued", _store.DeviceSecret());
     }
 }

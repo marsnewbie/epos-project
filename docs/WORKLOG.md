@@ -1571,3 +1571,28 @@ starts leaking, and adding such a column is a decision that belongs in CLOUD.md
 with a reason.
 
 351 C# tests, 34 TypeScript tests.
+
+### The transport, and one assumption that should not have been one
+
+`main.ts` was split into `server.ts` (the HTTP skin, taking a store) and
+`main.ts` (the only file that knows about Postgres). The handlers were already
+tested as functions; what was not tested was everything a till could do that is
+*not* a well-formed request — the body cap, malformed JSON, wrong method, wrong
+path — and the `cache-control: no-store` that stops an entitlement sitting in a
+proxy and handing a shop somebody else's plan. Those now run over a real socket
+on a port the operating system picks.
+
+Then the assumption. Every claim so far about the two halves agreeing was about
+the *crypto*, held by the fixtures. Nothing checked the **field names**.
+
+`PostAsJsonAsync` serialises with web defaults, which happen to be camelCase.
+"Happen to be" is not a contract: somebody passing explicit options, or a default
+changing, would send `ShopId` to a service reading `shopId` — and every till in
+the field would be refused for a reason no log would explain. It is exactly the
+class of fault this whole design has been arguing about, and it was sitting
+unasserted.
+
+It was correct. It is now pinned, in both directions and including the paths, and
+the test names the file on the other side.
+
+354 C# tests, 41 TypeScript tests.
