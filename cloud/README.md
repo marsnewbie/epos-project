@@ -101,6 +101,21 @@ reason.
 service. When that stops being comfortable, a migration runner goes here and this
 line changes.
 
+## Adding a shop
+
+```bash
+node tools/new-shop.mjs <shop-id> [pos|print] [terminals]
+```
+
+Prints the SQL to run and the block to paste into that shop's `secrets.json`.
+The shop id **is the bundle's `shop.slug`** — they must match, because that is
+what the till sends.
+
+It exists because the activation key is stored hashed and delivered plain, and
+doing that by hand is how a shop ends up with a key that cannot activate and an
+error saying only "unknown shop or activation key". The key is shown once; losing
+it costs a new key and a re-import, nothing more.
+
 ## Not built yet
 
 Order ingest, the change log, and the back office. The protocol is shaped for
