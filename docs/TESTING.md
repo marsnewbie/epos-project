@@ -12,7 +12,7 @@ The cloud service is its own suite, in its own language, in the same repository:
 cd cloud && npm test
 ```
 
-41 tests, no database and no network. Its handlers take a parsed body and a store
+64 tests, no database and no network. Its handlers take a parsed body and a store
 and return a status, so every rule is exercised without a socket — and the
 transport is exercised over a real one, on a port the operating system picks.
 
@@ -46,10 +46,12 @@ part of finishing a change, not an extra.
 | Till keyboard | That both number rows key a dish, that the keypad keys map to what sits beside them, and — the one that matters — that **nothing fires while a text field has focus**, so an address is never eaten by the dish-number box |
 | Editions | That `print` is recognised however it is spelled, and that anything unrecognised falls to the full till rather than silently downgrading a paying shop |
 | Local secrets | That the row written to disk does not contain the readable password, that a value stored before encryption existed still reads, that saving leaves the caller's object usable, and that an undecryptable secret comes back empty rather than as ciphertext |
+| Change log | That the first entry chains from genesis and each one carries its predecessor's hash; that an amount edited after the fact, an entry removed from the middle and two entries swapped over are all **reported**; that a field containing the separator cannot impersonate two fields; that one instant written in two time zones is one hash; that a rolled-back change leaves no entry behind; and — stated rather than discovered — that the chain alone **cannot** see a truncated tail |
+| Activation codes | That a code is eight characters a person can read down a telephone, never containing one that is heard as another; that typed case, dashes and spaces are forgiven along with Crockford's `I`→`1` and `O`→`0`; that a code which could never have been issued is refused rather than normalised into one that could; and that a wrong code and an expired one give the same answer, because telling them apart is how a guess becomes an oracle |
 | Entitlement wire format | That a token **signed by Node** verifies in C# — the encoding trap is real, since Node signs DER by default and .NET verifies P1363 by default; that a payload edited after signing does not verify; that a version this build does not know is refused rather than guessed at; and that **a token carrying fields we have never heard of still loads**, which is what lets the service add a field without breaking every till that has not updated |
 | Entitlement identity | That the device identity is created once and survives a reinstall, that two installations never share one, that the device secret is not written in the clear, and that a token belonging to another machine is thrown away rather than carried forever |
 | Entitlement refresh | That an unreachable service changes nothing and says nothing, that a build the service refuses to talk to keeps trading, that a cloud address without credentials attempts nothing at all, and that an attempt just made is not made again |
-| The wire, both ends | That the till posts `shopId`, `deviceId`, `deviceSecret`, `activationKey` and `clientVersion` under exactly those names to exactly those paths, and reads `token` and `deviceSecret` back. `PostAsJsonAsync` happens to serialise camelCase, and "happens to" is not a contract: explicit options or a changed default would send `ShopId` to a service reading `shopId`, and every till in the field would be refused for a reason no log would explain |
+| The wire, both ends | That the till posts `deviceId`, `deviceSecret`, `activationCode` and `clientVersion` under exactly those names to exactly those paths, and reads `token` and `deviceSecret` back. `PostAsJsonAsync` happens to serialise camelCase, and "happens to" is not a contract: explicit options or a changed default would send `ShopId` to a service reading `shopId`, and every till in the field would be refused for a reason no log would explain |
 | Entitlements | That **no path locks a till** — an expired token keeps its edition, its seats and its features and only marks itself stale; that a token issued to another machine is ignored entirely; that a shop which has never reached the cloud keeps the edition it was shipped with rather than being handed the full till; that an empty feature list restricts nothing; and that a clock wound back seventeen years does not shut the shop |
 
 ## What the compiler checks

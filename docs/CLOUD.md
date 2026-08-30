@@ -244,6 +244,75 @@ Because it lives under `%PROGRAMDATA%` with the rest of the data, it survives an
 uninstall and reinstall — repairing an installation does not mean reactivating
 a machine.
 
+## The change log
+
+An append-only record of what happened, in `change_log`, with each entry
+carrying the hash of the one before it.
+
+Three separate things stand on it, which is why it is one table and not three:
+cloud sync reads it by `seq`, a second terminal replays it, and anything
+reasoning about a shop's history needs it. Current state says what is true now;
+only a stream of events says what went on, and everything worth predicting lives
+in the second one.
+
+**It is an outbox, not an event store.** The tables remain the truth and this
+records what changed them. Full event sourcing — the log as truth, every table a
+projection — would be a rewrite of every repository for a benefit this product
+does not need.
+
+### It is not the audit log
+
+`audit_log` holds a sentence for a person to read. `change_log` holds a payload
+a machine can replay. Merging them would make one of the two jobs worse, so they
+stay apart.
+
+### Why the hash chain has to exist now
+
+Each entry hashes its predecessor, so altering or removing anything invalidates
+every entry after it.
+
+That does not make the log unalterable — anybody with the file can rebuild the
+whole chain. It makes an alteration **visible**, which is what an accountant, an
+insurer or a fiscal authority actually asks for.
+
+**A chain added later can only attest to what happened after it was added**, and
+the day somebody asks is a day about the past. Germany's KassenSichV, Italy, and
+France's NF525 all require a tamper-evident journal and none can be satisfied
+retrospectively. Two columns now; impossible afterwards.
+
+The one thing the chain cannot see is a **truncated tail** — deleting the newest
+entry leaves nothing behind to disagree. The defence against that is having sent
+entries to the cloud, not the chain, and the sync watermark notices when the
+cloud was told about an entry that is no longer there.
+
+### The canonical form is frozen
+
+Each field is hashed as its UTF-8 **byte** length, a colon, then the field.
+Length-prefixed rather than joined with a separator because a payload is
+arbitrary JSON, and any character chosen as a delimiter is a character somebody
+can put inside a field to make two different entries hash the same. Byte length
+rather than character count so a reimplementation in TypeScript agrees.
+
+**It must never change.** Every chain ever written is verifiable only by the
+exact function that wrote it; a tidier version would declare every shop's history
+broken.
+
+Timestamps are normalised to UTC round-trip format before hashing, so an entry
+verifies the same when it is read back in another time zone — which is what a
+support copy of a database is.
+
+### Appending
+
+`ChangeLogRepository.Append` takes the caller's open transaction, and that is the
+important overload. An entry that commits when the change it describes rolled
+back is worse than no entry, because it will be believed. Reading the previous
+hash inside the same transaction is what keeps the chain safe — SQLite serialises
+writers, so nothing can slip in between the read and the insert.
+
+Sync progress is a **watermark** in `settings`, not a column on each row, so the
+table has no mutable field at all and "append-only" needs no exceptions
+remembering.
+
 ## Changing the contract
 
 The contract is the shape of what crosses the wire: the token payload, the sync

@@ -29,7 +29,54 @@ public static class SchemaMigrations
         new(7, "delivery_zones", DeliveryZones),
         new(8, "delivery_miles_and_levels", DeliveryMilesAndLevels),
         new(9, "driver_dispatch", DriverDispatch),
+        new(10, "change_log", ChangeLog),
     ];
+
+    /// <summary>
+    /// An append-only record of what happened, with each entry carrying the hash
+    /// of the one before it.
+    /// <para>
+    /// This is the foundation three separate things stand on: cloud sync reads
+    /// it by <c>seq</c>, a second terminal replays it, and anything reasoning
+    /// about a shop's history needs it — current state says what is true now,
+    /// and only a stream of events says what went on.
+    /// </para>
+    /// <para>
+    /// <b>The chain has to be here from the first transaction.</b> One added
+    /// later can only attest to what happened after it was added, and the day
+    /// somebody asks is a day about the past. Two columns now; impossible
+    /// afterwards.
+    /// </para>
+    /// <para>
+    /// It is separate from <c>audit_log</c> and does not replace it. That one
+    /// holds a sentence for a person to read; this one holds a payload a machine
+    /// can replay. Merging them would make one of the two jobs worse.
+    /// </para>
+    /// </summary>
+    private const string ChangeLog = """
+        CREATE TABLE change_log (
+          -- AUTOINCREMENT, not a plain rowid: a cursor must never see a number
+          -- twice, and SQLite reuses rowids after a delete.
+          seq         INTEGER PRIMARY KEY AUTOINCREMENT,
+
+          -- Unique across terminals, where seq is only unique here.
+          id          TEXT NOT NULL UNIQUE,
+          terminal_id TEXT NOT NULL,
+
+          entity      TEXT NOT NULL,
+          entity_id   TEXT NOT NULL,
+          op          TEXT NOT NULL,
+          payload     TEXT NOT NULL,
+          at          TEXT NOT NULL,
+          staff_id    TEXT,
+
+          prev_hash   TEXT NOT NULL,
+          hash        TEXT NOT NULL
+        );
+
+        -- "What happened to order 1043" is the question support actually asks.
+        CREATE INDEX idx_change_log_entity ON change_log(entity, entity_id);
+        """;
 
     /// <summary>
     /// Who took a delivery out, when it left and when it came back.
