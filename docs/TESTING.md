@@ -6,6 +6,15 @@ dotnet test RingOrder.Epos.sln
 dotnet run --project src/RingOrder.Epos
 ```
 
+The cloud service is its own suite, in its own language, in the same repository:
+
+```bash
+cd cloud && npm test
+```
+
+34 tests, no database and no network. Its handlers take a parsed body and a store
+and return a status, so every rule is exercised without a socket.
+
 Automated tests cover the arithmetic and the data. They cannot tell you whether
 a shift can be closed or a ticket can be paid, so the manual passes below are
 part of finishing a change, not an extra.
@@ -77,6 +86,11 @@ The migration test seeds the old database with raw SQL matching that version's
 schema. Using today's repository would test nothing, because it already knows
 about columns the old release never had.
 
+The cloud service's tests never touch a database. `MemoryStore` implements the
+same interface as the Postgres one, so the rules — who is refused, what a
+downgraded shop is told, whether activating twice strands a machine — are
+assertions rather than something checked by hand against a live table.
+
 The lookup tests never touch the network. Provider responses are parsed from
 recorded JSON, and the cache and fallback behaviour run against a counting fake —
 so "how many times did the shop get charged" is an assertion rather than a hope.
@@ -92,10 +106,18 @@ and they disagree with each other.
 node fixtures/entitlement/make-fixtures.mjs
 ```
 
+They are signed by the **real service signer**, `cloud/src/tokens.ts`. A
+generator with its own copy of the signing code would keep agreeing with itself
+while the service drifted away from both.
+
 The key there is for development only. Its private half is in the repository, so
 it is deliberately absent from `EntitlementKeys.Production` — and a test holds it
 that way, because a build that trusted it would accept a token anybody could
 mint.
+
+**Regenerating always rewrites every file**, even when nothing has changed: ECDSA
+draws a fresh random nonce per signature, so the same payload signs differently
+every time. Only the payload half of a token is stable.
 
 ## Manual pass — the money
 

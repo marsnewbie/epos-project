@@ -98,9 +98,16 @@ Everything the till needs from the cloud arrives through a single cursor-based
 endpoint:
 
 ```
-GET  /v1/sync?since=<seq>   → whatever is new: entitlement, orders, later events
-POST /v1/sync               → whatever the till has to send
+POST /v1/activate    one-time; activation key  → device secret + first token
+POST /v1/sync        recurring; device secret  → token, and later a cursor,
+                     inbound orders, and change-log events
+GET  /healthz
 ```
+
+`sync` rather than `entitlement`: it is the one call a till makes on a schedule,
+and everything that arrives later joins that same answer as additional fields.
+Unknown fields are ignored, so they can be added without breaking a till that has
+not updated.
 
 This is the decision most expensive to get wrong, so it is being made first,
 while there is only one thing flowing through it.
@@ -205,7 +212,8 @@ part. The clock is recorded and the oddity is logged; nothing is locked.
 
 ### What is built
 
-The till side, end to end. The service itself is not written yet.
+The till side and the service. Order ingest, the change log and the back office
+are not built; the protocol is shaped for them.
 
 | Piece | Where |
 |---|---|
@@ -215,7 +223,8 @@ The till side, end to end. The service itself is not written yet.
 | Transport | `Online/EntitlementClient.cs` — never throws |
 | Identity and cache | `Data/EntitlementStore.cs` — rows in `settings` |
 | Wiring and refresh | `Services/EntitlementService.cs` |
-| Shared contract fixtures | `fixtures/entitlement` — signed by Node, verified by C# |
+| Shared contract fixtures | `fixtures/entitlement` — signed by the real service signer, verified by C# |
+| The service | `cloud/` — Node 24, one dependency, 34 tests |
 
 `App.axaml.cs` chooses its window from `Entitlement.Current`, resolved from disk,
 so nothing waits on a network call to decide which product this is.

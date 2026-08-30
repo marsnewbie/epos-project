@@ -1499,3 +1499,75 @@ to the log, and opened the till exactly as before — which is the whole
 requirement for a shop that has not bought anything from us yet.
 
 351 tests.
+
+---
+
+## 2026-08-30 — The service, and the free window used once
+
+`cloud/` exists: Node 24, one dependency, 34 tests, no build step. It follows the
+AI phone project's conventions — native TypeScript, `node --test`, no framework —
+because two services maintained by the same person should not need two habits.
+
+### The endpoint was renamed before anyone could depend on it
+
+The client shipped this morning called `POST /v1/entitlement`. It now calls
+`POST /v1/sync`, which is what CLOUD.md said the shape should be: **the one call
+a till makes on a schedule**, with order ingest and the change log arriving later
+in that same answer as extra fields rather than as new plumbing.
+
+That rename cost one line because **no till is installed anywhere**. It is the
+free window the same document describes, used deliberately rather than
+discovered. After the first real merchant install the same change would have been
+a `/v2/` and two versions to run.
+
+No speculative fields were added for the things that do not exist yet. Forward
+compatibility means they can be added when they are real; empty placeholders
+would only be a promise nobody has to keep.
+
+### Two rules the service keeps that are easy to get backwards
+
+**A known device is never refused for commercial reasons.** A shop that stops
+paying has its row changed and is *told what it now has*; the till degrades to
+exactly what we decided it keeps. Refusing outright surrenders that control and
+lands the change thirty days later, on a day nobody chose. The single exception
+is a device whose shop has been deleted, which is a deliberate act on our side.
+
+**Activation is idempotent, and that is a recovery path rather than laxity.** A
+till whose connection dropped between the service's answer and its own write
+holds an activation key and no secret. Asking again is its only way out;
+refusing a second activation would strand that machine permanently.
+
+### Detail worth not rediscovering
+
+`dsaEncoding: "ieee-p1363"` is load-bearing. Node signs ECDSA in DER by default
+and .NET verifies P1363 by default — both correct, and they never interoperate.
+A token signed without that line verifies nowhere and looks entirely normal until
+a till rejects it. The fixture generator now imports the real signer from
+`cloud/src/tokens.ts` rather than keeping its own copy, so there is one
+implementation to be wrong.
+
+**ECDSA is randomised.** A test asserting that signing the same payload twice
+gives the same token failed, correctly: a fresh nonce is drawn per signature.
+Only the payload half is stable. Recorded in TESTING.md as well, because
+regenerating the fixtures always rewrites every file and a diff there does not
+mean anything changed.
+
+**An unreadable client version is let through.** A till that cannot say what it
+is is far more likely to be one we have not taught to report yet than an
+attacker, and refusing it would take a shop's entitlement away over a missing
+string. `MIN_CLIENT_VERSION` is also absent by default: a floor set casually cuts
+off whoever has not updated.
+
+**Secrets are a single SHA-256, not scrypt.** The difference from a password is
+entropy — these are 32 random bytes we generate, so there is no dictionary to run
+and a slow KDF would defend against nothing while making every shop's daily
+refresh measurably slower.
+
+### The schema's most important feature is what is not in it
+
+Two tables, and no column holds an order, a customer or an amount. The absence is
+the enforcement. The first cloud service is where that boundary either holds or
+starts leaking, and adding such a column is a decision that belongs in CLOUD.md
+with a reason.
+
+351 C# tests, 34 TypeScript tests.

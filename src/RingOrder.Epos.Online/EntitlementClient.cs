@@ -89,6 +89,13 @@ public sealed class EntitlementClient
 
     /// <summary>
     /// Fetch a fresh token, activating first if this device has never been seen.
+    /// <para>
+    /// The endpoint is <c>v1/sync</c> rather than <c>v1/entitlement</c> because
+    /// it is the one call a till makes on a schedule, and order ingest and the
+    /// change log arrive in this same answer as additional fields — see
+    /// docs/CLOUD.md. Unknown fields are ignored, so they can be added without
+    /// breaking anything already installed.
+    /// </para>
     /// </summary>
     public async Task<RefreshResult> RefreshAsync(CancellationToken ct = default)
     {
@@ -99,7 +106,7 @@ public sealed class EntitlementClient
             return await ActivateAsync(ct);
 
         return await PostAsync(
-            "v1/entitlement",
+            "v1/sync",
             new EntitlementRequest
             {
                 ShopId = _options.ShopId,
