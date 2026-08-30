@@ -275,7 +275,12 @@ public partial class MainViewModel : ViewModelBase
         NavOrders = UiText.NavOrders;
         NavCustomers = UiText.NavCustomers;
         NavDispatch = UiText.NavDispatch;
-        ShowDispatchNav = _app.Dispatch.ShopUsesOwnDrivers();
+        // Derived *and* permitted. The shop having drivers is what makes the
+        // board meaningful; the entitlement is what makes it something we sell.
+        // Either alone is the wrong answer.
+        ShowDispatchNav =
+            _app.Dispatch.ShopUsesOwnDrivers()
+            && _app.Entitlement.Current.Allows(ShopFeatures.Drivers);
         NavSettings = UiText.NavSettings;
         LblLanguage = UiText.LanguageToggle;
         LblDrawer = UiText.Drawer;

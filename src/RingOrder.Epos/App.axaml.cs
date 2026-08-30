@@ -28,15 +28,7 @@ public partial class App : Application
             {
                 var services = AppServices.Start();
 
-                // The entitlement, not the bundle: a shop that has bought the
-                // full till gets it without waiting for a new bundle, and one
-                // that has never reached the cloud keeps the edition it was
-                // shipped with. Resolved from disk, so this does not wait on a
-                // network call to decide which window to open.
-                if (services.Entitlement.Current.IsPrintOnly)
-                    StartPrintOnly(desktop, services);
-                else
-                    StartTill(desktop, services);
+                Start(desktop, services);
 
                 desktop.ShutdownRequested += async (_, _) =>
                 {
@@ -55,9 +47,63 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
+    /// <summary>
+    /// A machine that has never been told which shop it is asks, once, before
+    /// anything else — the same first boot every card terminal and every other
+    /// till on the market has.
+    /// <para>
+    /// Asked once and then never again: a merchant who skipped is trading, and a
+    /// prompt every morning teaches them to dismiss it. The shop showing no
+    /// tills on our own estate page is the better reminder, because it reaches
+    /// the person who can act on it.
+    /// </para>
+    /// </summary>
+    private static void Start(IClassicDesktopStyleApplicationLifetime desktop, AppServices services)
+    {
+        var neverConnected = services.Entitlement.Current.Source == EntitlementSource.Bundle;
+
+        if (!neverConnected || services.EntitlementStore.SetupOffered())
+        {
+            Open(desktop, services);
+            return;
+        }
+
+        var setup = new SetupViewModel(services);
+        var window = new SetupWindow { DataContext = setup };
+
+        setup.Finished += () =>
+        {
+            services.EntitlementStore.RecordSetupOffered();
+
+            // Opened before the setup window closes, and in this order: with
+            // ShutdownMode.OnMainWindowClose, closing the only window would take
+            // the application down with it.
+            Open(desktop, services);
+            window.Close();
+        };
+
+        desktop.MainWindow = window;
+    }
+
+    /// <summary>
+    /// The entitlement, not the bundle: a shop that has bought the full till
+    /// gets it without waiting for a new bundle, and one that has never reached
+    /// the cloud keeps the edition it was shipped with. Resolved from disk, so
+    /// nothing waits on a network call to decide which window to open.
+    /// </summary>
+    private static void Open(IClassicDesktopStyleApplicationLifetime desktop, AppServices services)
+    {
+        if (services.Entitlement.Current.IsPrintOnly)
+            StartPrintOnly(desktop, services);
+        else
+            StartTill(desktop, services);
+    }
+
     private static void StartTill(IClassicDesktopStyleApplicationLifetime desktop, AppServices services)
     {
-        desktop.MainWindow = new MainWindow { DataContext = new MainViewModel(services) };
+        var window = new MainWindow { DataContext = new MainViewModel(services) };
+        desktop.MainWindow = window;
+        window.Show();
     }
 
     /// <summary>

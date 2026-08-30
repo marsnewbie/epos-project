@@ -70,6 +70,12 @@ public class ViewLoadTests
     /// <summary>The newest screen, and the one nobody has clicked.</summary>
     [AvaloniaFact] public void The_delivery_board_loads() => Show(new DispatchView());
 
+    /// <summary>
+    /// The first screen a new installation shows, and the one most likely to be
+    /// looked at by somebody who has never seen this software before.
+    /// </summary>
+    [AvaloniaFact] public void The_setup_screen_loads() => Show(new SetupView());
+
     /// <summary>The print-only edition's whole interface.</summary>
     [AvaloniaFact]
     public void The_web_order_monitor_loads()

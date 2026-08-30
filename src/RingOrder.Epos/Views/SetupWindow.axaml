@@ -1,0 +1,10 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:views="using:RingOrder.Epos.Views"
+        x:Class="RingOrder.Epos.Views.SetupWindow"
+        Title="RingOrder — setting up"
+        Width="900" Height="700"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource Page}">
+  <views:SetupView />
+</Window>

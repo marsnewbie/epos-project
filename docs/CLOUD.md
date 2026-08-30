@@ -313,6 +313,47 @@ Sync progress is a **watermark** in `settings`, not a column on each row, so the
 table has no mutable field at all and "append-only" needs no exceptions
 remembering.
 
+## What a new installation sees first
+
+A machine that has never been told which shop it is asks, once, before anything
+else — the same first boot a card terminal or any other till on the market has.
+
+**Skipping is always offered and is not a grudging escape hatch.** Install day is
+exactly when a shop's internet is most likely to be a phone hotspot or nothing at
+all, and the person holding the screwdriver may not have the code. A till that
+refused to open until it phoned home would be the lock this whole design exists
+not to be.
+
+The distinction that keeps both rules true: **a shop that has been trading can
+never be stopped, and a machine that has never traded loses nothing by being
+asked once who it belongs to.**
+
+It is asked once and then remembered. A merchant who skipped is trading, and a
+prompt every morning teaches them to dismiss it — while a shop showing no tills
+on the estate page is the better reminder, because it reaches the person who can
+act on it.
+
+## What is gated, and what may never be
+
+`ShopFeatures` names the optional modules: today the delivery board and caller
+ID. Nothing else is ever checked against an entitlement.
+
+**Ringing a sale, taking money, closing a shift, the menu, staff and Settings are
+never gated.** Two reasons, and the second is the one that bites:
+
+1. A till that could hide its own Till tab can be bricked by a bad row in a
+   database three hundred miles away.
+2. The feature list is an **allow-list**, so naming one module denies every
+   other — the moment anything core were gated, granting a shop "drivers" would
+   take away its ability to sell food.
+
+The delivery board is **derived and permitted**: the shop having staff graded as
+drivers is what makes the board meaningful, and the entitlement is what makes it
+something we sell. Either test alone gives the wrong answer.
+
+Caller ID is checked before the serial port is opened, so a setting left switched
+on through a downgrade does not quietly keep working.
+
 ## Changing the contract
 
 The contract is the shape of what crosses the wire: the token payload, the sync

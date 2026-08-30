@@ -423,4 +423,20 @@ public class EntitlementServiceTests : IDisposable
         Assert.Equal(token, _store.Token());
         Assert.Equal("issued", _store.DeviceSecret());
     }
+
+    /// <summary>
+    /// Asked once. A merchant who skipped is trading, and a prompt every morning
+    /// teaches them to dismiss it — the shop showing no tills on our own estate
+    /// page reaches the person who can actually act.
+    /// </summary>
+    [Fact]
+    public void The_setup_screen_is_offered_once_and_then_remembered()
+    {
+        Assert.False(_store.SetupOffered());
+
+        _store.RecordSetupOffered();
+
+        Assert.True(_store.SetupOffered());
+        Assert.True(new EntitlementStore(_db).SetupOffered());
+    }
 }

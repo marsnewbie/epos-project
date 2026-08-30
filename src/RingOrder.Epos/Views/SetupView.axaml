@@ -1,0 +1,45 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:RingOrder.Epos.ViewModels"
+             x:Class="RingOrder.Epos.Views.SetupView"
+             x:DataType="vm:SetupViewModel"
+             Background="{StaticResource Page}">
+
+  <!-- Centred and large. This is read once, standing over a new machine, often
+       by somebody who has never seen this software before. -->
+  <Border Classes="panel" CornerRadius="12" Padding="40"
+          MaxWidth="620" VerticalAlignment="Center" HorizontalAlignment="Center">
+    <StackPanel Spacing="16">
+
+      <TextBlock Text="RingOrder" FontSize="15" Foreground="#a8a29e" />
+      <TextBlock Text="Which shop is this?" FontSize="30" FontWeight="Bold" Foreground="#1c1917" />
+
+      <TextBlock Text="{Binding ShopName}" FontSize="18" Foreground="#57534e"
+                 IsVisible="{Binding ShopName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+      <TextBlock TextWrapping="Wrap" Foreground="#57534e" FontSize="15"
+                 Text="Enter the eight-character code we sent you. It tells this till which shop it belongs to and what you have bought." />
+
+      <TextBox Text="{Binding Code}" Watermark="XXXX-XXXX" Height="72"
+               FontSize="30" FontFamily="Consolas, Cascadia Mono, monospace"
+               HorizontalContentAlignment="Center" MaxLength="12"
+               IsEnabled="{Binding !Busy}" />
+
+      <Button Classes="primary" Content="Connect" Height="64" HorizontalAlignment="Stretch"
+              IsEnabled="{Binding !Busy}" Command="{Binding ConnectCommand}" />
+
+      <TextBlock Text="{Binding Message}" TextWrapping="Wrap" FontSize="15"
+                 Foreground="#1c1917" MinHeight="24" />
+
+      <!-- Never hidden and never a trap door. Install day is exactly when a
+           shop's internet is most likely to be nothing at all. -->
+      <StackPanel Spacing="4" IsVisible="{Binding !Connected}">
+        <Button Classes="btn" Content="Set up later" Height="48" HorizontalAlignment="Stretch"
+                IsEnabled="{Binding !Busy}" Command="{Binding SkipCommand}" />
+        <TextBlock TextWrapping="Wrap" Foreground="#78716c" FontSize="13"
+                   Text="The till works normally either way. Without this it runs on the product it was set up with, and we cannot change that for you remotely. You can connect any time from Settings → Cloud." />
+      </StackPanel>
+
+    </StackPanel>
+  </Border>
+</UserControl>

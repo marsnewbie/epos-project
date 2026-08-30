@@ -1620,3 +1620,58 @@ table that already exists with the wrong columns, and reports success. The
 recovery is to drop the bad tables and let the migration run — there is no
 version of this that repairs itself, and a migration that tried to would be one
 that could destroy a real table later.
+
+---
+
+## 2026-08-31 — The change log, and two gaps found by asking the obvious question
+
+### The change log
+
+`change_log`, migration 10, with a hash chain — the decisions are in
+[CLOUD.md](CLOUD.md). Applied to the live development database on this machine:
+schema 9 → 10, pre-migration backup taken, eleven columns, zero rows.
+
+Zero rows because **nothing writes to it yet**. The table, the chain and the
+repository exist; wiring the order, payment and shift writes into it is the next
+step and has to be done carefully, since each one must go inside a transaction
+that already exists.
+
+The trap worth naming: `Append` takes the caller's open transaction, and that
+overload is the one to use. An entry that commits when the change it describes
+rolled back is worse than no entry, because it will be believed.
+
+### Two gaps, found by a question rather than by a test
+
+Asked why a merchant sees every module the moment they open the till, and why
+activation happens after they have already signed in and gone looking through
+Settings. Both were fair, and the second one was the serious one.
+
+**`EntitlementState.Allows` had no callers.** The entitlement was fetched,
+verified, cached and displayed — and gated nothing at all. Everything was
+visible to everybody regardless of what the token said. The plumbing was
+finished and the tap had never been connected.
+
+`ShopFeatures` now names what is optional, the delivery board is **derived and
+permitted** rather than only derived, and caller ID is checked before the serial
+port opens so a setting left on through a downgrade does not quietly keep
+working.
+
+The rule that came out of this and belongs in AGENTS.md: **only optional modules
+may ever be gated.** The feature list is an allow-list, so naming one module
+denies every other — gate anything core and granting a shop "drivers" takes away
+its ability to sell food.
+
+**Activation was in the wrong place.** Buried in Settings, reachable only after
+signing in, which has the order backwards: a till should know what it is before
+it is used. In practice nobody would ever go and find it, and the machine would
+run unconnected for its whole life.
+
+There is now a first-run screen, asked once. It always offers "set up later",
+and skipping trades normally — install day is exactly when a shop's internet is
+most likely to be nothing at all. The distinction that keeps this from being the
+lock the whole design refuses to be: **a shop that has been trading can never be
+stopped; a machine that has never traded loses nothing by being asked once who
+it belongs to.** Every card terminal on the market pairs on first boot and none
+is thought of as locked.
+
+376 tests.

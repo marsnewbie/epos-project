@@ -20,6 +20,7 @@ public sealed class EntitlementStore
     private const string TokenKey = "cloud.entitlement-token";
     private const string SecretKey = "cloud.device-secret";
     private const string LastAttemptKey = "cloud.last-refresh-attempt";
+    private const string SetupOfferedKey = "cloud.setup-offered";
 
     private readonly EposDb _db;
 
@@ -84,6 +85,19 @@ public sealed class EntitlementStore
 
     public void RecordRefreshAttempt(DateTimeOffset at) =>
         Write(LastAttemptKey, at.ToString("O"));
+
+    /// <summary>
+    /// Whether the first-run screen has been shown.
+    /// <para>
+    /// Asked once and then never again. A merchant who skipped it is trading,
+    /// and a till that nagged them every morning would be teaching them to
+    /// dismiss it — while the shop showing no tills on our own estate page is a
+    /// far better prompt, because it prompts the person who can act.
+    /// </para>
+    /// </summary>
+    public bool SetupOffered() => Read(SetupOfferedKey) is { Length: > 0 };
+
+    public void RecordSetupOffered() => Write(SetupOfferedKey, DateTimeOffset.Now.ToString("O"));
 
     private string? Read(string key)
     {

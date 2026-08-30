@@ -105,6 +105,15 @@ public sealed class AppServices
 
         _cachedSettings = Settings.Load();
 
+        // Resolved from what is already stored, so this costs a couple of
+        // queries and no network. It has to happen before anything that asks
+        // what this till may do — the caller ID port, below, is the first.
+        // The ask happens afterwards and its failure is invisible: a shop whose
+        // router is off must not be able to tell.
+        EntitlementStore = new EntitlementStore(Db);
+        Entitlement = new EntitlementService(EntitlementStore, () => _cachedSettings);
+        Entitlement.RefreshInBackground();
+
         // Built from the settings on every call rather than captured once, so
         // pasting an API key in Settings takes effect on the next lookup instead
         // of on the next restart.
@@ -122,7 +131,13 @@ public sealed class AppServices
         };
 
         CallerId = new SimulatedCallerId();
-        CallerIdProvider = _cachedSettings is { CallerIdEnabled: true, CallerIdMode: "serial" }
+
+        // Entitlement resolved above, from disk. A shop that has not been granted
+        // caller ID never opens the port — the setting can stay switched on
+        // through a downgrade without the till quietly using it.
+        var mayUseCallerId = Entitlement.Current.Allows(ShopFeatures.CallerId);
+
+        CallerIdProvider = mayUseCallerId && _cachedSettings is { CallerIdEnabled: true, CallerIdMode: "serial" }
             ? new SerialModemCallerId(
                 _cachedSettings.CallerIdComPort,
                 _cachedSettings.CallerIdBaud,
@@ -148,13 +163,6 @@ public sealed class AppServices
         }
         Backups = new BackupService(Db);
         Backups.Start();
-
-        // Resolved from what is already stored, so this costs a couple of
-        // queries and no network. The ask happens afterwards and its failure is
-        // invisible: a shop whose router is off must not be able to tell.
-        EntitlementStore = new EntitlementStore(Db);
-        Entitlement = new EntitlementService(EntitlementStore, () => _cachedSettings);
-        Entitlement.RefreshInBackground();
 
         // The queue is work, not an archive: printed jobs older than a week are
         // dead weight, and their payloads are raster bitmaps.

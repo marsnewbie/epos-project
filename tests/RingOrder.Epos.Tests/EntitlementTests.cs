@@ -316,4 +316,53 @@ public class EntitlementTests
         Assert.Equal(Token(features: ["drivers"]), Token(features: ["drivers"]));
         Assert.NotEqual(Token(features: ["drivers"]), Token(features: ["drivers", "tables"]));
     }
+
+    // ---- what is gated, and what may never be --------------------------------
+
+    /// <summary>
+    /// The feature list is an allow-list, so naming one module denies every
+    /// other. That is why nothing core may ever be gated: granting a shop
+    /// "drivers" would otherwise take away its ability to sell food.
+    /// </summary>
+    [Fact]
+    public void Granting_one_module_denies_the_others_and_nothing_else()
+    {
+        var state = EntitlementPolicy.Resolve(
+            Token(features: [ShopFeatures.Drivers]), ShopEdition.Pos, Device, Now);
+
+        Assert.True(state.Allows(ShopFeatures.Drivers));
+        Assert.False(state.Allows(ShopFeatures.CallerId));
+
+        // And the till itself is not a feature, so it cannot be taken away.
+        Assert.Equal(ShopEdition.Pos, state.Edition);
+        Assert.False(state.IsPrintOnly);
+    }
+
+    /// <summary>
+    /// Every name this build gates on must be one the service could grant. A
+    /// screen checking a feature nobody can spell into a token would be hidden
+    /// for every shop, for ever, and the till would look broken rather than
+    /// unlicensed.
+    /// </summary>
+    [Fact]
+    public void Every_gated_module_is_a_name_that_can_be_granted()
+    {
+        var state = EntitlementPolicy.Resolve(
+            Token(features: [.. ShopFeatures.All]), ShopEdition.Pos, Device, Now);
+
+        Assert.All(ShopFeatures.All, feature => Assert.True(state.Allows(feature)));
+        Assert.Equal(ShopFeatures.All.Count, ShopFeatures.All.Distinct().Count());
+    }
+
+    /// <summary>
+    /// The reason turning entitlements on changed nothing for anybody: a shop
+    /// nobody has configured keeps every module.
+    /// </summary>
+    [Fact]
+    public void A_shop_with_no_list_keeps_every_module()
+    {
+        var state = EntitlementPolicy.Resolve(Token(features: []), ShopEdition.Pos, Device, Now);
+
+        Assert.All(ShopFeatures.All, feature => Assert.True(state.Allows(feature)));
+    }
 }
