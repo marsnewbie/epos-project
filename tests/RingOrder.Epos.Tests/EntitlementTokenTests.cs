@@ -162,6 +162,32 @@ public class EntitlementTokenTests
         Assert.DoesNotContain(DevKeys[0], EntitlementKeys.Production);
     }
 
+    /// <summary>
+    /// Every shipped key must actually import as a P-256 public key.
+    /// <para>
+    /// A key mangled by a copy and paste — a stray newline, a truncated tail —
+    /// would leave every till falling back to its bundle, silently, because a
+    /// malformed key is skipped rather than thrown on. That behaviour is right
+    /// (one bad entry must not stop the others being tried) and it is exactly
+    /// what would hide this, so it is asserted here instead.
+    /// </para>
+    /// </summary>
+    [Fact]
+    public void Every_key_a_shipped_build_trusts_is_a_usable_p256_key()
+    {
+        Assert.NotEmpty(EntitlementKeys.Production);
+
+        foreach (var spki in EntitlementKeys.Production)
+        {
+            using var key = ECDsa.Create();
+            key.ImportSubjectPublicKeyInfo(Convert.FromBase64String(spki), out var read);
+
+            Assert.Equal(spki.Length, Convert.ToBase64String(key.ExportSubjectPublicKeyInfo()).Length);
+            Assert.Equal(256, key.KeySize);
+            Assert.True(read > 0);
+        }
+    }
+
     // ---- the expired fixture, end to end ----------------------------------
 
     /// <summary>

@@ -31,5 +31,11 @@ public static class EntitlementKeys
     /// trusted it would accept a token anybody could mint.
     /// </para>
     /// </summary>
-    public static IReadOnlyList<string> Production { get; } = [];
+    public static IReadOnlyList<string> Production { get; } =
+    [
+        // Generated 2026-08-31 by tools/keygen.mjs; the private half lives in the
+        // service's SIGNING_KEY and in an offline backup. A successor goes below
+        // this line when one exists — both are accepted during a rotation.
+        "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEhuhK6mT30bciyPaY/clStLkIdKH52lAnn4YvKtnAHNmroBwZTFedG7S0fPVOvoLDqkTyX08FcKkiU/mIYO2Ysw==",
+    ];
 }
