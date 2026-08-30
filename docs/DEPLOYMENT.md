@@ -303,50 +303,61 @@ So licensing here records who a machine belongs to. It is not a lock, it is a
 label, and building it as anything more would be effort spent guarding the half
 that does not need guarding.
 
-**An offline signed licence file. No server, no activation, no kill switch.**
+**Superseded 2026-08-30. A signed entitlement from our own service, cached for
+thirty days.** The mechanism is specified in [CLOUD.md](CLOUD.md); this section
+keeps the business framing and records what changed.
 
-The cloud licensing services were priced and rejected on architecture rather
-than on cost: Keygen (free Dev tier, self-hostable CE), Cryptolens (from ~€199),
-LicenseSpring (free basic, paid from ~$299/month). All three assume the client
-reports to a server. This till's first rule is that it sells food with the
-router unplugged, and *nothing asks permission from a server to sell food*. A
-licence check that needs the internet is a remote dependency the product has
-already refused once.
+### What this used to say, and why it moved
 
-Keygen CE is free and self-hostable, and is still a Rails app and a Postgres to
-run — infrastructure for a problem we do not have.
+It said: an offline signed licence file, no server, no activation. The reasoning
+was that *nothing asks permission from a server to sell food*, and a licence
+check needing the internet is a remote dependency the product had already
+refused.
 
-### What it is
+**That rule did not change — the design found a way to keep it and get a server
+too.** The token is fetched in the background, cached, and honoured for thirty
+days past its expiry; the till never waits on the network to open, and an
+unreachable service is invisible. What the server buys that a file cannot is a
+plan a merchant can change today rather than at reissue, and the first piece of
+cloud the product owns.
 
-A JSON licence signed with **ECDSA P-256 / SHA-256** — `System.Security.Cryptography`,
-no package, no service, no monthly cost. The public key is compiled in; the
-private key stays with us. Roughly 150 lines.
+The bought services were still rejected — Keygen (self-hostable CE), Cryptolens
+(from ~€199), LicenseSpring (paid from ~$299/month). Keygen CE is a Rails app and
+a Postgres for a problem that is three endpoints and two tables, and the others
+price a problem we do not have. Ours runs in `cloud/` on the same Railway service
+that will later carry order ingest.
 
-It carries the merchant, the licence type, the issue date, an expiry, and the
-**edition** — which is the right home for it. `edition` in the shop bundle is a
-plain field a merchant can edit; in a signed licence it is not.
+### Still true
 
-### What it does not do
+**It never stops a shop trading.** Nothing in the entitlement path can lock a
+till: an expired token keeps its edition, its seats and its features and shows a
+banner. A till that downed tools on a Friday evening would cost more trust than
+the renewal it was chasing.
 
-**It never stops a shop trading.** An expired licence says so at startup and in
-Settings; the till keeps taking money. A till that downed tools on a Friday
-evening would cost more trust than the renewal it was chasing.
-
-**It does not phone home, and there is no remote kill switch.**
+**There is no remote kill switch.** Cutting a merchant off is a thing a person
+does deliberately, not a thing an expiry check does on a bad network.
 
 **It is not on the receipt.** Paper is narrow and a customer does not care who
 the till is licensed to. It appears in Settings → Support and in the diagnostics
-export, which is where anyone asking the question is already looking.
+export, which is where anyone asking is already looking.
 
-**It is not bound to the machine.** A hardware fingerprint breaks when a
-merchant replaces a dying PC — which happens — and generates support calls to
-defend against copying that is not a real risk in this market. The opt-in
-heartbeat would show a shop running two tills anyway: **detect, do not enforce.**
-That costs nobody a service when it is wrong.
+**It is not bound to a hardware fingerprint.** That was right and it still is: a
+fingerprint breaks when a merchant replaces a dying PC, and generates support
+calls to defend against copying that is not a real risk in this market.
 
-Settle before the first paying shop; nothing else waits on it. And keep it
-small — if it grows past a signature check and a line in Settings, it has become
-the thing this section says not to build.
+### What changed
+
+**It is bound to a device identity.** A random identifier generated at first run
+and held in the till's database — *not* derived from the hardware. Without it,
+one shop's token unlocks every install.
+
+The distinction is the whole point: a new PC gets a new identifier and
+re-activates, so replacing a dying machine costs nothing, while a copied token is
+useless on the machine it was copied to. The old objection was to fingerprints,
+and it survives intact.
+
+**Detect, do not enforce**, unchanged. A shop running two tills shows up in
+`lastSeen` on the service; what happens next is a conversation, not a lockout.
 
 ## Protecting the local product — decided
 
@@ -360,17 +371,26 @@ What must actually work is smaller and entirely achievable:
 
 | Who | What happens |
 |---|---|
-| A restaurant owner copies the installer to a friend | Machine ID does not match → will not activate |
-| Someone handy edits the licence file, 2028 → 2099 | ECDSA signature invalid → will not run |
+| A merchant copies their token to a second till | The device identity does not match; it is ignored, and that machine falls back to the bundle |
+| Someone handy edits the token, 2028 → 2099 | The ECDSA signature no longer verifies; it is ignored, same fallback |
+| A merchant copies the whole install to a friend | **They get a working till on whatever the bundle says.** Accepted — see below |
 
-That covers essentially all real-world piracy for a product like this. A
-professional reverse engineer spending weeks patching the binary is not a threat
-an early POS should spend development time fighting.
+The third row is stated plainly because it is the honest limit of this design and
+it is not an oversight. Nothing here refuses to run, so nothing here stops that
+case; what it does is make a *paid tier* something only the service can grant. A
+copied install is a shop that is visible in `lastSeen` if it ever connects and
+receives nothing new if it does not.
+
+A professional reverse engineer patching the binary is not a threat an early POS
+should spend development time fighting, and neither is a merchant who has decided
+to defraud us — the moat is the cloud product, not this executable.
 
 ### Six measures, and no more
 
-1. **ECDSA offline licence** binding Restaurant ID + Machine ID + expiry (two
-   years). The signing key never leaves us.
+1. **ECDSA signed entitlement** binding shop + device identity + expiry, fetched
+   and cached — [CLOUD.md](CLOUD.md). The signing key never leaves the service,
+   and a copy of it lives offline: losing it degrades every till on the estate
+   within thirty days with no remedy.
 2. **Release hygiene.** Customers get no source, no development configuration,
    no test tooling. **PDBs and debug symbols are not shipped.**
 3. **Modest .NET obfuscation.** Not to be unbreakable — to make casual
@@ -385,19 +405,25 @@ an early POS should spend development time fighting.
    nothing else. `PaymentResult` is already built this way — the till never sees
    a full PAN.
 
-### Two consequences of choosing Machine ID
+### Why the device identity is issued, not measured
 
-Binding to the machine is the right call for the copy-to-a-friend case, but two
-things follow and both are operational rather than optional:
+An earlier draft of this section planned a hardware fingerprint and then listed
+the operational damage it causes: hard disks die, merchants replace PCs, and a
+NIC MAC address moves with a USB dock, so a licence bound to measured hardware
+revokes itself when somebody plugs in a monitor.
 
-- **There must be a re-issue path.** Hard disks die and merchants replace PCs.
-  A shop that cannot trade on Monday because its licence names last week's
-  motherboard is a worse outcome than the copying this prevents. Re-issuing has
-  to be something support can do in minutes.
-- **Choose a fingerprint that tolerates ordinary change.** Motherboard and
-  system disk are stable enough; a NIC MAC address is not — it moves with a USB
-  dock or a replaced adapter and would revoke a licence for plugging in a
-  monitor.
+All of that was correct, and it is the reason the identity is a **random value
+generated at first run and stored in the till's database** rather than anything
+read off the machine.
+
+Two things follow, and both are cheaper than the fingerprint they replace:
+
+- **A replaced PC re-activates.** New install, new identifier, one activation.
+  There is no fingerprint to fail to match and nothing for support to re-issue in
+  a hurry on a Monday morning.
+- **The identity survives a reinstall on the same machine**, because it lives in
+  `%PROGRAMDATA%\RingOrder\EPOS` with the rest of the data, which an uninstall
+  does not touch.
 
 ### Point 4, as built
 

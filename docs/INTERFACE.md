@@ -148,5 +148,10 @@ whether the printers are ready, and reprint for the one thing that goes wrong.
 
 ## Still to build
 
-Nothing outstanding here. New work starts from [DEPLOYMENT.md](DEPLOYMENT.md) —
-packaging and the signed licence.
+Nothing outstanding here. New work starts from [DEPLOYMENT.md](DEPLOYMENT.md)
+for packaging and [CLOUD.md](CLOUD.md) for what runs off the till.
+
+One thing from CLOUD.md lands on screen and has no home yet: a till running on an
+expired entitlement **keeps trading and says so**. That is a banner, not a
+dialog — it is a fact, not a failure that costs money, and the rule above is that
+a fact informs.

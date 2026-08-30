@@ -26,6 +26,9 @@
 
   <ItemGroup>
     <None Include="..\fixtures\**" LinkBase="fixtures" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Tokens signed by Node, verified here. The contract between the till and
+         the service is these bytes, so both sides read the same files. -->
+    <None Include="..\..\fixtures\entitlement\**" LinkBase="fixtures\entitlement" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\shops\demo\shop.ringpos.json" Link="fixtures\shop.ringpos.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

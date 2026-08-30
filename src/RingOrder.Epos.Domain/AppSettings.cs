@@ -11,6 +11,30 @@ public sealed class AppSettings
     public string ShopPhone { get; set; } = "";
 
     /// <summary>
+    /// The shop's identifier in our own systems — the bundle's slug. Used when
+    /// this till identifies itself to the cloud, and for nothing a customer
+    /// ever sees.
+    /// </summary>
+    public string ShopSlug { get; set; } = "";
+
+    /// <summary>
+    /// The RingOrder cloud, which today answers only about entitlements.
+    /// <para>
+    /// Blank means no cloud, and a till with no cloud runs on the edition in its
+    /// bundle — which is the shipped state and a supported one, not a broken
+    /// one. See docs/CLOUD.md.
+    /// </para>
+    /// </summary>
+    public string CloudBaseUrl { get; set; } = "";
+
+    /// <summary>
+    /// One-time key that activates this installation, seeded from
+    /// <c>secrets.json</c> at provisioning and encrypted at rest like the other
+    /// secrets. Spent once for a device secret, and never read again.
+    /// </summary>
+    public string CloudActivationKey { get; set; } = "";
+
+    /// <summary>
     /// Blank means the shop is not VAT registered, which most small takeaways
     /// are not. Nothing about VAT is printed while it is blank: a receipt
     /// claiming VAT from a business that cannot charge it is worse than one

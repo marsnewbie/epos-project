@@ -1254,3 +1254,248 @@ because `PosSession.Stamp` uses `Staff?.Id` and a web order needs no cashier.
 What was missing was the shell, not the capability.
 
 293 tests.
+
+---
+
+## 2026-08-30 — The cloud, decided; entitlements, started
+
+The architecture is written down in [CLOUD.md](CLOUD.md). This entry records why
+it went that way rather than what it says.
+
+### Read first, decided after
+
+Three repositories were read and none were touched: the ordering website, whose
+`/api/menu` and `/api/print/epos/next` the till already lives off; the AI phone
+project, which turns out to be a solved problem sitting on Railway with its own
+Postgres and 33 written decisions; and this one.
+
+The most useful thing found was that the phone product already frames itself the
+way the cloud needs to: *a phone order is a web order arriving through a
+different door*. It asks the website for every price and posts the same basket.
+So AI phone orders need no new order concept here — only a channel tag on an
+ingest that does not exist yet.
+
+The second most useful was a warning. `/api/menu` is a **display copy**: it
+strips the kitchen translations, drops sold-out dishes and drops hidden
+categories. Everything a customer should not see, which is most of what a kitchen
+ticket is made of. Anyone reaching for it as a menu source for the till should
+read that route first.
+
+### Why the cloud is one service and one pipe
+
+The cloud starts as the entitlement authority and grows into ingest and sync, on
+one Railway service with one Postgres, separate from the ordering website's
+backend.
+
+**Corrected the same day.** This first said the service would be its own
+repository, by analogy with the AI phone project. Wrong analogy: that project
+*consumes* an API it does not control and deliberately does not change, while
+this service and the till *co-evolve one contract they both own*. Applying the
+phone project's own three tests — blast radius, customers, runtime shape — gives
+"together" on the first two, and the third is the test it says does not count.
+It lives in `cloud/`, with Railway's root directory pointed at it. See
+[CLOUD.md](CLOUD.md).
+
+Two services would mean two auth schemes, two base URLs in Settings, two
+deployments to keep in step and two things to be down, in exchange for nothing
+that needs to scale separately yet.
+
+The pipe is a **cursor**, not a webhook: `since=<seq>`. The change log already
+approved for the till is `seq`-ordered, and "what has happened since `seq`" is
+the same question whether the answer is polled, streamed or pushed. Deciding this
+now, while only one thing flows through it, is what lets order ingest and
+multi-terminal sync arrive later as event types rather than as plumbing.
+
+Pull rather than push because a till sits behind whatever router a takeaway owns,
+frequently behind CGNAT. Nothing reaches inward reliably. Polling survives a
+router reboot without anyone noticing, and SSE can replace the transport later
+without changing the question.
+
+### Entitlements: what was built
+
+`Entitlement`, `EntitlementState` and `EntitlementPolicy` — pure, no clock of
+their own, no disk, no network. Verification and transport come next; the rules
+came first because the rules are the risky part and they are the part that can be
+tested without a server.
+
+Four decisions worth keeping:
+
+**The token is bound to `deviceId`.** Without it one shop's token unlocks every
+install, and nothing misbehaves until the day somebody copies one. Tested rather
+than trusted. The *shop* is deliberately not re-checked: a device is bound to a
+shop at activation, and checking again locally buys no security while adding a
+way for a shop renamed in the cloud to lock itself out.
+
+**No path locks a till.** An expired token keeps its edition, its seats and its
+features, and is marked stale so something visible can say so. A till that shut a
+shop down at eight on a Saturday over a billing question would cost the merchant
+a service and cost us the merchant. Cutting someone off is a decision a person
+takes deliberately.
+
+**No token falls to the bundle, not to `pos`.** A print-only machine that has
+never reached the cloud stays print-only, because that is what was shipped. Only
+a word that cannot be read at all falls the safe way to the full till, which is
+the rule `ShopEdition.Normalise` already had.
+
+**An empty feature list restricts nothing.** Only a populated list is an
+allow-list. This is the surprising half and it is deliberate: switching
+entitlements on changes nothing for any existing shop until somebody populates a
+list, and an odd answer from the cloud cannot take a working feature away. Read
+the other way round, the first payload that arrived with a field missing would
+have bricked the estate.
+
+The clock going backwards is ignored on purpose. Winding it back extends a token;
+enforcing `issuedAt` would take a shop offline over a flat CMOS battery, which is
+the more likely event by a wide margin.
+
+### Not built yet
+
+Signature verification, the HTTP client, the device identity, and the service
+itself. The next step deliberately keeps the same order: the client's degrade
+path first, tested by turning the real server off rather than by faking one —
+same test, more truth.
+
+317 tests.
+
+### Changing a contract, and three things that are not the answer
+
+Asked how a contract change would be handled once tills are in the field, and
+whether the merchant could be sent a file, told to reinstall, or asked to copy
+the data folder across. Each was checked against what the code already does.
+
+**Copying the data folder is unnecessary and unsafe, and the code says both.**
+`LocalPaths` puts everything under `%PROGRAMDATA%\RingOrder\EPOS`, outside the
+install directory, so an uninstall and reinstall already keeps the data with
+nobody doing anything. And an open SQLite database is three files: a merchant
+copying `data.sqlite` while the till runs leaves `-wal` behind, which is the most
+recent trading, and the copy looks healthy until a shift will not balance.
+`BackupService` uses `VACUUM INTO` for exactly this reason — its own comment says
+"unlike copying the [file]" — and `RestoreRequest` already handles `-wal` and
+`-shm` and keeps the replaced database beside the new one.
+
+**Reinstalling solves a problem auto-update already solved.** Getting new code
+onto a machine is not the hard part of a contract change. Not knowing which shops
+are behind is, and where auto-update is broken a manual reinstall usually fails
+for the same underlying reason.
+
+**Emailing a file** is right for a rare, deliberate event with a person on the
+phone — an offline entitlement grant. As a repair mechanism it is weak, because
+of forty shops phoned some do it, some do it wrong, and some are heard from in
+three months.
+
+What actually works is in CLOUD.md now: additive-only changes, unknown fields
+ignored rather than rejected, **the client reporting its version on every
+request**, and `/v2/` when a break is genuine. The version field is the one that
+was missing from the earlier design and it is the cheapest: it turns "hopefully
+everyone updated" into a list of who has not, which is the only thing that ever
+makes it safe to delete the old server code.
+
+When a client really is too old, the server says so and the client updates
+itself — nobody phones a merchant. **Too old to sync never means too old to
+trade.**
+
+### Documents corrected rather than left to mislead
+
+DEPLOYMENT.md described an offline signed licence with no server and no
+activation, and — two sections later — a threat model where a mismatched Machine
+ID means "will not activate" and an edited licence means "will not run". Those
+contradicted each other before today and both contradict the design now.
+
+Rewritten to say what is true: the rule that *nothing asks permission from a
+server to sell food* did not change, the design found a way to keep it and have a
+server too, and **nothing in the entitlement path can stop a till trading**. The
+threat-model table now states the honest limit — someone who copies a whole
+install gets a working till on whatever the bundle says — because that is
+accepted rather than overlooked.
+
+The old objection to hardware fingerprints was right and survives: the identity
+is a random value generated at first run, not measured off the machine, so a
+replaced PC simply re-activates. What changed is that a token is now bound to
+that identity, without which one shop's token unlocks every install.
+
+INTERFACE.md's "still to build" pointed only at packaging and the signed licence;
+it now also carries the one thing from CLOUD.md that reaches a screen — an
+expired entitlement is a **banner, not a dialog**, because it is a fact rather
+than a failure that costs money. AGENTS.md lists CLOUD.md.
+
+317 tests, unchanged — this was documentation and decisions, no code.
+
+---
+
+## 2026-08-30 — The entitlement client, end to end
+
+The till side of [CLOUD.md](CLOUD.md) is built and wired. The service is not
+written yet, deliberately: the risk in this feature is entirely in what the till
+does when the cloud is absent, and that is testable without a cloud.
+
+### Signed by Node, verified by C#
+
+The fixtures in `fixtures/entitlement` are generated by
+`node fixtures/entitlement/make-fixtures.mjs` and read by the C# tests. This is
+not ceremony. Node signs ECDSA in DER by default and .NET verifies P1363 by
+default — **two correct implementations that never interoperate** until somebody
+pins the encoding. A round-trip test written in one language would have passed
+happily and told us nothing.
+
+The format is the JWT shape without the header: `base64url(payload).base64url(sig)`.
+No header because a header exists to negotiate an algorithm, there is exactly one
+algorithm here, and every `alg` confusion vulnerability ever written up came out
+of that negotiation.
+
+Serialiser options are pinned in the token file rather than taken from the shared
+`JsonUtil`. This is a contract with software installed in shops; inheriting a
+repository-wide serialiser would let somebody tidying a naming policy change what
+a till in Birmingham can read.
+
+### Two faults found by writing the tests
+
+**Record equality compares a list by reference.** `EntitlementState` is a
+positional record holding `IReadOnlyList<string> Features`, and
+`EntitlementService` decides whether to raise its `Changed` event by comparing
+the state before a refresh with the state after. Every refresh would have
+announced a change — a banner redrawing itself daily, for the life of the
+product, for no reason. Both records now compare by value, and the reason is on
+the method so it cannot be tidied away.
+
+**The service logged straight to `AppLog`,** which writes to
+`LocalPaths.LogDirectory`. A test of the "token belongs to another machine" path
+would have written into a merchant's live shop folder — the defect this project
+has already had twice. The logger is now injected, following the
+`AppLog.For(area)` convention the print queue and caller ID already use.
+
+### Decisions worth keeping
+
+**The device identity is random, not measured.** `Guid.NewGuid()` at first use,
+stored in `settings`. The old objection to hardware fingerprints in DEPLOYMENT.md
+was right and is preserved: a fingerprint revokes itself when a merchant replaces
+a dying PC. Because the identity lives under `%PROGRAMDATA%` it survives an
+uninstall and reinstall, so repairing an installation does not mean reactivating
+a machine. A new machine simply activates again; a copied token is useless on the
+machine it was copied to, which is all this has to achieve.
+
+**`EntitlementKeys.Production` ships empty.** With no key nothing verifies and
+every till falls back to its bundle, which is the documented behaviour for a shop
+that has never reached the cloud. A build that shipped before the key existed
+would therefore behave correctly rather than mysteriously. The development key —
+whose private half is in the repository — is deliberately not in that list, and a
+test holds it out, because a build that trusted it would accept a token anybody
+could mint.
+
+**A cloud address without credentials attempts nothing and says nothing.** That
+is a shop provisioned without a cloud key, which is every shop today. It must not
+produce a log line every day for the rest of its life, so it is pinned by a test
+asserting the log is empty.
+
+**Nothing is on the path to opening the till.** The state is resolved from disk
+synchronously; the ask happens afterwards on a background task whose failure is
+swallowed. `RefreshInBackground` wraps the client — which does not throw — in a
+try/catch anyway, because a fault there must not be able to take down a shop.
+
+### Checked on real data
+
+The app was run rather than only built. On the live development database it
+created `cloud.device-id`, recorded one refresh attempt, wrote **no** cloud lines
+to the log, and opened the till exactly as before — which is the whole
+requirement for a shop that has not bought anything from us yet.
+
+351 tests.

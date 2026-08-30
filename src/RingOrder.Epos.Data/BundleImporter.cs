@@ -389,6 +389,22 @@ public sealed class BundleImporter
             if (!string.IsNullOrWhiteSpace(lookup.ApiKey))
                 settings.AddressLookupApiKey = lookup.ApiKey.Trim();
         }
+
+        // The slug is how this shop names itself to our own systems, so it comes
+        // from the bundle's identity and not from anything a merchant types.
+        if (!string.IsNullOrWhiteSpace(bundle.Shop.Slug))
+            settings.ShopSlug = bundle.Shop.Slug.Trim();
+
+        if (secrets?.Cloud is { } cloud)
+        {
+            if (!string.IsNullOrWhiteSpace(cloud.BaseUrl))
+                settings.CloudBaseUrl = cloud.BaseUrl.Trim().TrimEnd('/');
+
+            // Only set when supplied. A re-import to update a menu must not wipe
+            // an activation that has already happened.
+            if (!string.IsNullOrWhiteSpace(cloud.ActivationKey))
+                settings.CloudActivationKey = cloud.ActivationKey.Trim();
+        }
     }
 
     private int SeedStaff(ShopBundle bundle, List<string> warnings)
@@ -429,11 +445,35 @@ public sealed class ShopSecrets
     public WebSecrets? Web { get; set; }
 
     /// <summary>
+    /// Where the entitlement service is, and the one-time key that activates
+    /// this installation against it.
+    /// <para>
+    /// Here rather than in the bundle for the same reason as the lookup key: a
+    /// bundle is forwarded, attached to emails and copied onto USB sticks, and
+    /// an activation key on a memory stick is an activation key anybody can
+    /// spend.
+    /// </para>
+    /// </summary>
+    public CloudSecrets? Cloud { get; set; }
+
+    /// <summary>
     /// The postcode-lookup account. Here rather than in the bundle because the
     /// key is billable: a bundle gets forwarded, attached to emails and copied
     /// onto USB sticks, and a leaked key spends someone else's money.
     /// </summary>
     public AddressLookupSecrets? AddressLookup { get; set; }
+}
+
+public sealed class CloudSecrets
+{
+    public string? BaseUrl { get; set; }
+
+    /// <summary>
+    /// Spent once, at first contact, for a device secret that is kept instead.
+    /// Nothing re-reads it afterwards, so a merchant who loses the file loses
+    /// nothing.
+    /// </summary>
+    public string? ActivationKey { get; set; }
 }
 
 public sealed class AddressLookupSecrets

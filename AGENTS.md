@@ -15,6 +15,7 @@ each already cost something once.
 | [docs/SHOP_BUNDLE.md](docs/SHOP_BUNDLE.md) | The configuration file, and how a new shop goes live |
 | [docs/INTERFACE.md](docs/INTERFACE.md) | Interface and interaction rules, and the reasoning behind them |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Packaging, updates, backup, and supporting a shop remotely |
+| [docs/CLOUD.md](docs/CLOUD.md) | What runs off the till: entitlements, ingest, sync — and what may never depend on it |
 | [docs/PRIVACY.md](docs/PRIVACY.md) | Personal data: what is held, for how long, and what erasure removes |
 | [docs/TESTING.md](docs/TESTING.md) | What to run, and what to check by hand |
 | [docs/WORKLOG.md](docs/WORKLOG.md) | What changed and why, newest last |

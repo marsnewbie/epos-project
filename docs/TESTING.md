@@ -36,6 +36,10 @@ part of finishing a change, not an extra.
 | Till keyboard | That both number rows key a dish, that the keypad keys map to what sits beside them, and — the one that matters — that **nothing fires while a text field has focus**, so an address is never eaten by the dish-number box |
 | Editions | That `print` is recognised however it is spelled, and that anything unrecognised falls to the full till rather than silently downgrading a paying shop |
 | Local secrets | That the row written to disk does not contain the readable password, that a value stored before encryption existed still reads, that saving leaves the caller's object usable, and that an undecryptable secret comes back empty rather than as ciphertext |
+| Entitlement wire format | That a token **signed by Node** verifies in C# — the encoding trap is real, since Node signs DER by default and .NET verifies P1363 by default; that a payload edited after signing does not verify; that a version this build does not know is refused rather than guessed at; and that **a token carrying fields we have never heard of still loads**, which is what lets the service add a field without breaking every till that has not updated |
+| Entitlement identity | That the device identity is created once and survives a reinstall, that two installations never share one, that the device secret is not written in the clear, and that a token belonging to another machine is thrown away rather than carried forever |
+| Entitlement refresh | That an unreachable service changes nothing and says nothing, that a build the service refuses to talk to keeps trading, that a cloud address without credentials attempts nothing at all, and that an attempt just made is not made again |
+| Entitlements | That **no path locks a till** — an expired token keeps its edition, its seats and its features and only marks itself stale; that a token issued to another machine is ignored entirely; that a shop which has never reached the cloud keeps the edition it was shipped with rather than being handed the full till; that an empty feature list restricts nothing; and that a clock wound back seventeen years does not shut the shop |
 
 ## What the compiler checks
 
@@ -76,6 +80,22 @@ about columns the old release never had.
 The lookup tests never touch the network. Provider responses are parsed from
 recorded JSON, and the cache and fallback behaviour run against a counting fake —
 so "how many times did the shop get charged" is an assertion rather than a hope.
+
+## The contract fixtures
+
+`fixtures/entitlement` holds tokens **signed by Node and verified by C#**. That
+is the point of them: the service and the till are different runtimes, and the
+failure worth guarding against is the one where each is perfectly self-consistent
+and they disagree with each other.
+
+```bash
+node fixtures/entitlement/make-fixtures.mjs
+```
+
+The key there is for development only. Its private half is in the repository, so
+it is deliberately absent from `EntitlementKeys.Production` — and a test holds it
+that way, because a build that trusted it would accept a token anybody could
+mint.
 
 ## Manual pass — the money
 

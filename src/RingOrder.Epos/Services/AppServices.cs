@@ -34,6 +34,13 @@ public sealed class AppServices
     public PrintQueue PrintQueue { get; }
     public BackupService Backups { get; }
     public PosSession Session { get; }
+    public EntitlementStore EntitlementStore { get; }
+
+    /// <summary>
+    /// What this till is licensed to do. Resolved from disk at startup and
+    /// refreshed in the background — never on the path to opening.
+    /// </summary>
+    public EntitlementService Entitlement { get; }
     public PrintService Print { get; }
     public OnlineOrderPoller OnlinePoller { get; }
     /// <summary>
@@ -141,6 +148,13 @@ public sealed class AppServices
         }
         Backups = new BackupService(Db);
         Backups.Start();
+
+        // Resolved from what is already stored, so this costs a couple of
+        // queries and no network. The ask happens afterwards and its failure is
+        // invisible: a shop whose router is off must not be able to tell.
+        EntitlementStore = new EntitlementStore(Db);
+        Entitlement = new EntitlementService(EntitlementStore, () => _cachedSettings);
+        Entitlement.RefreshInBackground();
 
         // The queue is work, not an archive: printed jobs older than a week are
         // dead weight, and their payloads are raster bitmaps.

@@ -73,10 +73,14 @@ A postcode-lookup account belongs there too, and for a sharper reason: the key i
 billable, so a bundle that carried it would let anyone it was forwarded to spend
 the merchant's credits.
 
+The cloud activation key belongs there for the same reason: it is spent once to
+enrol this installation, and one on a memory stick is one anybody can spend.
+
 ```json
 {
   "shopSlug": "demo",
-  "addressLookup": { "provider": "getaddress", "apiKey": "…" }
+  "addressLookup": { "provider": "getaddress", "apiKey": "…" },
+  "cloud": { "baseUrl": "https://…", "activationKey": "…" }
 }
 ```
 
@@ -84,6 +88,11 @@ the merchant's credits.
 Omitting the block leaves lookup switched off, which is the right default — see
 [ARCHITECTURE.md](ARCHITECTURE.md) for why there is no free option that returns
 house numbers.
+
+Omitting `cloud` leaves the till running on the `edition` in its bundle, which is
+a supported state and the one every shop is in today — see [CLOUD.md](CLOUD.md).
+A re-import that supplies no `activationKey` leaves an existing activation alone,
+so updating a menu never un-enrols a machine.
 
 ## Putting a shop live
 

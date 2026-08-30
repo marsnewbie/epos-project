@@ -28,7 +28,12 @@ public partial class App : Application
             {
                 var services = AppServices.Start();
 
-                if (ShopEdition.IsPrintOnly(services.GetSettings().Edition))
+                // The entitlement, not the bundle: a shop that has bought the
+                // full till gets it without waiting for a new bundle, and one
+                // that has never reached the cloud keeps the edition it was
+                // shipped with. Resolved from disk, so this does not wait on a
+                // network call to decide which window to open.
+                if (services.Entitlement.Current.IsPrintOnly)
                     StartPrintOnly(desktop, services);
                 else
                     StartTill(desktop, services);
