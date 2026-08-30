@@ -68,16 +68,23 @@ never commit to it.
 ```
 AGENTS.md                     this file
 README.md                     what it is and how to run it
-docs/                         the seven documents above
+docs/                         the documents listed above
 shops/demo/                   the one shop in the repo, used by tests
 src/RingOrder.Epos/           Avalonia UI (MVVM)
 src/RingOrder.Epos.Domain/    orders, menu, staff, shifts, the bundle model
 src/RingOrder.Epos.Data/      SQLite, migrations, repositories, bundle import
 src/RingOrder.Epos.Hardware/  printers, drawer, caller ID, payment terminal
-src/RingOrder.Epos.Online/    website order polling
+src/RingOrder.Epos.Online/    website order polling, and the cloud client
 tests/RingOrder.Epos.Tests/   xunit
+cloud/                        the cloud service — TypeScript on Node 24
+fixtures/entitlement/         tokens signed by the service, verified by the till
 ringorder-epos-shops/         real merchant data — git-ignored, never committed
 ```
+
+**This repository holds two programs in two languages.** The till is C#; the
+cloud service in `cloud/` is TypeScript, deployed separately to Railway. They
+live together because they **co-evolve one contract they both own**, and a change
+to it has to land on both sides at once — see [docs/CLOUD.md](docs/CLOUD.md).
 
 Data on a merchant's PC lives under `%PROGRAMDATA%\RingOrder\EPOS\`:
 `data.sqlite`, `profile/`, `backups/`, `logs/`. Machine-wide, not per-user — a
@@ -93,6 +100,13 @@ dotnet run --project src/RingOrder.Epos
 
 Building is not enough. Run it: most of what breaks in a till is a flow, not a
 compile error.
+
+If you touched `cloud/`, or anything either side of the wire between it and the
+till:
+
+```bash
+cd cloud && npm test && npm run typecheck
+```
 
 Add an entry to [docs/WORKLOG.md](docs/WORKLOG.md) for anything that changes
 behaviour, data, or a decision. It is the trail a later session reads to
@@ -142,3 +156,11 @@ raised as a fault by someone reasoning from a name rather than from the code.
 | The dispatch board refuses to send an unfinished order | It warns and sends anyway. Same rule as a delivery minimum: the person holding the bag sees things the till cannot, and a rule staff work around loses the record |
 | `StaffRole.Driver` is a kind of cashier | It grants nothing at the till. Drivers are staff because they carry the shop's cash and it must have a name on it, not because they operate the till |
 | An undecryptable secret should be returned as-is | It comes back empty. DPAPI is machine-bound, so a database restored onto new hardware cannot read it — and handing back the blob would send it to the website as a password. The shop retypes the key |
+| An expired entitlement locks the till | **No path in that code can lock a till.** It keeps its edition, its seats and its features and marks itself stale so a banner can say so. A till that shut a shop down at eight on a Saturday over a billing question would cost the merchant a service and cost us the merchant |
+| An empty `features` list permits nothing | It restricts *nothing* — only a populated list is an allow-list. Read the other way round, the first payload arriving with a field missing would brick every till on the estate |
+| A shop with no token gets the full till | It gets the edition in its **bundle**. Only a word nobody can read falls the safe way to `pos`, which is `ShopEdition.Normalise`'s existing rule |
+| The entitlement is bound to the machine's hardware | To a **random identifier we generate at first run**. A fingerprint revokes itself when a merchant replaces a dying PC or plugs in a dock that moves a MAC address. A new machine simply activates again |
+| `EntitlementKeys.Production` being empty is an oversight | It is the safe default until a production key exists: nothing verifies, every till falls back to its bundle, and a build shipped early behaves correctly rather than mysteriously. The development key is kept out of it deliberately — its private half is in this repository |
+| The till waits for the cloud at startup | It resolves from disk, synchronously. The ask happens afterwards on a background task whose failure is invisible, and an unreachable service writes no log line at all for a shop that never had a cloud |
+| Signing ECDSA in Node and verifying in .NET just works | Node signs DER by default, .NET verifies P1363 by default, and both are correct. `dsaEncoding: "ieee-p1363"` is load-bearing; without it a token verifies nowhere and looks entirely normal until a till rejects it |
+| Regenerating the entitlement fixtures should produce identical files | ECDSA draws a fresh nonce per signature, so every file changes every time. Only the payload half of a token is stable |
