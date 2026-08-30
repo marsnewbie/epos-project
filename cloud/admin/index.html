@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RingOrder — shops</title>
+<style>
+  :root {
+    --ink: #1c1917; --muted: #57534e; --line: #e7e5e4;
+    --bg: #fafaf9; --panel: #fff; --accent: #ea580c; --bad: #b91c1c; --good: #15803d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 24px; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 32px 0 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  p.note { color: var(--muted); font-size: 13px; margin: 0 0 24px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input, select {
+    width: 100%; padding: 10px 12px; font: inherit; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 8px; background: #fff;
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .row { display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; }
+  button {
+    padding: 10px 20px; font: inherit; font-weight: 600; cursor: pointer;
+    border: 0; border-radius: 8px; background: var(--accent); color: #fff; white-space: nowrap;
+  }
+  button.quiet { background: #fff; color: var(--ink); border: 1px solid var(--line); font-weight: 400; }
+  button:disabled { opacity: .5; cursor: default; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 0 10px 8px; }
+  td { padding: 12px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+  code { font: 13px ui-monospace, Consolas, monospace; }
+  .code {
+    margin: 20px 0 0; padding: 24px; text-align: center;
+    background: #fff7ed; border: 2px solid var(--accent); border-radius: 10px;
+  }
+  .code b { display: block; font: 700 42px/1.1 ui-monospace, Consolas, monospace; letter-spacing: .08em; }
+  .code span { display: block; color: var(--muted); font-size: 13px; margin-top: 10px; }
+  .warn { color: var(--bad); }
+  .ok { color: var(--good); }
+  .quiet-text { color: var(--muted); font-size: 13px; }
+  #error { color: var(--bad); margin-top: 12px; min-height: 20px; font-size: 14px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>RingOrder shops</h1>
+  <p class="note">Entitlements only. No orders, no customers, no money — see docs/CLOUD.md.</p>
+
+  <section id="gate" class="panel hidden">
+    <label for="token">Admin token</label>
+    <input id="token" type="password" autocomplete="off" placeholder="the service's ADMIN_TOKEN">
+    <p class="quiet-text">Kept in this browser only. Never sent anywhere but this service.</p>
+    <button id="signin">Continue</button>
+  </section>
+
+  <section id="app" class="hidden">
+    <div class="panel">
+      <div class="row">
+        <div>
+          <label for="shopId">Shop</label>
+          <input id="shopId" placeholder="magic-wok-birmingham" autocomplete="off">
+        </div>
+        <div>
+          <label for="edition">Product</label>
+          <select id="edition">
+            <option value="pos">Full till</option>
+            <option value="print">Web-order printer</option>
+          </select>
+        </div>
+        <div>
+          <label for="terminals">Terminals</label>
+          <input id="terminals" type="number" min="1" value="1">
+        </div>
+        <button id="create">Add / new code</button>
+      </div>
+      <p class="quiet-text" style="margin:12px 0 0">
+        An existing shop keeps its tills and gets a fresh code; the old one stops working at once.
+      </p>
+      <div id="error"></div>
+      <div id="code" class="code hidden">
+        <b id="codeValue"></b>
+        <span>Type it on the till: <strong>Settings → Cloud → Connect</strong>. <span id="codeExpiry"></span></span>
+      </div>
+    </div>
+
+    <h2>The estate</h2>
+    <div class="panel">
+      <table>
+        <thead>
+          <tr><th>Shop</th><th>Product</th><th>Tills</th><th>Versions</th><th>Last seen</th><th>Code</th></tr>
+        </thead>
+        <tbody id="shops"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+const KEY = "ringorder-admin-token";
+const $ = (id) => document.getElementById(id);
+let token = localStorage.getItem(KEY) || "";
+
+const show = (el, on) => el.classList.toggle("hidden", !on);
+
+async function api(path, options = {}) {
+  const response = await fetch(path, {
+    ...options,
+    headers: { ...(options.headers || {}), authorization: "Bearer " + token, "content-type": "application/json" },
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || response.status);
+  return body;
+}
+
+function ago(iso) {
+  if (!iso) return { text: "never", cls: "warn" };
+  const days = Math.floor((Date.now() - Date.parse(iso)) / 86400000);
+  if (days === 0) return { text: "today", cls: "ok" };
+  if (days === 1) return { text: "yesterday", cls: "" };
+  // A till asks daily, so a fortnight of silence is a shop to ring, not a
+  // number to admire. Thirty days is when its entitlement runs out.
+  return { text: days + " days ago", cls: days >= 14 ? "warn" : "" };
+}
+
+async function refresh() {
+  const { shops } = await api("/v1/admin/shops");
+  $("shops").innerHTML = shops.map((s) => {
+    const seen = ago(s.lastSeen);
+    const live = s.activationExpiresAt && Date.parse(s.activationExpiresAt) > Date.now();
+    return `<tr>
+      <td><code>${s.shopId}</code></td>
+      <td>${s.edition === "print" ? "Printer" : "Full till"}</td>
+      <td>${s.devices} / ${s.terminals}</td>
+      <td><code>${s.clientVersions.join(", ") || "—"}</code></td>
+      <td class="${seen.cls}">${seen.text}</td>
+      <td class="quiet-text">${live ? "code live" : "—"}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="6" class="quiet-text">No shops yet.</td></tr>`;
+}
+
+async function start() {
+  if (!token) { show($("gate"), true); return; }
+  try {
+    await refresh();
+    show($("gate"), false);
+    show($("app"), true);
+  } catch {
+    // A stored token that no longer works should ask again rather than show an
+    // empty page that looks like an empty estate.
+    localStorage.removeItem(KEY);
+    token = "";
+    show($("gate"), true);
+  }
+}
+
+$("signin").onclick = () => {
+  token = $("token").value.trim();
+  if (!token) return;
+  localStorage.setItem(KEY, token);
+  start();
+};
+
+$("create").onclick = async () => {
+  const shopId = $("shopId").value.trim();
+  $("error").textContent = "";
+  if (!shopId) { $("error").textContent = "Give the shop a name first."; return; }
+
+  $("create").disabled = true;
+  try {
+    const created = await api("/v1/admin/shop", {
+      method: "POST",
+      body: JSON.stringify({
+        shopId,
+        edition: $("edition").value,
+        terminals: Number($("terminals").value) || 1,
+      }),
+    });
+
+    $("codeValue").textContent = created.activationCode;
+    $("codeExpiry").textContent =
+      "Valid until " + new Date(created.expiresAt).toLocaleDateString("en-GB",
+        { day: "numeric", month: "long" }) + ". Shown once.";
+    show($("code"), true);
+    $("shopId").value = "";
+    await refresh();
+  } catch (e) {
+    $("error").textContent = String(e.message || e);
+  } finally {
+    $("create").disabled = false;
+  }
+};
+
+$("token").addEventListener("keydown", (e) => { if (e.key === "Enter") $("signin").click(); });
+$("shopId").addEventListener("keydown", (e) => { if (e.key === "Enter") $("create").click(); });
+
+start();
+</script>
+</body>
+</html>

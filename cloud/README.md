@@ -73,6 +73,8 @@ here. A test holds it out of the till's trusted list.
 POST /v1/activate      one-time; a typed code  → device secret + first token
 POST /v1/sync          recurring; device secret → token
 POST /v1/admin/shop    bearer token; creates a shop and mints its code
+GET  /v1/admin/shops   bearer token; the estate, and what build each till is on
+GET  /admin            the page an operator uses
 GET  /healthz          includes a database ping
 ```
 
@@ -119,11 +121,22 @@ failure can take.
 
 ## Adding a shop
 
+Open **`/admin`**, paste the `ADMIN_TOKEN` once, and fill in the name. The page
+shows the code and lists the estate — how many tills each shop has, what build
+they are on, and when each was last heard from.
+
+The page is served without a gate on purpose. It holds no secret: the token is
+typed into it and stays in that browser, and every call it makes is authorised
+exactly as `curl` would be. Gating the HTML too would only mean two places to get
+authorisation wrong.
+
+There is a command for the same thing, for scripting:
+
 ```bash
 ADMIN_TOKEN=... node tools/new-shop.mjs <shop-id> [pos|print] [terminals]
 ```
 
-Prints an eight-character code. Somebody types it on the till at
+Both print an eight-character code. Somebody types it on the till at
 **Settings → Cloud → Connect**, and that is the whole of onboarding.
 
 **The code identifies the shop.** The till is told nothing about which shop it

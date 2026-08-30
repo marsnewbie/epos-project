@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { createVerify } from "node:crypto";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { activate, adminSaveShop, sync, type Options } from "./routes.ts";
+import { activate, adminListShops, adminSaveShop, sync, type Options } from "./routes.ts";
 import { hashSecret, MemoryStore, type Shop } from "./store.ts";
 
 const FIXTURES = join(import.meta.dirname, "..", "..", "fixtures", "entitlement");
@@ -353,6 +353,50 @@ describe("admin", () => {
 
     assert.equal(reply.status, 404);
     assert.equal(reply.body.error, "no such endpoint");
+  });
+
+
+  it("lists the estate, and says which build each shop is on", async () => {
+    const { store, options } = admin();
+
+    const created = await adminSaveShop({ shopId: "demo-shop" }, `Bearer ${TOKEN}`, options);
+    await activate(
+      { deviceId: DEVICE, activationCode: created.body.activationCode as string, clientVersion: "1.4.2" },
+      options,
+    );
+
+    const reply = await adminListShops(`Bearer ${TOKEN}`, options);
+
+    assert.equal(reply.status, 200);
+    const shops = reply.body.shops as Record<string, unknown>[];
+    const demo = shops.find((s) => s.shopId === "demo-shop");
+
+    assert.ok(demo);
+    assert.equal(demo.devices, 1);
+    assert.deepEqual(demo.clientVersions, ["1.4.2"]);
+    assert.equal(typeof demo.lastSeen, "string");
+    assert.ok(store);
+  });
+
+  /** Only the hash of a code is stored, so a listing could not leak one even by mistake. */
+  it("never shows a code, only whether one is live", async () => {
+    const { options } = admin();
+
+    const created = await adminSaveShop({ shopId: "demo-shop" }, `Bearer ${TOKEN}`, options);
+    const reply = await adminListShops(`Bearer ${TOKEN}`, options);
+
+    const serialised = JSON.stringify(reply.body);
+    const code = (created.body.activationCode as string).replace("-", "");
+
+    assert.ok(!serialised.includes(code));
+    assert.ok(!serialised.toLowerCase().includes("activationcode"));
+  });
+
+  it("guards the listing the same way", async () => {
+    const { options } = admin();
+
+    assert.equal((await adminListShops("Bearer wrong", options)).status, 401);
+    assert.equal((await adminListShops(`Bearer ${TOKEN}`, setup().options)).status, 404);
   });
 
   it("refuses a shape it cannot store", async () => {

@@ -55,7 +55,24 @@ export interface Store {
    * which is the point.
    */
   saveShop(shop: Shop, codeHash: string, expiresAt: Date): Promise<void>;
+
+  /**
+   * Every shop, with how its tills are doing.
+   *
+   * The two questions this service exists to be able to answer about the estate:
+   * who has gone quiet, and who is still on an old build. Without the second one
+   * "has everybody updated?" is a guess, and an old protocol version can never
+   * safely be retired.
+   */
+  listShops(): Promise<ShopSummary[]>;
 }
+
+export type ShopSummary = Shop & {
+  devices: number;
+  lastSeen: Date | null;
+  clientVersions: string[];
+  activationExpiresAt: Date | null;
+};
 
 /**
  * Hashes a device secret for storage.
@@ -118,5 +135,23 @@ export class MemoryStore implements Store {
 
   async saveShop(shop: Shop, codeHash: string, expiresAt: Date): Promise<void> {
     this.shops.set(shop.id, { ...shop, activationKeyHash: codeHash, activationExpiresAt: expiresAt });
+  }
+
+  async listShops(): Promise<ShopSummary[]> {
+    return [...this.shops.values()].map((shop) => {
+      const devices = [...this.devices.values()].filter((d) => d.shopId === shop.id);
+      const seen = devices.map((d) => this.seen.get(d.id)).filter((s) => s !== undefined);
+
+      return {
+        id: shop.id,
+        edition: shop.edition,
+        features: shop.features,
+        terminals: shop.terminals,
+        devices: devices.length,
+        lastSeen: seen.reduce<Date | null>((a, s) => (!a || s.at > a ? s.at : a), null),
+        clientVersions: [...new Set(seen.map((s) => s.clientVersion).filter((v) => v !== null))],
+        activationExpiresAt: shop.activationExpiresAt ?? null,
+      };
+    });
   }
 }

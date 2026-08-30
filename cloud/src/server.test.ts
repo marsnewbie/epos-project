@@ -109,6 +109,30 @@ describe("the transport", () => {
     assert.equal((await post("/v1/sync", null, huge)).status, 400);
   });
 
+
+  /**
+   * The page holds no secret — the token is typed into it and stays in the
+   * operator's browser — so it is served without a gate. What matters is that it
+   * is actually there: a 404 here is an operator with no way in but curl.
+   */
+  it("serves the admin page", async () => {
+    const response = await fetch(`${base}/admin`);
+
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("content-type") ?? "", /text\/html/);
+
+    const html = await response.text();
+    assert.ok(html.includes("RingOrder shops"));
+    assert.ok(html.includes("/v1/admin/shop"));
+  });
+
+  it("does not put the admin token anywhere in that page", async () => {
+    const html = await (await fetch(`${base}/admin`)).text();
+
+    assert.ok(!html.includes("ADMIN_TOKEN="));
+    assert.ok(!html.includes(privateKeyPem.slice(40, 80)));
+  });
+
   it("has nothing to say to other methods and other paths", async () => {
     assert.equal((await fetch(`${base}/v1/sync`)).status, 405);
     assert.equal((await post("/v1/whatever", {})).status, 404);

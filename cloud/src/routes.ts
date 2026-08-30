@@ -187,16 +187,8 @@ export async function adminSaveShop(
   authorisation: string | undefined,
   options: Options,
 ): Promise<Reply> {
-  // No token configured means no admin surface at all. A deployment that forgot
-  // to set one is closed rather than open.
-  if (!options.adminToken) {
-    return { status: 404, body: { error: "no such endpoint" } };
-  }
-
-  const offered = (authorisation ?? "").replace(/^Bearer\s+/i, "");
-  if (offered.length === 0 || !secretMatches(offered, hashSecret(options.adminToken))) {
-    return { status: 401, body: { error: "unauthorised" } };
-  }
+  const refused = refuseAdmin(authorisation, options);
+  if (refused) return refused;
 
   const shopId = str(request.shopId);
   if (!shopId) return { status: 400, body: { error: "shopId is required" } };
@@ -234,6 +226,64 @@ export async function adminSaveShop(
       // code costs another call to this endpoint and nothing else.
       activationCode: format(code),
       expiresAt: expiresAt.toISOString(),
+    },
+  };
+}
+
+/**
+ * The gate on every admin route.
+ *
+ * Returns a reply when the caller must be turned away, and nothing when they may
+ * proceed — so a route that forgets to check reads obviously wrong rather than
+ * quietly working.
+ */
+function refuseAdmin(authorisation: string | undefined, options: Options): Reply | null {
+  // No token configured means no admin surface at all. A deployment that forgot
+  // to set one is closed rather than open.
+  if (!options.adminToken) {
+    return { status: 404, body: { error: "no such endpoint" } };
+  }
+
+  const offered = (authorisation ?? "").replace(/^Bearer +/i, "");
+  if (offered.length === 0 || !secretMatches(offered, hashSecret(options.adminToken))) {
+    return { status: 401, body: { error: "unauthorised" } };
+  }
+
+  return null;
+}
+
+/**
+ * Every shop and how its tills are doing.
+ *
+ * `clientVersions` is the column that matters: it is what turns "has everybody
+ * updated?" from a guess into a list, and it is the only thing that ever makes
+ * retiring an old protocol version safe.
+ */
+export async function adminListShops(
+  authorisation: string | undefined,
+  options: Options,
+): Promise<Reply> {
+  const refused = refuseAdmin(authorisation, options);
+  if (refused) return refused;
+
+  const shops = await options.store.listShops();
+
+  return {
+    status: 200,
+    body: {
+      shops: shops.map((shop) => ({
+        shopId: shop.id,
+        edition: shop.edition,
+        features: shop.features,
+        terminals: shop.terminals,
+        devices: shop.devices,
+        lastSeen: shop.lastSeen?.toISOString() ?? null,
+        clientVersions: shop.clientVersions,
+
+        // Whether a code is still live, not what it is — only the hash is
+        // stored, so it could not be shown even if it should be.
+        activationExpiresAt: shop.activationExpiresAt?.toISOString() ?? null,
+      })),
     },
   };
 }

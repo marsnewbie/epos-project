@@ -1,5 +1,5 @@
 import pg from "pg";
-import { hashSecret, type Device, type Shop, type Store } from "./store.ts";
+import { hashSecret, type Device, type Shop, type ShopSummary, type Store } from "./store.ts";
 
 /**
  * The store as it runs in production.
@@ -103,6 +103,39 @@ export class PostgresStore implements Store {
                   activation_expires_at = excluded.activation_expires_at`,
       [shop.id, shop.edition, shop.features, shop.terminals, codeHash, expiresAt],
     );
+  }
+
+  /**
+   * One query, aggregating in the database.
+   *
+   * A shop count times a device query would be fine at ten shops and a problem
+   * at a thousand, and the shape of the answer is the same either way — so it is
+   * written the way it will have to stay.
+   */
+  async listShops(): Promise<ShopSummary[]> {
+    const { rows } = await this.#pool.query<ShopRow & {
+      activation_expires_at: Date | null;
+      devices: string;
+      last_seen: Date | null;
+      client_versions: (string | null)[] | null;
+    }>(`
+      SELECT s.id, s.edition, s.features, s.terminals, s.activation_expires_at,
+             COUNT(d.id)                                  AS devices,
+             MAX(d.last_seen)                             AS last_seen,
+             ARRAY_REMOVE(ARRAY_AGG(DISTINCT d.client_version), NULL) AS client_versions
+        FROM shops s
+        LEFT JOIN devices d ON d.shop_id = s.id
+       GROUP BY s.id
+       ORDER BY s.id
+    `);
+
+    return rows.map((row) => ({
+      ...toShop(row),
+      devices: Number(row.devices),
+      lastSeen: row.last_seen,
+      clientVersions: (row.client_versions ?? []).filter((v): v is string => v !== null),
+      activationExpiresAt: row.activation_expires_at,
+    }));
   }
 
   /** Answers whether the database is reachable, for the health check. */

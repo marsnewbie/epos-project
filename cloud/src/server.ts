@@ -1,5 +1,7 @@
+import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { activate, adminSaveShop, sync, type Options, type Reply } from "./routes.ts";
+import { join } from "node:path";
+import { activate, adminListShops, adminSaveShop, sync, type Options, type Reply } from "./routes.ts";
 
 /**
  * The HTTP skin over the two handlers.
@@ -20,6 +22,16 @@ export type ServerOptions = Options & {
 
 /** A till's request is a few hundred bytes; anything larger is refused before it is parsed. */
 export const MAX_BODY_BYTES = 8 * 1024;
+
+/**
+ * The admin page, read once at startup.
+ *
+ * It holds no secret: the token is typed into it and kept in the operator's own
+ * browser, and every call it makes is authorised the same way `curl` would be.
+ * Serving it without a gate is therefore fine, and gating it would only mean two
+ * places to get authorisation wrong.
+ */
+const ADMIN_PAGE = readFileSync(join(import.meta.dirname, "..", "admin", "index.html"), "utf8");
 
 async function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null> {
   const chunks: Buffer[] = [];
@@ -60,6 +72,20 @@ function send(res: ServerResponse, reply: Reply): void {
 
 async function route(req: IncomingMessage, res: ServerResponse, options: ServerOptions): Promise<void> {
   const path = new URL(req.url ?? "/", "http://localhost").pathname;
+
+  if (req.method === "GET" && (path === "/admin" || path === "/admin/")) {
+    res.writeHead(200, {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+    });
+    res.end(ADMIN_PAGE);
+    return;
+  }
+
+  if (req.method === "GET" && path === "/v1/admin/shops") {
+    send(res, await adminListShops(req.headers.authorization, options));
+    return;
+  }
 
   if (req.method === "GET" && (path === "/healthz" || path === "/")) {
     try {
