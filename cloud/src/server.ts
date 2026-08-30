@@ -1,5 +1,5 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { activate, sync, type Options, type Reply } from "./routes.ts";
+import { activate, adminSaveShop, sync, type Options, type Reply } from "./routes.ts";
 
 /**
  * The HTTP skin over the two handlers.
@@ -89,6 +89,10 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ServerO
 
     case "/v1/sync":
       send(res, await sync(body, options));
+      return;
+
+    case "/v1/admin/shop":
+      send(res, await adminSaveShop(body, req.headers.authorization, options));
       return;
 
     default:

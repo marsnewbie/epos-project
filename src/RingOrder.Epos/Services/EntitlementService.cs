@@ -96,15 +96,7 @@ public sealed class EntitlementService
 
         var settings = _settings();
 
-        _client.Configure(new EntitlementClientOptions
-        {
-            BaseUrl = settings.CloudBaseUrl,
-            ShopId = settings.ShopSlug,
-            DeviceId = _store.DeviceId(),
-            DeviceSecret = _store.DeviceSecret(),
-            ActivationKey = settings.CloudActivationKey,
-            ClientVersion = ClientVersion,
-        });
+        Configure(settings);
 
         var result = await _client.RefreshAsync(ct);
         LastRefresh = result.Outcome;
@@ -138,6 +130,50 @@ public sealed class EntitlementService
 
         return result.Outcome;
     }
+
+    /// <summary>
+    /// Activate this till with a code somebody typed in Settings.
+    /// <para>
+    /// Separate from <see cref="RefreshAsync"/> because a person is standing
+    /// there waiting for an answer: this one is allowed to be slow, is not
+    /// throttled, and reports what happened rather than swallowing it.
+    /// </para>
+    /// </summary>
+    public async Task<RefreshResult> ActivateAsync(string code, CancellationToken ct = default)
+    {
+        var settings = _settings();
+        settings.CloudActivationCode = code;
+        Configure(settings);
+
+        var result = await _client.ActivateAsync(ct);
+        LastRefresh = result.Outcome;
+        _store.RecordRefreshAttempt(DateTimeOffset.Now);
+
+        if (result.Outcome != RefreshOutcome.Fetched)
+        {
+            _log($"activation failed: {result.Detail}");
+            return result;
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.DeviceSecret))
+            _store.SaveDeviceSecret(result.DeviceSecret);
+
+        _store.SaveToken(result.Token!);
+        Reresolve();
+
+        _log($"activated against {result.ShopId ?? "the cloud"}");
+        return result;
+    }
+
+    private void Configure(AppSettings settings) =>
+        _client.Configure(new EntitlementClientOptions
+        {
+            BaseUrl = CloudEndpoint.Resolve(settings.CloudBaseUrl),
+            DeviceId = _store.DeviceId(),
+            DeviceSecret = _store.DeviceSecret(),
+            ActivationCode = settings.CloudActivationCode,
+            ClientVersion = ClientVersion,
+        });
 
     private void Reresolve()
     {

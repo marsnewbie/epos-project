@@ -25,7 +25,8 @@ store.shops.set("demo-shop", {
   edition: "pos",
   features: [],
   terminals: 1,
-  activationKeyHash: hashSecret("let-me-in"),
+  activationKeyHash: hashSecret("K7M2P9QR"),
+  activationExpiresAt: null,
 });
 
 let healthy = true;
@@ -70,9 +71,8 @@ describe("health", () => {
 describe("the transport", () => {
   it("takes an activation over a real socket", async () => {
     const response = await post("/v1/activate", {
-      shopId: "demo-shop",
       deviceId: "till-http",
-      activationKey: "let-me-in",
+      activationCode: "K7M2-P9QR",
       clientVersion: "1.4.2",
     });
 

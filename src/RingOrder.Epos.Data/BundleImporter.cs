@@ -402,8 +402,8 @@ public sealed class BundleImporter
 
             // Only set when supplied. A re-import to update a menu must not wipe
             // an activation that has already happened.
-            if (!string.IsNullOrWhiteSpace(cloud.ActivationKey))
-                settings.CloudActivationKey = cloud.ActivationKey.Trim();
+            if (!string.IsNullOrWhiteSpace(cloud.ActivationCode))
+                settings.CloudActivationCode = cloud.ActivationCode.Trim();
         }
     }
 
@@ -445,13 +445,12 @@ public sealed class ShopSecrets
     public WebSecrets? Web { get; set; }
 
     /// <summary>
-    /// Where the entitlement service is, and the one-time key that activates
-    /// this installation against it.
+    /// Optional, and normally absent.
     /// <para>
-    /// Here rather than in the bundle for the same reason as the lookup key: a
-    /// bundle is forwarded, attached to emails and copied onto USB sticks, and
-    /// an activation key on a memory stick is an activation key anybody can
-    /// spend.
+    /// A till is activated by typing a short code in Settings → Cloud, which is
+    /// what a person actually does on an install. This block exists only so that
+    /// an automated provisioning run can pre-fill the same two fields, and a
+    /// merchant is never asked to edit it.
     /// </para>
     /// </summary>
     public CloudSecrets? Cloud { get; set; }
@@ -466,14 +465,14 @@ public sealed class ShopSecrets
 
 public sealed class CloudSecrets
 {
+    /// <summary>A service other than the shipped one. Blank in every real shop.</summary>
     public string? BaseUrl { get; set; }
 
     /// <summary>
-    /// Spent once, at first contact, for a device secret that is kept instead.
-    /// Nothing re-reads it afterwards, so a merchant who loses the file loses
-    /// nothing.
+    /// Pre-fills the box in Settings → Cloud. Spent once for a device secret and
+    /// then cleared, so a merchant who loses the file loses nothing.
     /// </summary>
-    public string? ActivationKey { get; set; }
+    public string? ActivationCode { get; set; }
 }
 
 public sealed class AddressLookupSecrets

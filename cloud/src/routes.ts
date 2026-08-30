@@ -1,5 +1,6 @@
+import { expiryFrom, format, newCode, normalise } from "./codes.ts";
 import { issue, type Entitlement } from "./tokens.ts";
-import { hashSecret, newSecret, secretMatches, type Store } from "./store.ts";
+import { hashSecret, newSecret, secretMatches, type Shop, type Store } from "./store.ts";
 import { isTooOld } from "./version.ts";
 
 /**
@@ -10,11 +11,19 @@ import { isTooOld } from "./version.ts";
  */
 
 export type Request = {
-  shopId?: unknown;
   deviceId?: unknown;
   deviceSecret?: unknown;
-  activationKey?: unknown;
+
+  /** The short code someone typed on the till. It alone says which shop this is. */
+  activationCode?: unknown;
+
   clientVersion?: unknown;
+
+  /** Admin only. */
+  shopId?: unknown;
+  edition?: unknown;
+  features?: unknown;
+  terminals?: unknown;
 };
 
 export type Reply = {
@@ -26,6 +35,14 @@ export type Options = {
   store: Store;
   privateKeyPem: string;
   minClientVersion?: string | null;
+
+  /**
+   * Bearer token for the admin endpoint. **Absent disables it entirely** — a
+   * deployment that forgot to set one has no admin surface rather than an open
+   * one.
+   */
+  adminToken?: string | null;
+
   now?: () => Date;
 };
 
@@ -36,28 +53,37 @@ const str = (value: unknown): string | null =>
 const TOO_OLD = 426;
 
 /**
- * Exchanges a one-time activation key for a device secret and a first token.
+ * Turns a short activation code into a device secret and a first token.
+ *
+ * The code is the whole credential: it identifies the shop *and* authorises the
+ * enrolment. A till therefore needs to know nothing about itself beyond its own
+ * random identifier, which is what lets a person activate one by typing eight
+ * characters instead of editing a file.
  *
  * Runs once per installation, and again on the recovery path where a till lost
- * our answer to a dropped connection — see `Store.saveDevice`.
+ * this answer to a dropped connection — see `Store.saveDevice`.
  */
 export async function activate(request: Request, options: Options): Promise<Reply> {
-  const shopId = str(request.shopId);
   const deviceId = str(request.deviceId);
-  const activationKey = str(request.activationKey);
+  const code = normalise(typeof request.activationCode === "string" ? request.activationCode : null);
   const clientVersion = str(request.clientVersion);
 
-  if (!shopId || !deviceId || !activationKey) {
-    return { status: 400, body: { error: "shopId, deviceId and activationKey are required" } };
+  if (!deviceId || !code) {
+    return { status: 400, body: { error: "deviceId and activationCode are required" } };
   }
 
   if (isTooOld(clientVersion, options.minClientVersion)) {
     return { status: TOO_OLD, body: { error: "this till is older than this service will answer" } };
   }
 
-  const shop = await options.store.shopForActivation(shopId, activationKey);
+  const now = options.now?.() ?? new Date();
+  const shop = await options.store.shopForActivation(code, now);
+
+  // Wrong code and expired code are the same answer. There is nothing useful to
+  // learn from the difference, and telling them apart is how a guess becomes an
+  // oracle.
   if (!shop) {
-    return { status: 401, body: { error: "unknown shop or activation key" } };
+    return { status: 401, body: { error: "that code is not recognised" } };
   }
 
   // A second activation of the same device issues a fresh secret rather than
@@ -65,8 +91,6 @@ export async function activate(request: Request, options: Options): Promise<Repl
   // our answer and its write.
   const secret = newSecret();
   await options.store.saveDevice(deviceId, shop.id, hashSecret(secret));
-
-  const now = options.now?.() ?? new Date();
   await options.store.recordSeen(deviceId, clientVersion, now);
 
   return {
@@ -74,6 +98,11 @@ export async function activate(request: Request, options: Options): Promise<Repl
     body: {
       token: issue(entitlementFor(shop, deviceId), options.privateKeyPem, now),
       deviceSecret: secret,
+
+      // Echoed so the till can say "connected to Magic Wok" rather than
+      // "connected", which is the difference between a person believing it
+      // worked and a person checking.
+      shopId: shop.id,
     },
   };
 }
@@ -140,5 +169,71 @@ function entitlementFor(shop: { id: string; edition: string; features: string[];
     edition: shop.edition,
     features: shop.features,
     terminals: shop.terminals,
+  };
+}
+
+/**
+ * Creates or updates a shop and mints it a fresh activation code.
+ *
+ * This exists so that adding a merchant is one command rather than a hand-written
+ * `INSERT` pasted into a database console — which is how the first shop was
+ * added, and how two tables came to be created with one column each.
+ *
+ * Re-running it on an existing shop replaces the code. That is the recovery path
+ * for a lost one, and the old code stops working the moment this returns.
+ */
+export async function adminSaveShop(
+  request: Request,
+  authorisation: string | undefined,
+  options: Options,
+): Promise<Reply> {
+  // No token configured means no admin surface at all. A deployment that forgot
+  // to set one is closed rather than open.
+  if (!options.adminToken) {
+    return { status: 404, body: { error: "no such endpoint" } };
+  }
+
+  const offered = (authorisation ?? "").replace(/^Bearer\s+/i, "");
+  if (offered.length === 0 || !secretMatches(offered, hashSecret(options.adminToken))) {
+    return { status: 401, body: { error: "unauthorised" } };
+  }
+
+  const shopId = str(request.shopId);
+  if (!shopId) return { status: 400, body: { error: "shopId is required" } };
+
+  const edition = str(request.edition) ?? "pos";
+  if (edition !== "pos" && edition !== "print") {
+    return { status: 400, body: { error: `edition must be "pos" or "print"` } };
+  }
+
+  const terminals = Number(request.terminals ?? 1);
+  if (!Number.isInteger(terminals) || terminals < 1) {
+    return { status: 400, body: { error: "terminals must be a whole number of at least 1" } };
+  }
+
+  const features = Array.isArray(request.features)
+    ? request.features.filter((f): f is string => typeof f === "string")
+    : [];
+
+  const shop: Shop = { id: shopId, edition, features, terminals };
+  const code = newCode();
+  const now = options.now?.() ?? new Date();
+  const expiresAt = expiryFrom(now);
+
+  await options.store.saveShop(shop, hashSecret(code), expiresAt);
+
+  return {
+    status: 200,
+    body: {
+      shopId,
+      edition,
+      features,
+      terminals,
+
+      // Shown once. Only the hash is stored, so it cannot be read back — a lost
+      // code costs another call to this endpoint and nothing else.
+      activationCode: format(code),
+      expiresAt: expiresAt.toISOString(),
+    },
   };
 }

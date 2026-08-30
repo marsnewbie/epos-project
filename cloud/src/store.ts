@@ -23,8 +23,14 @@ export type Device = {
 };
 
 export interface Store {
-  /** The shop this activation key belongs to, or null if the key is wrong. */
-  shopForActivation(shopId: string, activationKey: string): Promise<Shop | null>;
+  /**
+   * The shop an activation code belongs to, or null if it is wrong or expired.
+   *
+   * **The code alone identifies the shop.** A till therefore does not have to be
+   * told which shop it belongs to before it can activate, which is exactly what
+   * made the old design need a file edited by hand for every merchant.
+   */
+  shopForActivation(code: string, now: Date): Promise<Shop | null>;
   shop(shopId: string): Promise<Shop | null>;
   device(deviceId: string): Promise<Device | null>;
 
@@ -40,6 +46,15 @@ export interface Store {
 
   /** Last seen, and what build it said it was. This is what makes retiring a protocol version safe. */
   recordSeen(deviceId: string, clientVersion: string | null, at: Date): Promise<void>;
+
+  /**
+   * Creates or updates a shop and gives it a fresh activation code.
+   *
+   * Used only by the admin endpoint. Re-running it on an existing shop is how a
+   * lost code is replaced — the old one stops working the moment this returns,
+   * which is the point.
+   */
+  saveShop(shop: Shop, codeHash: string, expiresAt: Date): Promise<void>;
 }
 
 /**
@@ -67,15 +82,22 @@ export function secretMatches(offered: string, storedHash: string): boolean {
 
 /** A store that lives in memory, for the tests. Never used by the running service. */
 export class MemoryStore implements Store {
-  readonly shops = new Map<string, Shop & { activationKeyHash: string | null }>();
+  readonly shops = new Map<string, Shop & {
+    activationKeyHash: string | null;
+    activationExpiresAt?: Date | null;
+  }>();
   readonly devices = new Map<string, Device>();
   readonly seen = new Map<string, { clientVersion: string | null; at: Date }>();
 
-  async shopForActivation(shopId: string, activationKey: string): Promise<Shop | null> {
-    const shop = this.shops.get(shopId);
-    if (!shop?.activationKeyHash) return null;
+  async shopForActivation(code: string, now: Date): Promise<Shop | null> {
+    for (const shop of this.shops.values()) {
+      if (!shop.activationKeyHash || !secretMatches(code, shop.activationKeyHash)) continue;
 
-    return secretMatches(activationKey, shop.activationKeyHash) ? shop : null;
+      if (shop.activationExpiresAt && shop.activationExpiresAt <= now) return null;
+      return shop;
+    }
+
+    return null;
   }
 
   async shop(shopId: string): Promise<Shop | null> {
@@ -92,5 +114,9 @@ export class MemoryStore implements Store {
 
   async recordSeen(deviceId: string, clientVersion: string | null, at: Date): Promise<void> {
     this.seen.set(deviceId, { clientVersion, at });
+  }
+
+  async saveShop(shop: Shop, codeHash: string, expiresAt: Date): Promise<void> {
+    this.shops.set(shop.id, { ...shop, activationKeyHash: codeHash, activationExpiresAt: expiresAt });
   }
 }

@@ -1,56 +1,65 @@
-// Prepares a shop for the entitlement service.
+// Adds a shop and prints the code somebody types on the till.
 //
-//   node cloud/tools/new-shop.mjs <shop-id> [pos|print] [terminals]
+//   ADMIN_TOKEN=... node cloud/tools/new-shop.mjs <shop-id> [pos|print] [terminals]
 //
-// Prints two things: the SQL to run against the service's database, and the
-// block to paste into that shop's secrets.json.
+// Talks to the running service. It used to print SQL for a person to paste into
+// a database console — which is how the first shop was added, and how two tables
+// came to be created with one column each.
 //
-// It exists because the activation key is **stored hashed and delivered
-// plain**, and doing that by hand is how a shop ends up with a key that cannot
-// activate and an error that says only "unknown shop or activation key".
-
-import { createHash, randomBytes } from "node:crypto";
+// Re-running it on an existing shop replaces the code. That is the recovery path
+// for a lost one, and the old code stops working immediately.
 
 const [shopId, edition = "pos", terminals = "1"] = process.argv.slice(2);
 
+const BASE = (process.env.CLOUD_URL ?? "https://epos-project-production.up.railway.app").replace(/\/+$/, "");
+const TOKEN = process.env.ADMIN_TOKEN;
+
 if (!shopId) {
-  console.error("usage: node cloud/tools/new-shop.mjs <shop-id> [pos|print] [terminals]");
-  console.error("       the shop id is the bundle's shop.slug — they must match");
+  console.error("usage: ADMIN_TOKEN=... node cloud/tools/new-shop.mjs <shop-id> [pos|print] [terminals]");
+  console.error("       the shop id is yours to choose; the till never has to know it");
   process.exit(1);
 }
 
-if (edition !== "pos" && edition !== "print") {
-  console.error(`edition must be "pos" or "print", not "${edition}"`);
+if (!TOKEN) {
+  console.error("ADMIN_TOKEN is not set. It is the ADMIN_TOKEN variable on the service.");
   process.exit(1);
 }
 
-// Long enough that it never needs a lockout, short enough to read down a phone.
-const activationKey = randomBytes(24).toString("base64url");
-const hash = createHash("sha256").update(activationKey, "utf8").digest("hex");
+const response = await fetch(`${BASE}/v1/admin/shop`, {
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    authorization: `Bearer ${TOKEN}`,
+  },
+  body: JSON.stringify({ shopId, edition, terminals: Number(terminals) }),
+});
+
+const body = await response.json().catch(() => ({}));
+
+if (!response.ok) {
+  console.error(`\n  ✗ ${response.status} — ${body.error ?? "no reason given"}`);
+  if (response.status === 404) {
+    console.error("    The service has no ADMIN_TOKEN set, so the admin endpoint is closed.");
+  }
+  process.exit(1);
+}
+
+const expires = new Date(body.expiresAt).toLocaleDateString("en-GB", {
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+});
 
 console.log(`
--- ── Run this against the service's Postgres ──────────────────────────────
+  ${body.shopId} — ${body.edition === "print" ? "web-order printer" : "full till"}, ${body.terminals} terminal(s)
 
-INSERT INTO shops (id, edition, features, terminals, activation_key_hash, note)
-VALUES ('${shopId}', '${edition}', '{}', ${Number(terminals)}, '${hash}',
-        'created ${new Date().toISOString().slice(0, 10)}')
-ON CONFLICT (id) DO UPDATE
-   SET edition = excluded.edition,
-       terminals = excluded.terminals,
-       activation_key_hash = excluded.activation_key_hash;
+      ┌──────────────────────┐
+      │      ${body.activationCode}      │
+      └──────────────────────┘
 
--- An empty features list restricts nothing — only a populated one is an
--- allow-list. Leave it empty unless you are deliberately gating a module.
+  Type it on the till: Settings → Cloud → Connect.
+  Upper or lower case, with or without the dash.
 
-
--- ── Paste into ringorder-epos-shops/${shopId}/secrets.json ───────────────
-
-  "cloud": {
-    "baseUrl": "https://<your-service>.up.railway.app",
-    "activationKey": "${activationKey}"
-  }
-
--- The key is shown once. It is stored only as a hash, so it cannot be read
--- back out of the database — generate a new one if it is lost, which costs
--- nothing but a re-import.
+  Valid until ${expires}. Shown once — only a hash is stored, so it cannot be
+  read back. Losing it costs another run of this command and nothing else.
 `);

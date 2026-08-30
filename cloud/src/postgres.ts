@@ -1,5 +1,5 @@
 import pg from "pg";
-import { secretMatches, type Device, type Shop, type Store } from "./store.ts";
+import { hashSecret, type Device, type Shop, type Store } from "./store.ts";
 
 /**
  * The store as it runs in production.
@@ -28,17 +28,30 @@ export class PostgresStore implements Store {
     });
   }
 
-  async shopForActivation(shopId: string, activationKey: string): Promise<Shop | null> {
-    const { rows } = await this.#pool.query<ShopRow & { activation_key_hash: string | null }>(
-      `SELECT id, edition, features, terminals, activation_key_hash
-         FROM shops WHERE id = $1`,
-      [shopId],
+  /**
+   * Looked up by the hash of the code, not by scanning.
+   *
+   * Hashing first means the plain code never reaches the query log, and the
+   * unique partial index makes this a single index probe however many shops
+   * exist.
+   */
+  async shopForActivation(code: string, now: Date): Promise<Shop | null> {
+    const { rows } = await this.#pool.query<ShopRow & { activation_expires_at: Date | null }>(
+      `SELECT id, edition, features, terminals, activation_expires_at
+         FROM shops
+        WHERE activation_key_hash = $1`,
+      [hashSecret(code)],
     );
 
     const row = rows[0];
-    if (!row?.activation_key_hash) return null;
+    if (!row) return null;
 
-    return secretMatches(activationKey, row.activation_key_hash) ? toShop(row) : null;
+    // Expiry is checked here rather than in the WHERE clause so that an expired
+    // code and a wrong code are the same answer to the caller — there is nothing
+    // to learn from the difference.
+    if (row.activation_expires_at && row.activation_expires_at <= now) return null;
+
+    return toShop(row);
   }
 
   async shop(shopId: string): Promise<Shop | null> {
@@ -75,6 +88,20 @@ export class PostgresStore implements Store {
     await this.#pool.query(
       `UPDATE devices SET last_seen = $2, client_version = $3 WHERE id = $1`,
       [deviceId, at, clientVersion],
+    );
+  }
+
+  async saveShop(shop: Shop, codeHash: string, expiresAt: Date): Promise<void> {
+    await this.#pool.query(
+      `INSERT INTO shops (id, edition, features, terminals, activation_key_hash, activation_expires_at)
+            VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (id) DO UPDATE
+              SET edition = excluded.edition,
+                  features = excluded.features,
+                  terminals = excluded.terminals,
+                  activation_key_hash = excluded.activation_key_hash,
+                  activation_expires_at = excluded.activation_expires_at`,
+      [shop.id, shop.edition, shop.features, shop.terminals, codeHash, expiresAt],
     );
   }
 

@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { createVerify } from "node:crypto";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { activate, sync, type Options } from "./routes.ts";
+import { activate, adminSaveShop, sync, type Options } from "./routes.ts";
 import { hashSecret, MemoryStore, type Shop } from "./store.ts";
 
 const FIXTURES = join(import.meta.dirname, "..", "..", "fixtures", "entitlement");
@@ -12,15 +12,17 @@ const publicKeyPem = readFileSync(join(FIXTURES, "dev-public.pem"), "utf8");
 
 const DEVICE = "till-0001";
 const CLIENT = "1.4.2";
+const CODE = "K7M2P9QR";
 
-function setup(shop: Partial<Shop> = {}, activationKey: string | null = "let-me-in") {
+function setup(shop: Partial<Shop> = {}, code: string | null = CODE, expiresAt?: Date) {
   const store = new MemoryStore();
   store.shops.set("demo-shop", {
     id: "demo-shop",
     edition: "pos",
     features: [],
     terminals: 1,
-    activationKeyHash: activationKey === null ? null : hashSecret(activationKey),
+    activationKeyHash: code === null ? null : hashSecret(code),
+    activationExpiresAt: expiresAt ?? null,
     ...shop,
   });
 
@@ -47,65 +49,126 @@ function read(token: string): Record<string, unknown> {
 }
 
 describe("activate", () => {
-  it("exchanges the activation key for a secret and a first token", async () => {
+  it("turns a typed code into a secret, a token and a shop name", async () => {
     const { store, options } = setup();
 
     const reply = await activate(
-      { shopId: "demo-shop", deviceId: DEVICE, activationKey: "let-me-in", clientVersion: CLIENT },
+      { deviceId: DEVICE, activationCode: CODE, clientVersion: CLIENT },
       options,
     );
 
     assert.equal(reply.status, 200);
     assert.equal(typeof reply.body.deviceSecret, "string");
 
+    // Echoed so the till can say which shop it joined rather than just "done".
+    assert.equal(reply.body.shopId, "demo-shop");
+
     const payload = read(reply.body.token as string);
     assert.equal(payload.shopId, "demo-shop");
     assert.equal(payload.deviceId, DEVICE);
 
-    // Stored only as a hash — the plain secret is shown once and never again.
     const device = await store.device(DEVICE);
     assert.ok(device);
     assert.notEqual(device.secretHash, reply.body.deviceSecret);
   });
 
-  it("binds the token to the machine that asked", async () => {
+  /**
+   * The whole point of the redesign. Nobody tells the till which shop it is —
+   * the code says so, which is what removes the file somebody had to edit per
+   * merchant.
+   */
+  it("needs no shop id, because the code is the shop", async () => {
     const { options } = setup();
 
-    const first = await activate({ shopId: "demo-shop", deviceId: "till-a", activationKey: "let-me-in" }, options);
-    const second = await activate({ shopId: "demo-shop", deviceId: "till-b", activationKey: "let-me-in" }, options);
+    const reply = await activate({ deviceId: DEVICE, activationCode: CODE }, options);
 
-    assert.equal(read(first.body.token as string).deviceId, "till-a");
-    assert.equal(read(second.body.token as string).deviceId, "till-b");
+    assert.equal(reply.status, 200);
+    assert.equal(read(reply.body.token as string).shopId, "demo-shop");
   });
 
-  it("refuses a wrong key without saying which part was wrong", async () => {
-    const { options } = setup();
+  it("accepts a code the way a person actually types it", async () => {
+    for (const typed of ["K7M2P9QR", "k7m2p9qr", "K7M2-P9QR", " k7m2 p9qr ", "K7M2-P9QR\n"]) {
+      const { options } = setup();
+      const reply = await activate({ deviceId: DEVICE, activationCode: typed }, options);
 
-    for (const attempt of [
-      { shopId: "demo-shop", deviceId: DEVICE, activationKey: "wrong" },
-      { shopId: "no-such-shop", deviceId: DEVICE, activationKey: "let-me-in" },
-    ]) {
-      const reply = await activate(attempt, options);
-      assert.equal(reply.status, 401);
-      assert.equal(reply.body.error, "unknown shop or activation key");
+      assert.equal(reply.status, 200, `expected ${typed} to be accepted`);
     }
   });
 
-  it("refuses a shop that should activate no further machines", async () => {
-    const { options } = setup({}, null);
+  /**
+   * Crockford's substitutions. Over a telephone `I` is a one and `O` is a zero,
+   * and a code refused for that would send someone hunting for a fault that is
+   * not there.
+   */
+  it("forgives the letters people hear as digits", async () => {
+    const { store, options } = setup();
+    store.shops.set("demo-shop", {
+      ...store.shops.get("demo-shop")!,
+      activationKeyHash: hashSecret("10ZER011"),
+    });
 
-    const reply = await activate({ shopId: "demo-shop", deviceId: DEVICE, activationKey: "let-me-in" }, options);
-    assert.equal(reply.status, 401);
+    const reply = await activate({ deviceId: DEVICE, activationCode: "IOZERO1L" }, options);
+
+    assert.equal(reply.status, 200);
+  });
+
+  it("binds the token to the machine that asked", async () => {
+    const { options } = setup();
+
+    const a = await activate({ deviceId: "till-a", activationCode: CODE }, options);
+    const b = await activate({ deviceId: "till-b", activationCode: CODE }, options);
+
+    assert.equal(read(a.body.token as string).deviceId, "till-a");
+    assert.equal(read(b.body.token as string).deviceId, "till-b");
+  });
+
+  /**
+   * A wrong code and an expired one are the same answer. There is nothing useful
+   * to learn from the difference, and telling them apart is how a guess becomes
+   * an oracle.
+   */
+  it("says only that a code is not recognised", async () => {
+    const wrong = setup();
+    const expired = setup({}, CODE, new Date("2020-01-01T00:00:00Z"));
+    const withdrawn = setup({}, null);
+
+    for (const [name, { options }] of [
+      ["a wrong code", wrong],
+      ["an expired code", expired],
+      ["a shop that should activate nothing further", withdrawn],
+    ] as const) {
+      const code = name === "a wrong code" ? "ZZZZZZZZ" : CODE;
+      const reply = await activate({ deviceId: DEVICE, activationCode: code }, options);
+
+      assert.equal(reply.status, 401, name);
+      assert.equal(reply.body.error, "that code is not recognised", name);
+    }
+  });
+
+  it("refuses anything that is not a code before it looks anything up", async () => {
+    const { store, options } = setup();
+    let looked = false;
+    store.shopForActivation = async () => {
+      looked = true;
+      return null;
+    };
+
+    for (const bad of ["", "short", "TOOMANYCHARS", "!!!!!!!!", undefined]) {
+      const reply = await activate({ deviceId: DEVICE, activationCode: bad }, options);
+      assert.equal(reply.status, 400, `expected 400 for ${String(bad)}`);
+    }
+
+    assert.equal(looked, false);
   });
 
   /**
    * The recovery path. A till whose connection dropped between our answer and
-   * its write holds an activation key and no secret; refusing a second
-   * activation would strand that machine for good.
+   * its write holds a code and no secret; refusing a second activation would
+   * strand that machine for good.
    */
   it("activating twice issues a fresh secret rather than refusing", async () => {
     const { options } = setup();
-    const body = { shopId: "demo-shop", deviceId: DEVICE, activationKey: "let-me-in" };
+    const body = { deviceId: DEVICE, activationCode: CODE };
 
     const first = await activate(body, options);
     const second = await activate(body, options);
@@ -113,32 +176,18 @@ describe("activate", () => {
     assert.equal(second.status, 200);
     assert.notEqual(first.body.deviceSecret, second.body.deviceSecret);
 
-    // And the newest one is the one that works.
     const check = await sync(
       { deviceId: DEVICE, deviceSecret: second.body.deviceSecret, clientVersion: CLIENT },
       options,
     );
     assert.equal(check.status, 200);
   });
-
-  it("wants all three of shop, device and key", async () => {
-    const { options } = setup();
-
-    for (const partial of [
-      { deviceId: DEVICE, activationKey: "let-me-in" },
-      { shopId: "demo-shop", activationKey: "let-me-in" },
-      { shopId: "demo-shop", deviceId: DEVICE },
-      { shopId: "demo-shop", deviceId: "   ", activationKey: "let-me-in" },
-    ]) {
-      assert.equal((await activate(partial, options)).status, 400);
-    }
-  });
 });
 
 describe("sync", () => {
   async function activated(shop: Partial<Shop> = {}) {
     const { store, options } = setup(shop);
-    const reply = await activate({ shopId: "demo-shop", deviceId: DEVICE, activationKey: "let-me-in" }, options);
+    const reply = await activate({ deviceId: DEVICE, activationCode: CODE }, options);
     return { store, options, secret: reply.body.deviceSecret as string };
   }
 
@@ -184,8 +233,7 @@ describe("sync", () => {
     const { store, options, secret } = await activated();
     store.shops.delete("demo-shop");
 
-    const reply = await sync({ deviceId: DEVICE, deviceSecret: secret }, options);
-    assert.equal(reply.status, 401);
+    assert.equal((await sync({ deviceId: DEVICE, deviceSecret: secret }, options)).status, 401);
   });
 
   it("records what build asked, which is what makes retiring a version safe", async () => {
@@ -200,18 +248,123 @@ describe("sync", () => {
     const { options, secret } = await activated();
     const gated: Options = { ...options, minClientVersion: "2.0.0" };
 
-    const reply = await sync({ deviceId: DEVICE, deviceSecret: secret, clientVersion: "1.4.2" }, gated);
-
     // 426, not 401: the till keeps trading on what it has and updates itself.
-    assert.equal(reply.status, 426);
+    assert.equal((await sync({ deviceId: DEVICE, deviceSecret: secret, clientVersion: "1.4.2" }, gated)).status, 426);
   });
 
   it("lets a till through when it cannot say what version it is", async () => {
     const { options, secret } = await activated();
     const gated: Options = { ...options, minClientVersion: "2.0.0" };
 
-    const reply = await sync({ deviceId: DEVICE, deviceSecret: secret }, gated);
+    assert.equal((await sync({ deviceId: DEVICE, deviceSecret: secret }, gated)).status, 200);
+  });
+});
+
+describe("admin", () => {
+  const TOKEN = "admin-token-for-tests";
+
+  function admin(shop: Partial<Shop> = {}) {
+    const { store, options } = setup(shop);
+    return { store, options: { ...options, adminToken: TOKEN } as Options };
+  }
+
+  it("creates a shop and hands back a code somebody can read out", async () => {
+    const { store, options } = admin();
+
+    const reply = await adminSaveShop(
+      { shopId: "new-shop", edition: "print", features: ["web-orders"], terminals: 2 },
+      `Bearer ${TOKEN}`,
+      options,
+    );
 
     assert.equal(reply.status, 200);
+    assert.match(reply.body.activationCode as string, /^[0-9A-Z]{4}-[0-9A-Z]{4}$/);
+    assert.equal(typeof reply.body.expiresAt, "string");
+
+    const saved = await store.shop("new-shop");
+    assert.ok(saved);
+    assert.equal(saved.edition, "print");
+    assert.deepEqual(saved.features, ["web-orders"]);
+    assert.equal(saved.terminals, 2);
+  });
+
+  it("mints a code the till then accepts", async () => {
+    const { options } = admin();
+
+    const created = await adminSaveShop({ shopId: "new-shop" }, `Bearer ${TOKEN}`, options);
+    const code = created.body.activationCode as string;
+
+    const reply = await activate({ deviceId: "a-new-till", activationCode: code }, options);
+
+    assert.equal(reply.status, 200);
+    assert.equal(reply.body.shopId, "new-shop");
+  });
+
+  /** Re-running it is how a lost code is replaced, and the old one must stop working. */
+  it("replaces the code, and the previous one dies", async () => {
+    const { options } = admin();
+
+    const first = await adminSaveShop({ shopId: "demo-shop" }, `Bearer ${TOKEN}`, options);
+    const second = await adminSaveShop({ shopId: "demo-shop" }, `Bearer ${TOKEN}`, options);
+
+    assert.notEqual(first.body.activationCode, second.body.activationCode);
+
+    const old = await activate(
+      { deviceId: DEVICE, activationCode: first.body.activationCode as string },
+      options,
+    );
+    assert.equal(old.status, 401);
+
+    const now = await activate(
+      { deviceId: DEVICE, activationCode: second.body.activationCode as string },
+      options,
+    );
+    assert.equal(now.status, 200);
+  });
+
+  it("defaults to one terminal on the full till", async () => {
+    const { options } = admin();
+
+    const reply = await adminSaveShop({ shopId: "plain" }, `Bearer ${TOKEN}`, options);
+
+    assert.equal(reply.body.edition, "pos");
+    assert.equal(reply.body.terminals, 1);
+    assert.deepEqual(reply.body.features, []);
+  });
+
+  it("refuses a wrong token, and does not care how the header is capitalised", async () => {
+    const { options } = admin();
+
+    for (const header of [undefined, "", "Bearer wrong", "wrong", `Basic ${TOKEN}`]) {
+      assert.equal((await adminSaveShop({ shopId: "x" }, header, options)).status, 401, String(header));
+    }
+
+    assert.equal((await adminSaveShop({ shopId: "x" }, `bearer ${TOKEN}`, options)).status, 200);
+  });
+
+  /**
+   * With no token configured the endpoint does not exist. A deployment that
+   * forgot to set one is closed by accident rather than open by accident.
+   */
+  it("is not there at all when no token is configured", async () => {
+    const { options } = setup();
+
+    const reply = await adminSaveShop({ shopId: "x" }, `Bearer ${TOKEN}`, options);
+
+    assert.equal(reply.status, 404);
+    assert.equal(reply.body.error, "no such endpoint");
+  });
+
+  it("refuses a shape it cannot store", async () => {
+    const { options } = admin();
+
+    for (const bad of [
+      {},
+      { shopId: "x", edition: "enterprise" },
+      { shopId: "x", terminals: 0 },
+      { shopId: "x", terminals: 1.5 },
+    ]) {
+      assert.equal((await adminSaveShop(bad, `Bearer ${TOKEN}`, options)).status, 400, JSON.stringify(bad));
+    }
   });
 });

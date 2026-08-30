@@ -105,6 +105,7 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty] private string _supportResult = "";
     [ObservableProperty] private bool _hasFailedJobs;
     [ObservableProperty] private bool _isSupport;
+    [ObservableProperty] private bool _isCloud;
     [ObservableProperty] private bool _isPrivacy;
     [ObservableProperty] private string _callerIdMode = "simulate";
     [ObservableProperty] private string _callerIdCom = "COM3";
@@ -229,6 +230,7 @@ public partial class SettingsViewModel : ViewModelBase
         IsOnline = Section == "Online";
         IsShift = Section == "Shift";
         IsSupport = Section == "Support";
+        IsCloud = Section == "Cloud";
         IsPrivacy = Section == "Privacy";
         IsTax = Section == "Tax";
         if (IsMenu) ReloadMenuBrowser();
@@ -238,6 +240,7 @@ public partial class SettingsViewModel : ViewModelBase
         if (IsTax) ReloadTax();
         if (IsDelivery) { ReloadDeliveryZones(); ReloadAddressLookup(); }
         if (IsPrivacy) ReloadRetention();
+        if (IsCloud) ReloadCloud();
     }
 
     public void Reload()
@@ -1851,6 +1854,149 @@ public partial class SettingsViewModel : ViewModelBase
         catch (Exception ex)
         {
             _setStatus($"Drawer failed: {ex.Message}");
+        }
+    }
+
+    // ── Cloud ───────────────────────────────────────────────────────────────
+    //
+    // A till is activated by typing a short code here. It used to be a long key
+    // in a JSON file edited by hand for every merchant, which is a provisioning
+    // engineer's answer to a product question: merchants do not edit JSON, and
+    // neither should anybody during a Saturday install.
+
+    [ObservableProperty] private string _cloudStatus = "";
+    [ObservableProperty] private string _cloudDetail = "";
+    [ObservableProperty] private string _cloudCode = "";
+    [ObservableProperty] private string _cloudResult = "";
+    [ObservableProperty] private bool _cloudConnected;
+    [ObservableProperty] private bool _cloudBusy;
+
+    /// <summary>The identifier support will ask for. Shown so nobody has to open a database.</summary>
+    [ObservableProperty] private string _cloudDeviceId = "";
+
+    private void ReloadCloud()
+    {
+        var entitlement = _app.Entitlement;
+        var state = entitlement.Current;
+
+        CloudDeviceId = entitlement.DeviceId;
+        CloudConnected = state.Source != EntitlementSource.Bundle;
+
+        CloudStatus = state.Source switch
+        {
+            EntitlementSource.Token => UiText.Pick("Connected", "已连接"),
+            EntitlementSource.StaleToken => UiText.Pick("Connected — not checked recently", "已连接 — 最近未能核对"),
+            _ => UiText.Pick("Not connected", "未连接"),
+        };
+
+        var lines = new List<string>
+        {
+            $"{UiText.Pick("Product", "版本")}: {(state.IsPrintOnly ? UiText.Pick("Web-order printer", "网单打印机") : UiText.Pick("Full till", "完整收银台"))}",
+            $"{UiText.Pick("Terminals", "终端席位")}: {state.Terminals}",
+        };
+
+        if (state.Features.Count > 0)
+            lines.Add($"{UiText.Pick("Modules", "模块")}: {string.Join(", ", state.Features)}");
+
+        // Said plainly, because it is the one thing on this screen that a
+        // merchant might otherwise worry about. Nothing here stops a shop
+        // trading, and the screen should not imply that it might.
+        if (state.IsStale)
+            lines.Add(UiText.Pick(
+                $"Last confirmed {state.ExpiredAt:d MMM}. Still trading normally; it will sort itself out when the connection returns.",
+                $"上次核对于 {state.ExpiredAt:yyyy-MM-dd}。营业不受影响，网络恢复后会自动更新。"));
+
+        if (!CloudConnected)
+            lines.Add(UiText.Pick(
+                "This till runs on the product it was set up with. Connecting lets us change that without a visit.",
+                "此收银台按安装时的版本运行。连接之后我们无需上门即可调整。"));
+
+        CloudDetail = string.Join(Environment.NewLine, lines);
+    }
+
+    /// <summary>
+    /// Types the code in. Slow on purpose — a person is standing there, so this
+    /// one waits and says what happened instead of failing quietly the way the
+    /// daily background refresh does.
+    /// </summary>
+    [RelayCommand]
+    private async Task ConnectCloud()
+    {
+        var code = (CloudCode ?? "").Trim();
+        if (code.Length == 0)
+        {
+            CloudResult = UiText.Pick("Enter the code first.", "请先输入激活码。");
+            return;
+        }
+
+        CloudBusy = true;
+        CloudResult = UiText.Pick("Connecting…", "连接中…");
+
+        try
+        {
+            var result = await _app.Entitlement.ActivateAsync(code);
+
+            CloudResult = result.Outcome switch
+            {
+                RefreshOutcome.Fetched => UiText.Pick($"Connected to {result.ShopId}.", $"已连接到 {result.ShopId}。"),
+                RefreshOutcome.Rejected => UiText.Pick(
+                    "That code was not recognised. Check it, or ask us for a new one — they expire after a week.",
+                    "激活码无法识别。请核对，或向我们索取新的 —— 激活码一周后失效。"),
+                RefreshOutcome.Unreachable => UiText.Pick(
+                    "Could not reach us. Check the internet and try again — nothing was changed.",
+                    "无法连接。请检查网络后重试 —— 没有任何改动。"),
+                RefreshOutcome.ClientTooOld => UiText.Pick(
+                    "This till needs updating first. It will update itself shortly.",
+                    "此收银台需要先更新，稍后会自动完成。"),
+                _ => result.Detail,
+            };
+
+            if (result.Outcome == RefreshOutcome.Fetched)
+            {
+                // Spent. A used code sitting in the database is a liability with
+                // no remaining use.
+                var settings = _app.GetSettings();
+                settings.CloudActivationCode = "";
+                _app.Settings.Save(settings);
+                _app.ReloadSettings();
+                CloudCode = "";
+            }
+        }
+        finally
+        {
+            CloudBusy = false;
+            ReloadCloud();
+        }
+    }
+
+    /// <summary>Asks now rather than waiting for the daily check. For support, mostly.</summary>
+    [RelayCommand]
+    private async Task CheckCloud()
+    {
+        CloudBusy = true;
+        CloudResult = UiText.Pick("Checking…", "核对中…");
+
+        try
+        {
+            var outcome = await _app.Entitlement.RefreshAsync(force: true);
+
+            CloudResult = outcome switch
+            {
+                RefreshOutcome.Fetched => UiText.Pick("Up to date.", "已是最新。"),
+                RefreshOutcome.Unreachable => UiText.Pick(
+                    "Could not reach us. Nothing changed; the till carries on.",
+                    "无法连接。没有改动，收银台照常运行。"),
+                RefreshOutcome.NotConfigured => UiText.Pick("Not connected yet.", "尚未连接。"),
+                RefreshOutcome.Rejected => UiText.Pick(
+                    "We do not recognise this till. Please get in touch.",
+                    "我们无法识别此收银台，请联系我们。"),
+                _ => outcome.ToString(),
+            };
+        }
+        finally
+        {
+            CloudBusy = false;
+            ReloadCloud();
         }
     }
 }

@@ -11,6 +11,7 @@ export type Config = {
   databaseUrl: string;
   privateKeyPem: string;
   minClientVersion: string | null;
+  adminToken: string | null;
 };
 
 /**
@@ -47,5 +48,10 @@ export function load(env: NodeJS.ProcessEnv = process.env): Config {
     // an old build genuinely cannot be answered — never as a default, because a
     // default here quietly cuts off whoever has not updated.
     minClientVersion: (env.MIN_CLIENT_VERSION ?? "").trim() || null,
+
+    // Absent closes the admin endpoint rather than opening it. A deployment
+    // that forgot to set one answers 404 there, which is the state you want to
+    // be in by accident.
+    adminToken: (env.ADMIN_TOKEN ?? "").trim() || null,
   };
 }

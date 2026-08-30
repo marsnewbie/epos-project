@@ -46,6 +46,7 @@ around a driver.
 | `SIGNING_KEY` | The private key, PEM or base64 of one. Required |
 | `PORT` | Railway provides it. Defaults to 8080 |
 | `MIN_CLIENT_VERSION` | Optional, and **absent by default on purpose** — a floor set casually cuts off whoever has not updated |
+| `ADMIN_TOKEN` | Guards the admin endpoint. **Absent closes it** rather than opening it, so a deployment that forgot one is safe by accident |
 
 ### The key nobody can lose
 
@@ -69,9 +70,10 @@ here. A test holds it out of the till's trusted list.
 ## The endpoints
 
 ```
-POST /v1/activate    one-time; activation key  → device secret + first token
-POST /v1/sync        recurring; device secret  → token
-GET  /healthz        includes a database ping
+POST /v1/activate      one-time; a typed code  → device secret + first token
+POST /v1/sync          recurring; device secret → token
+POST /v1/admin/shop    bearer token; creates a shop and mints its code
+GET  /healthz          includes a database ping
 ```
 
 `sync` rather than `entitlement` because it is the one call a till makes on a
@@ -118,17 +120,23 @@ failure can take.
 ## Adding a shop
 
 ```bash
-node tools/new-shop.mjs <shop-id> [pos|print] [terminals]
+ADMIN_TOKEN=... node tools/new-shop.mjs <shop-id> [pos|print] [terminals]
 ```
 
-Prints the SQL to run and the block to paste into that shop's `secrets.json`.
-The shop id **is the bundle's `shop.slug`** — they must match, because that is
-what the till sends.
+Prints an eight-character code. Somebody types it on the till at
+**Settings → Cloud → Connect**, and that is the whole of onboarding.
 
-It exists because the activation key is stored hashed and delivered plain, and
-doing that by hand is how a shop ends up with a key that cannot activate and an
-error saying only "unknown shop or activation key". The key is shown once; losing
-it costs a new key and a re-import, nothing more.
+**The code identifies the shop.** The till is told nothing about which shop it
+belongs to — that is what removed the per-merchant file edit, and it means the
+shop id is ours to choose rather than something that has to match a bundle.
+
+Codes expire after seven days and are stored only as a hash. A short code is a
+weaker secret than a long one, and an expiry is the honest way to pay for that
+rather than more characters nobody can type. Losing one costs another run of this
+command.
+
+Re-running it on an existing shop replaces the code and the old one stops working
+immediately, which is the recovery path.
 
 ## Not built yet
 

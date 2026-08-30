@@ -232,7 +232,7 @@ public class EntitlementServiceTests : IDisposable
     public async Task An_activation_keeps_the_secret_it_is_given()
     {
         var settings = Configured();
-        settings.CloudActivationKey = "one-time-key";
+        settings.CloudActivationCode = "one-time-key";
         var token = SignedFor(_store.DeviceId(), ShopEdition.Pos);
 
         var service = Service(settings,
@@ -373,7 +373,6 @@ public class EntitlementServiceTests : IDisposable
         Assert.Equal("/v1/sync", path);
         using var sent = JsonDocument.Parse(body!);
 
-        Assert.Equal("demo-shop", sent.RootElement.GetProperty("shopId").GetString());
         Assert.Equal(_store.DeviceId(), sent.RootElement.GetProperty("deviceId").GetString());
         Assert.Equal("existing", sent.RootElement.GetProperty("deviceSecret").GetString());
         Assert.True(sent.RootElement.TryGetProperty("clientVersion", out _));
@@ -383,7 +382,7 @@ public class EntitlementServiceTests : IDisposable
     public async Task An_activation_posts_its_key_to_the_activation_endpoint()
     {
         var settings = Configured();
-        settings.CloudActivationKey = "one-time-key";
+        settings.CloudActivationCode = "one-time-key";
 
         string? path = null;
         string? body = null;
@@ -399,7 +398,7 @@ public class EntitlementServiceTests : IDisposable
 
         Assert.Equal("/v1/activate", path);
         using var sent = JsonDocument.Parse(body!);
-        Assert.Equal("one-time-key", sent.RootElement.GetProperty("activationKey").GetString());
+        Assert.Equal("one-time-key", sent.RootElement.GetProperty("activationCode").GetString());
 
         // A device secret it does not have must not be sent as null — the
         // service reads a missing field and an explicit null differently.
@@ -414,7 +413,7 @@ public class EntitlementServiceTests : IDisposable
     public async Task The_answer_is_read_by_the_names_the_service_writes()
     {
         var settings = Configured();
-        settings.CloudActivationKey = "one-time-key";
+        settings.CloudActivationCode = "one-time-key";
         var token = SignedFor(_store.DeviceId(), ShopEdition.Pos);
 
         var service = Service(settings,

@@ -18,21 +18,25 @@ public sealed class AppSettings
     public string ShopSlug { get; set; } = "";
 
     /// <summary>
-    /// The RingOrder cloud, which today answers only about entitlements.
+    /// Points this till at a service other than the shipped one.
     /// <para>
-    /// Blank means no cloud, and a till with no cloud runs on the edition in its
-    /// bundle — which is the shipped state and a supported one, not a broken
-    /// one. See docs/CLOUD.md.
+    /// Blank is the normal state and means the built-in address — see
+    /// <c>CloudEndpoint</c>. This exists for pointing a development till at a
+    /// staging service, not for anything a merchant fills in.
     /// </para>
     /// </summary>
     public string CloudBaseUrl { get; set; } = "";
 
     /// <summary>
-    /// One-time key that activates this installation, seeded from
-    /// <c>secrets.json</c> at provisioning and encrypted at rest like the other
-    /// secrets. Spent once for a device secret, and never read again.
+    /// The activation code somebody typed in Settings, held only until it is
+    /// spent.
+    /// <para>
+    /// Cleared the moment activation succeeds: it is a one-time credential, and
+    /// a spent one sitting in the database is a liability with no use. Encrypted
+    /// at rest until then, like the other secrets.
+    /// </para>
     /// </summary>
-    public string CloudActivationKey { get; set; } = "";
+    public string CloudActivationCode { get; set; } = "";
 
     /// <summary>
     /// Blank means the shop is not VAT registered, which most small takeaways

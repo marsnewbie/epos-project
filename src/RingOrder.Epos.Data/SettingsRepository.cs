@@ -21,7 +21,7 @@ public sealed class SettingsRepository
         var settings = JsonUtil.Deserialize<AppSettings>(raw);
         settings.OnlinePassword = LocalSecret.Unprotect(settings.OnlinePassword);
         settings.AddressLookupApiKey = LocalSecret.Unprotect(settings.AddressLookupApiKey);
-        settings.CloudActivationKey = LocalSecret.Unprotect(settings.CloudActivationKey);
+        settings.CloudActivationCode = LocalSecret.Unprotect(settings.CloudActivationCode);
         return settings;
     }
 
@@ -48,7 +48,7 @@ public sealed class SettingsRepository
         var exposed =
             (!string.IsNullOrEmpty(stored.OnlinePassword) && !LocalSecret.IsProtected(stored.OnlinePassword)) ||
             (!string.IsNullOrEmpty(stored.AddressLookupApiKey) && !LocalSecret.IsProtected(stored.AddressLookupApiKey)) ||
-            (!string.IsNullOrEmpty(stored.CloudActivationKey) && !LocalSecret.IsProtected(stored.CloudActivationKey));
+            (!string.IsNullOrEmpty(stored.CloudActivationCode) && !LocalSecret.IsProtected(stored.CloudActivationCode));
 
         if (!exposed) return false;
 
@@ -83,19 +83,19 @@ public sealed class SettingsRepository
     {
         var password = settings.OnlinePassword;
         var apiKey = settings.AddressLookupApiKey;
-        var activation = settings.CloudActivationKey;
+        var activation = settings.CloudActivationCode;
         try
         {
             settings.OnlinePassword = LocalSecret.Protect(password);
             settings.AddressLookupApiKey = LocalSecret.Protect(apiKey);
-            settings.CloudActivationKey = LocalSecret.Protect(activation);
+            settings.CloudActivationCode = LocalSecret.Protect(activation);
             return JsonUtil.Serialize(settings);
         }
         finally
         {
             settings.OnlinePassword = password;
             settings.AddressLookupApiKey = apiKey;
-            settings.CloudActivationKey = activation;
+            settings.CloudActivationCode = activation;
         }
     }
 

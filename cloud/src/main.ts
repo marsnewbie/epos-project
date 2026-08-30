@@ -17,6 +17,7 @@ const server = createApp({
   store,
   privateKeyPem: config.privateKeyPem,
   minClientVersion: config.minClientVersion,
+  adminToken: config.adminToken,
   ping: () => store.ping(),
 });
 
@@ -32,7 +33,8 @@ try {
 server.listen(config.port, () => {
   console.log(
     `ringorder-pos-cloud listening on ${config.port}` +
-      (config.minClientVersion ? `, refusing tills older than ${config.minClientVersion}` : ""),
+      (config.minClientVersion ? `, refusing tills older than ${config.minClientVersion}` : "") +
+      (config.adminToken ? "" : ", admin endpoint closed (no ADMIN_TOKEN)"),
   );
 });
 

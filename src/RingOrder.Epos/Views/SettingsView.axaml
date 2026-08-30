@@ -20,6 +20,7 @@
         <Button Classes="btn" Classes.on="{Binding IsOnline}" Content="{Binding LblSecOnline}" Command="{Binding GoSectionCommand}" CommandParameter="Online" Margin="0,12,0,0" />
         <Button Classes="btn" Classes.on="{Binding IsTax}" Content="VAT" Command="{Binding GoSectionCommand}" CommandParameter="Tax" />
         <Button Classes="btn" Classes.on="{Binding IsPrivacy}" Content="Customer data" Command="{Binding GoSectionCommand}" CommandParameter="Privacy" />
+        <Button Classes="btn" Classes.on="{Binding IsCloud}" Content="Cloud" Command="{Binding GoSectionCommand}" CommandParameter="Cloud" />
         <Button Classes="btn" Classes.on="{Binding IsSupport}" Content="Support" Command="{Binding GoSectionCommand}" CommandParameter="Support" />
         <Button Classes="cash" Content="{Binding LblSave}" Command="{Binding SaveCommand}" Height="52" Margin="0,16,0,0" />
         <TextBlock Text="{Binding LblUiLangNote}" Classes="muted" FontSize="11" TextWrapping="Wrap" Margin="0,12,0,0" />
@@ -428,6 +429,47 @@
           Support: everything a remote session needs on one screen, so nobody
           has to ask the merchant to read a version number down the phone.
         -->
+        <Border Classes="panel" Padding="16" IsVisible="{Binding IsCloud}">
+          <StackPanel Spacing="10" MaxWidth="620" HorizontalAlignment="Left">
+            <TextBlock Text="Cloud" Classes="title" />
+
+            <Border Classes="panel-flat" Padding="14">
+              <StackPanel Spacing="6">
+                <TextBlock Text="{Binding CloudStatus}" FontWeight="Bold" FontSize="18" Foreground="#1c1917" />
+                <TextBlock Text="{Binding CloudDetail}" TextWrapping="Wrap" Foreground="#57534e" FontSize="13" />
+              </StackPanel>
+            </Border>
+
+            <!-- Connecting: shown only while there is nothing to show instead. -->
+            <StackPanel Spacing="8" IsVisible="{Binding !CloudConnected}">
+              <TextBlock Text="Enter the activation code" Classes="title" Margin="0,8,0,0" />
+              <TextBlock TextWrapping="Wrap" Classes="muted" FontSize="12"
+                         Text="Eight characters, as we sent them. Upper or lower case, with or without the dash." />
+              <Grid ColumnDefinitions="*,Auto">
+                <!-- Case and dashes are forgiven by the service, so the box does
+                     not fight the person typing. -->
+                <TextBox Text="{Binding CloudCode}" Watermark="XXXX-XXXX" Height="56" Margin="0,0,8,0"
+                         FontSize="22" FontFamily="Consolas, Cascadia Mono, monospace"
+                         MaxLength="12" />
+                <Button Grid.Column="1" Classes="primary" Content="Connect" Width="150" Height="56"
+                        IsEnabled="{Binding !CloudBusy}" Command="{Binding ConnectCloudCommand}" />
+              </Grid>
+            </StackPanel>
+
+            <Button Classes="btn" Content="Check now" Width="180" Height="44"
+                    IsVisible="{Binding CloudConnected}" IsEnabled="{Binding !CloudBusy}"
+                    Command="{Binding CheckCloudCommand}" />
+
+            <TextBlock Text="{Binding CloudResult}" TextWrapping="Wrap" Foreground="#1c1917" FontSize="13" />
+
+            <TextBlock Text="This machine" Classes="title" Margin="0,16,0,0" />
+            <TextBlock TextWrapping="Wrap" Classes="muted" FontSize="12"
+                       Text="Quote this if you ring us. It identifies this till and nothing about the shop." />
+            <SelectableTextBlock Text="{Binding CloudDeviceId}" FontFamily="Consolas, Cascadia Mono, monospace"
+                                 FontSize="13" Foreground="#57534e" />
+          </StackPanel>
+        </Border>
+
         <Border Classes="panel" Padding="16" IsVisible="{Binding IsSupport}">
           <StackPanel Spacing="10">
             <TextBlock Text="Support" Classes="title" />

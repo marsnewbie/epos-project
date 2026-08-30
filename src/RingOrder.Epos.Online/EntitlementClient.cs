@@ -7,19 +7,25 @@ namespace RingOrder.Epos.Online;
 /// <summary>Where the cloud is, and what this till calls itself to it.</summary>
 public sealed class EntitlementClientOptions
 {
-    /// <summary>Base URL of the entitlement service. Blank disables the client entirely.</summary>
-    public string BaseUrl { get; set; } = "";
+    /// <summary>
+    /// Where the service is. Defaults to the address compiled into
+    /// <see cref="CloudEndpoint"/>; a shop only overrides it to reach a staging
+    /// service.
+    /// </summary>
+    public string BaseUrl { get; set; } = CloudEndpoint.Default;
 
-    public string ShopId { get; set; } = "";
     public string DeviceId { get; set; } = "";
     public string? DeviceSecret { get; set; }
 
     /// <summary>
-    /// One-time key from provisioning, exchanged for a device secret on first
-    /// run. Held in <c>secrets.json</c> beside the bundle, never in the bundle:
-    /// a bundle is a file that gets forwarded and copied onto USB sticks.
+    /// The short code somebody typed in Settings.
+    /// <para>
+    /// It is the whole credential: it says which shop this is <em>and</em>
+    /// authorises the enrolment. That is what lets a person activate a till by
+    /// typing eight characters rather than by editing a file.
+    /// </para>
     /// </summary>
-    public string? ActivationKey { get; set; }
+    public string? ActivationCode { get; set; }
 
     /// <summary>
     /// Sent on every request so the service can see what is actually installed
@@ -28,6 +34,7 @@ public sealed class EntitlementClientOptions
     /// </summary>
     public string ClientVersion { get; set; } = "";
 
+    /// <summary>Whether there is somewhere to ask. False only if an override is set to rubbish.</summary>
     public bool IsConfigured => !string.IsNullOrWhiteSpace(BaseUrl);
 }
 
@@ -57,11 +64,13 @@ public enum RefreshOutcome
 /// <param name="Token">The new token, when one was fetched.</param>
 /// <param name="DeviceSecret">Set only by an activation, which issues one.</param>
 /// <param name="Detail">One line for the log.</param>
+/// <param name="ShopId">Which shop an activation turned out to be for.</param>
 public sealed record RefreshResult(
     RefreshOutcome Outcome,
     string? Token = null,
     string? DeviceSecret = null,
-    string Detail = "");
+    string Detail = "",
+    string? ShopId = null);
 
 /// <summary>
 /// Talks to the entitlement service.
@@ -109,7 +118,6 @@ public sealed class EntitlementClient
             "v1/sync",
             new EntitlementRequest
             {
-                ShopId = _options.ShopId,
                 DeviceId = _options.DeviceId,
                 DeviceSecret = _options.DeviceSecret,
                 ClientVersion = _options.ClientVersion,
@@ -118,21 +126,20 @@ public sealed class EntitlementClient
     }
 
     /// <summary>
-    /// Exchange the one-time activation key for a device secret and a first
-    /// token. Runs once per installation.
+    /// Exchange the typed code for a device secret and a first token. Runs once
+    /// per installation, and again if the answer was lost on the way back.
     /// </summary>
     public async Task<RefreshResult> ActivateAsync(CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(_options.ActivationKey))
-            return new RefreshResult(RefreshOutcome.NotConfigured, Detail: "no activation key");
+        if (string.IsNullOrWhiteSpace(_options.ActivationCode))
+            return new RefreshResult(RefreshOutcome.NotConfigured, Detail: "no activation code");
 
         return await PostAsync(
             "v1/activate",
             new EntitlementRequest
             {
-                ShopId = _options.ShopId,
                 DeviceId = _options.DeviceId,
-                ActivationKey = _options.ActivationKey,
+                ActivationCode = _options.ActivationCode,
                 ClientVersion = _options.ClientVersion,
             },
             ct);
@@ -166,7 +173,8 @@ public sealed class EntitlementClient
                 RefreshOutcome.Fetched,
                 payload.Token,
                 payload.DeviceSecret,
-                $"token fetched from {path}");
+                $"token fetched from {path}",
+                payload.ShopId);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
         {
@@ -179,14 +187,13 @@ public sealed class EntitlementClient
 
     private sealed class EntitlementRequest
     {
-        public string ShopId { get; set; } = "";
         public string DeviceId { get; set; } = "";
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? DeviceSecret { get; set; }
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? ActivationKey { get; set; }
+        public string? ActivationCode { get; set; }
 
         public string ClientVersion { get; set; } = "";
     }
@@ -195,5 +202,8 @@ public sealed class EntitlementClient
     {
         public string? Token { get; set; }
         public string? DeviceSecret { get; set; }
+
+        /// <summary>Which shop the code turned out to belong to, so the screen can name it.</summary>
+        public string? ShopId { get; set; }
     }
 }
