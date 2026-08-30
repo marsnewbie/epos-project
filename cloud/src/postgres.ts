@@ -9,10 +9,15 @@ import { secretMatches, type Device, type Shop, type Store } from "./store.ts";
  * speaks its own wire protocol and there is no honest way around a driver.
  */
 export class PostgresStore implements Store {
+  /**
+   * Readable so the migration runner can borrow a client. Everything else here
+   * goes through the methods; this is the one deliberate seam.
+   */
+  readonly pool: pg.Pool;
   #pool: pg.Pool;
 
   constructor(connectionString: string) {
-    this.#pool = new pg.Pool({
+    this.pool = this.#pool = new pg.Pool({
       connectionString,
 
       // Railway's managed Postgres presents a certificate its own clients trust

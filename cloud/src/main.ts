@@ -1,4 +1,5 @@
 import { load } from "./config.ts";
+import { migrate } from "./migrate.ts";
 import { PostgresStore } from "./postgres.ts";
 import { createApp } from "./server.ts";
 
@@ -18,6 +19,15 @@ const server = createApp({
   minClientVersion: config.minClientVersion,
   ping: () => store.ping(),
 });
+
+// Before the port opens, so a deploy that cannot migrate fails as a deploy
+// rather than as a 500 an hour later that nobody connects to the schema.
+try {
+  await migrate(store.pool);
+} catch (error) {
+  console.error("could not migrate:", error);
+  process.exit(1);
+}
 
 server.listen(config.port, () => {
   console.log(

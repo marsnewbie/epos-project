@@ -97,9 +97,23 @@ reason.
 
 ## Database
 
-`migrations/001_initial.sql`, applied by hand for now — two tables and one
-service. When that stops being comfortable, a migration runner goes here and this
-line changes.
+**Migrations run at startup, before the port opens.** A deploy that cannot
+migrate fails as a deploy rather than as a 500 an hour later that nobody
+connects to the schema. The till has worked this way since its first release,
+for the same reason.
+
+`migrations/*.sql` run in filename order, one transaction each, recorded in
+`schema_migrations`. Concurrent instances during a rolling deploy are handled by
+a `pg_advisory_lock` — the second waits and then finds nothing to do.
+
+This was manual for exactly one day, and the very first setup created two tables
+with one column each through a button in a database console. `CREATE TABLE IF
+NOT EXISTS` then does nothing to fix them, silently, which is the worst shape a
+failure can take.
+
+> **Adding a migration:** new file, next number, never edit one that has shipped.
+> `IF NOT EXISTS` guards a create; it does **not** reconcile a table that already
+> exists with the wrong columns.
 
 ## Adding a shop
 

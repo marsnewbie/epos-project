@@ -1596,3 +1596,27 @@ It was correct. It is now pinned, in both directions and including the paths, an
 the test names the file on the other side.
 
 354 C# tests, 41 TypeScript tests.
+
+### Migrations moved into startup, after the manual step failed once
+
+The service's schema was applied by hand for one day. The very first setup
+created two tables with one column each, through a **Create table** button in
+Railway's database console, because the query box on that screen runs `SELECT`
+and the `CREATE TABLE` never went anywhere.
+
+Nothing said so. Both tables existed with the right *names*, the console showed
+them, and the service returned `500 internal error` on every endpoint that
+touched them. It was found by probing the deployed service rather than by
+reading the console — a well-formed request that reaches a query is a better
+schema check than a screen that lists table names.
+
+Migrations now run at startup before the port opens, the way the till's have
+since its first release. Files in `migrations/` in filename order, one
+transaction each, recorded in `schema_migrations`, guarded by a
+`pg_advisory_lock` so two instances in a rolling deploy do not race.
+
+**The trap worth writing down:** `CREATE TABLE IF NOT EXISTS` does nothing to a
+table that already exists with the wrong columns, and reports success. The
+recovery is to drop the bad tables and let the migration run — there is no
+version of this that repairs itself, and a migration that tried to would be one
+that could destroy a real table later.
