@@ -24,7 +24,7 @@ commits from redeploying the service.
 ```bash
 cd cloud
 npm install
-npm test          # 34 tests, no database and no network needed
+npm test          # 41 tests, no database and no network needed
 npm run typecheck
 npm start
 ```
