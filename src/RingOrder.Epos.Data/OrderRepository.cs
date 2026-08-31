@@ -178,15 +178,32 @@ public sealed class OrderRepository
         var terminal = order.TerminalId ?? "";
         var at = DateTimeOffset.Now;
 
-        _changes.Append(conn, tx, new ChangeDraft(
-            Guid.NewGuid().ToString("n"),
-            terminal,
-            ChangeEntity.Order,
-            order.Id,
-            OrderChangeVerb.For(previousStatus, wasFullyPaid, order),
-            JsonUtil.Serialize(OrderSnapshot.Of(order)),
-            at,
-            order.StaffId));
+        var verb = OrderChangeVerb.For(previousStatus, wasFullyPaid, order);
+        var snapshot = JsonUtil.Serialize(OrderSnapshot.Of(order));
+
+        // An amendment that says exactly what the last entry said is not an
+        // amendment. One ticket is saved several times per action — on send, on
+        // print, on the screen moving on — and left alone that filled nearly
+        // half the log with entries nobody could tell apart. Measured on a real
+        // shop's first evening: nine of twenty-one.
+        //
+        // Only amendments are dropped. A `placed`, `paid`, `voided` or
+        // `refunded` is recorded whatever it says, because the verb is the news.
+        var repeats = verb == ChangeOp.Amended
+                      && snapshot == _changes.LastPayloadFor(conn, tx, ChangeEntity.Order, order.Id);
+
+        if (!repeats)
+        {
+            _changes.Append(conn, tx, new ChangeDraft(
+                Guid.NewGuid().ToString("n"),
+                terminal,
+                ChangeEntity.Order,
+                order.Id,
+                verb,
+                snapshot,
+                at,
+                order.StaffId));
+        }
 
         // Each tender gets its own entry. Money is the thing this log exists to
         // be able to account for, and a split payment where only the total was

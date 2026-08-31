@@ -84,6 +84,30 @@ public sealed class ChangeLogRepository
         return entry;
     }
 
+    /// <summary>
+    /// The payload of the most recent entry about one thing, or null if there is
+    /// none.
+    /// <para>
+    /// Used to answer "would this entry say anything new?". One index probe, and
+    /// it compares against what was actually written rather than against a guess
+    /// reassembled from the tables.
+    /// </para>
+    /// </summary>
+    public string? LastPayloadFor(SqliteConnection conn, SqliteTransaction? tx, string entity, string entityId)
+    {
+        using var cmd = conn.CreateCommand();
+        cmd.Transaction = tx;
+        cmd.CommandText = """
+            SELECT payload FROM change_log
+             WHERE entity = $entity AND entity_id = $id
+             ORDER BY seq DESC LIMIT 1
+            """;
+        cmd.Parameters.AddWithValue("$entity", entity);
+        cmd.Parameters.AddWithValue("$id", entityId);
+
+        return cmd.ExecuteScalar() as string;
+    }
+
     private static string LastHash(SqliteConnection conn, SqliteTransaction? tx)
     {
         using var cmd = conn.CreateCommand();

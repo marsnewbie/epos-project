@@ -455,4 +455,82 @@ public class ChangeLogTests : IDisposable
 
         Assert.Empty(_log.Since(0));
     }
+
+    /// <summary>
+    /// Measured on a real shop's first evening: nine of twenty-one order entries
+    /// said exactly what the one before them said. A ticket is saved several
+    /// times per action — on send, on print, on the screen moving on — and the
+    /// log filled with entries nobody could tell apart, in a table that is
+    /// append-only and goes to the cloud for ever.
+    /// </summary>
+    [Fact]
+    public void An_amendment_that_says_nothing_new_is_not_written()
+    {
+        var orders = Orders();
+        var ticket = Ticket();
+        ticket.Status = PosOrderStatus.Sent;
+
+        orders.Upsert(ticket);
+        orders.Upsert(ticket);
+        orders.Upsert(ticket);
+
+        Assert.Single(_log.For(ChangeEntity.Order, ticket.Id));
+    }
+
+    [Fact]
+    public void An_amendment_that_changes_something_still_is()
+    {
+        var orders = Orders();
+        var ticket = Ticket();
+        ticket.Status = PosOrderStatus.Sent;
+
+        orders.Upsert(ticket);
+        orders.Upsert(ticket);
+
+        ticket.Lines.Add(new CartLine { Id = "extra", Name = "Rice", Quantity = 1, BasePrice = 3.00m });
+        orders.Upsert(ticket);
+        orders.Upsert(ticket);
+
+        var story = _log.For(ChangeEntity.Order, ticket.Id);
+
+        Assert.Equal([ChangeOp.Placed, ChangeOp.Amended], story.Select(e => e.Op));
+        Assert.Contains("1150", story[^1].Payload);   // 8.50 + 3.00
+    }
+
+    /// <summary>
+    /// Only amendments are dropped. The others are the news, whatever the
+    /// figures happen to say — a void whose totals match the sale before it is
+    /// still the event the day turns on.
+    /// </summary>
+    [Fact]
+    public void A_void_is_recorded_even_when_nothing_else_moved()
+    {
+        var orders = Orders();
+        var ticket = Ticket();
+        ticket.Status = PosOrderStatus.Sent;
+
+        orders.Upsert(ticket);
+        orders.Upsert(ticket);
+
+        ticket.Status = PosOrderStatus.Voided;
+        orders.Upsert(ticket);
+
+        Assert.Equal([ChangeOp.Placed, ChangeOp.Voided], _log.For(ChangeEntity.Order, ticket.Id).Select(e => e.Op));
+    }
+
+    /// <summary>A repeated save must not swallow a tender that arrived with it.</summary>
+    [Fact]
+    public void A_tender_is_still_recorded_when_the_order_line_repeats()
+    {
+        var orders = Orders();
+        var ticket = Ticket();
+        ticket.Status = PosOrderStatus.Sent;
+        orders.Upsert(ticket);
+        orders.Upsert(ticket);
+
+        ticket.Tenders.Add(new OrderTender { Id = "t-1", Type = TenderType.Cash, Amount = 8.50m });
+        orders.Upsert(ticket);
+
+        Assert.Single(_log.Since(0).Where(e => e.Entity == ChangeEntity.Payment));
+    }
 }

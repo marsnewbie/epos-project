@@ -307,6 +307,13 @@ Orders, their tenders, and shifts opening and closing. Every tender separately �
 a split payment recorded only as a total cannot be reconciled against a card
 terminal's own report.
 
+**An amendment that says nothing new is not recorded.** A ticket is saved several
+times per action — on send, on print, on the screen moving on — and left alone
+that filled nearly half the log with entries nobody could tell apart. Measured on
+a real shop's first evening: nine of twenty-one. Only amendments are dropped; a
+`placed`, `paid`, `voided` or `refunded` is written whatever it says, because
+the verb is the news.
+
 **A draft is not recorded.** A ticket being typed is saved on nearly every
 keystroke, and a log of four hundred amendments per order would bury the events
 anybody cares about. An order starts existing in the log when it is sent, held or

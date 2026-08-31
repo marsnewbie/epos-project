@@ -47,6 +47,12 @@ public sealed class AppServices
     /// refreshed in the background — never on the path to opening.
     /// </summary>
     public EntitlementService Entitlement { get; }
+
+    /// <summary>
+    /// Looks for a new build and downloads it. Never applies one — that happens
+    /// at the next start, in <c>Program.Main</c>, before a window exists.
+    /// </summary>
+    public UpdateService Updates { get; } = new();
     public PrintService Print { get; }
     public OnlineOrderPoller OnlinePoller { get; }
     /// <summary>
@@ -129,6 +135,9 @@ public sealed class AppServices
         // at startup, so a till left running for a week never refreshed and never
         // sent a change-log entry anywhere.
         Entitlement.StartPeriodicRefresh();
+
+        // Downloads only. A till is never restarted while it is running.
+        Updates.StartChecking();
 
         // Built from the settings on every call rather than captured once, so
         // pasting an API key in Settings takes effect on the next lookup instead

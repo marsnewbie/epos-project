@@ -1611,6 +1611,8 @@ public partial class SettingsViewModel : ViewModelBase
             $"Print queue  {_app.PrintJobs.CountWaiting()} waiting, {abandoned.Count} given up",
             $"Web orders   {(_app.OnlinePoller.IsRunning ? "on" : "off")} · {_app.OnlinePoller.LastStatus}",
             $"Last backup  {(_app.Backups.LastBackupAt is { } at ? at.ToString("yyyy-MM-dd HH:mm") : "none yet")}",
+            $"Updates      {_app.Updates.Status}",
+            $"Cloud        {CloudSummaryLine()}",
             $"Logs         {AppLog.Directory}",
         ]);
 
@@ -1873,6 +1875,20 @@ public partial class SettingsViewModel : ViewModelBase
 
     /// <summary>The identifier support will ask for. Shown so nobody has to open a database.</summary>
     [ObservableProperty] private string _cloudDeviceId = "";
+
+    /// <summary>
+    /// One line for the diagnostics export, so the two questions support always
+    /// asks — what may this till do, and is its log getting out — are answered
+    /// without anybody navigating anywhere.
+    /// </summary>
+    private string CloudSummaryLine()
+    {
+        var state = _app.Entitlement.Current;
+        var pending = _app.Changes.LastSeq() - _app.Changes.SyncedThrough();
+
+        return $"{state.Source} · {state.Edition} · {state.Terminals} terminal(s)"
+             + (pending > 0 ? $" · {pending} log entries not yet sent" : " · log up to date");
+    }
 
     private void ReloadCloud()
     {

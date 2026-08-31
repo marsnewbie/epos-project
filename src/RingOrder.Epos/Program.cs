@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Avalonia;
 using RingOrder.Epos.Data;
 using RingOrder.Epos.Services;
+using Velopack;
 
 namespace RingOrder.Epos;
 
@@ -22,6 +23,13 @@ sealed class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        // First, before the mutex and before anything logs. An install, an
+        // uninstall and the first run after an update all re-enter this
+        // executable with arguments that must be handled and then exited on —
+        // taking the single-instance lock during one of them would deadlock the
+        // installer against the till it is installing.
+        VelopackApp.Build().Run();
+
         _singleInstance = new Mutex(initiallyOwned: true, @"Global\RingOrder.Epos", out var isOnly);
         if (!isOnly)
         {
@@ -47,6 +55,12 @@ sealed class Program
             AppLog.Error("crash", "unobserved task exception", e.Exception);
             e.SetObserved();   // a background fault must not take the till with it
         };
+
+        // Before a window exists, which is the only moment restarting a till costs
+        // nobody anything. A downloaded update is never applied while the shop is
+        // trading — see UpdateService.
+        var updates = new UpdateService();
+        if (updates.ApplyIfReady()) return;
 
         try
         {

@@ -1834,3 +1834,55 @@ logger is: a test that wrote into the live profile folder would be replacing a
 merchant's menu.
 
 398 C# tests, 90 TypeScript tests.
+
+---
+
+## 2026-08-31 — Packaging, and a flaw only running it could show
+
+### Velopack
+
+`vpk` packs a self-contained build; a merchant downloads `Setup.exe` once and
+never again. `tools/pack.ps1` runs the tests first — a build that ships without
+them is the one that needed them.
+
+The rule the whole thing is shaped around: **a till is never restarted while it
+is running.** It checks hourly, downloads quietly, and applies at the *next
+start*, in `Program.Main`, before a window exists — the only moment at which
+restarting a till costs nobody anything. Tills get restarted; shops turn them
+off, staff reboot them, Windows does it anyway. Waiting for that is slower than
+forcing it and is the only version of this that is safe.
+
+`VelopackApp.Build().Run()` goes first in `Main`, before the single-instance
+mutex. An install, an uninstall and the first run after an update all re-enter
+the executable with arguments to be handled and exited on, and taking the lock
+during one of them would deadlock the installer against the till it is
+installing.
+
+`UpdateFeed.Url` is empty, which disables everything — the same shape as
+`EntitlementKeys.Production`. A build shipped before the feed exists behaves
+correctly rather than mysteriously. No signing yet, by decision: SmartScreen's
+warning is a conversation with a merchant rather than a technical failure.
+
+### What running it found
+
+The change log was working end to end on the real machine — twenty-six entries
+written, chained, sent, and accepted by the cloud. Reading them showed something
+no test had asked about:
+
+**Nine of twenty-one order entries said exactly what the entry before them
+said.** A ticket is saved several times per action — on send, on print, on the
+screen moving on — and each save wrote an `amended` whether or not anything had
+changed. Forty-three per cent of an append-only table that goes to the cloud and
+stays there.
+
+An amendment identical to the last entry for that order is now dropped. Only
+amendments: a `placed`, `paid`, `voided` or `refunded` is written whatever the
+figures say, because the verb is the news and a void whose totals match the sale
+before it is still the event the day turns on.
+
+This is the second thing this week that only appeared by looking at real output
+rather than at a test — the first was Chinese on a printed note. Both were
+invisible from inside the code, and both were obvious within seconds of reading
+what actually came out.
+
+407 tests.
