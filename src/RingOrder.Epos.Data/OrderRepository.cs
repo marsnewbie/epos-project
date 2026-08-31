@@ -12,14 +12,29 @@ namespace RingOrder.Epos.Data;
 public sealed class OrderRepository
 {
     private readonly EposDb _db;
+    private readonly ChangeLogRepository? _changes;
 
-    public OrderRepository(EposDb db) => _db = db;
+    /// <param name="changes">
+    /// Optional so a test can build a repository without one. In the running
+    /// till it is always supplied — see <c>AppServices</c>.
+    /// </param>
+    public OrderRepository(EposDb db, ChangeLogRepository? changes = null)
+    {
+        _db = db;
+        _changes = changes;
+    }
 
     public void Upsert(PosOrder order)
     {
         LinePricing.RecalculateOrder(order);
         using var conn = _db.Open();
         using var tx = conn.BeginTransaction();
+
+        // Read before writing, inside the same transaction, so the verb is
+        // derived from what actually changed rather than declared by a caller.
+        // A log the callers have to remember to write is a log with holes, and
+        // the hole is always the path somebody added in a hurry.
+        var (previousStatus, wasFullyPaid, alreadyRecorded) = StateBefore(conn, tx, order.Id);
 
         using (var cmd = conn.CreateCommand())
         {
@@ -86,7 +101,108 @@ public sealed class OrderRepository
 
         WriteLines(conn, tx, order);
         WritePayments(conn, tx, order);
+
+        RecordChanges(conn, tx, order, previousStatus, wasFullyPaid, alreadyRecorded);
+
         tx.Commit();
+    }
+
+    /// <summary>
+    /// The order's status and settled tenders as they stand on disk, before this
+    /// save replaces them.
+    /// </summary>
+    private static (PosOrderStatus? Status, bool FullyPaid, HashSet<string> Tenders) StateBefore(
+        SqliteConnection conn, SqliteTransaction tx, string orderId)
+    {
+        PosOrderStatus? status = null;
+        var paid = false;
+
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.Transaction = tx;
+            cmd.CommandText = """
+                SELECT o.status,
+                       COALESCE(SUM(p.amount_pence), 0) >= o.total_pence
+                  FROM orders o
+                  LEFT JOIN payments p ON p.order_id = o.id
+                 WHERE o.id = $id
+                 GROUP BY o.id
+                """;
+            cmd.Parameters.AddWithValue("$id", orderId);
+
+            using var reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                status = Enum.TryParse<PosOrderStatus>(reader.GetString(0), out var parsed)
+                    ? parsed
+                    : PosOrderStatus.Open;
+                paid = reader.GetBoolean(1);
+            }
+        }
+
+        var tenders = new HashSet<string>(StringComparer.Ordinal);
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.Transaction = tx;
+            cmd.CommandText = "SELECT id FROM payments WHERE order_id = $id";
+            cmd.Parameters.AddWithValue("$id", orderId);
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read()) tenders.Add(reader.GetString(0));
+        }
+
+        return (status, paid, tenders);
+    }
+
+    /// <summary>
+    /// Appends what happened, in the same transaction as the change itself.
+    /// <para>
+    /// A draft is not recorded. An order being typed is saved on nearly every
+    /// keystroke, and a log of four hundred amendments per ticket would bury the
+    /// events anybody cares about — it starts existing when it is sent, held or
+    /// paid, which is when it has become a thing that happened rather than a
+    /// thing being typed.
+    /// </para>
+    /// </summary>
+    private void RecordChanges(
+        SqliteConnection conn,
+        SqliteTransaction tx,
+        PosOrder order,
+        PosOrderStatus? previousStatus,
+        bool wasFullyPaid,
+        HashSet<string> alreadyRecorded)
+    {
+        if (_changes is null) return;
+        if (order.Status == PosOrderStatus.Draft && previousStatus is null or PosOrderStatus.Draft) return;
+
+        var terminal = order.TerminalId ?? "";
+        var at = DateTimeOffset.Now;
+
+        _changes.Append(conn, tx, new ChangeDraft(
+            Guid.NewGuid().ToString("n"),
+            terminal,
+            ChangeEntity.Order,
+            order.Id,
+            OrderChangeVerb.For(previousStatus, wasFullyPaid, order),
+            JsonUtil.Serialize(OrderSnapshot.Of(order)),
+            at,
+            order.StaffId));
+
+        // Each tender gets its own entry. Money is the thing this log exists to
+        // be able to account for, and a split payment where only the total was
+        // recorded cannot be reconciled against a card terminal's own report.
+        foreach (var tender in order.Tenders.Where(t => !alreadyRecorded.Contains(t.Id)))
+        {
+            _changes.Append(conn, tx, new ChangeDraft(
+                Guid.NewGuid().ToString("n"),
+                terminal,
+                ChangeEntity.Payment,
+                tender.Id,
+                ChangeOp.Paid,
+                JsonUtil.Serialize(PaymentSnapshot.Of(order, tender)),
+                at,
+                tender.StaffId ?? order.StaffId));
+        }
     }
 
     public PosOrder? GetById(string id) => QueryOne("SELECT * FROM orders WHERE id=$p", id);

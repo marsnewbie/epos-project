@@ -7,7 +7,17 @@ public sealed class ShiftRepository
 {
     private readonly EposDb _db;
 
-    public ShiftRepository(EposDb db) => _db = db;
+    private readonly ChangeLogRepository? _changes;
+
+    /// <param name="changes">
+    /// Optional so a test can build a repository without one. In the running
+    /// till it is always supplied — see <c>AppServices</c>.
+    /// </param>
+    public ShiftRepository(EposDb db, ChangeLogRepository? changes = null)
+    {
+        _db = db;
+        _changes = changes;
+    }
 
     public Shift? GetOpen(string? terminalId = null)
     {
@@ -59,6 +69,7 @@ public sealed class ShiftRepository
             OpeningFloat = openingFloat,
         };
         Upsert(shift);
+        Record(shift, ChangeOp.Opened, staffId);
         return shift;
     }
 
@@ -71,7 +82,30 @@ public sealed class ShiftRepository
         shift.ExpectedCash = expectedCash;
         shift.Notes = notes;
         Upsert(shift);
+        Record(shift, ChangeOp.Closed, staffId);
     }
+
+    /// <summary>
+    /// Opening and closing are the two events on a shift worth recording. Every
+    /// other <c>Upsert</c> is bookkeeping — the totals are derived from the rows
+    /// that carry the shift id, never accumulated onto the shift itself, so
+    /// there is nothing else here that ever changes.
+    /// <para>
+    /// Written after its own transaction rather than inside one, because these
+    /// two change nothing but the shift row itself: there is no second write to
+    /// disagree with.
+    /// </para>
+    /// </summary>
+    private void Record(Shift shift, string op, string staffId) =>
+        _changes?.Append(new ChangeDraft(
+            Guid.NewGuid().ToString("n"),
+            shift.TerminalId ?? "",
+            ChangeEntity.Shift,
+            shift.Id,
+            op,
+            JsonUtil.Serialize(ShiftSnapshot.Of(shift)),
+            DateTimeOffset.Now,
+            staffId));
 
     public void Upsert(Shift shift)
     {

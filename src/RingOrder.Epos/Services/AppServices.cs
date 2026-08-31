@@ -18,6 +18,12 @@ public sealed class AppServices
     public StaffRepository Staff { get; }
     public ShiftRepository Shifts { get; }
     public AuditRepository Audit { get; }
+
+    /// <summary>
+    /// The append-only record of what happened. Passed to the repositories that
+    /// write money so their entries land in the same transaction as the change.
+    /// </summary>
+    public ChangeLogRepository Changes { get; }
     public BundleImporter BundleImporter { get; }
     public PrintDeviceRepository PrintDevices { get; }
     public AddressRepository Addresses { get; }
@@ -77,7 +83,8 @@ public sealed class AppServices
         Db.Migrate(AppLog.For("db"));
         Settings = new SettingsRepository(Db);
         Menu = new MenuRepository(Db);
-        Orders = new OrderRepository(Db);
+        Changes = new ChangeLogRepository(Db);
+        Orders = new OrderRepository(Db, Changes);
         PrintJobs = new PrintJobRepository(Db);
         Addresses = new AddressRepository(Db);
         Customers = new CustomerRepository(Db, Addresses);
@@ -87,7 +94,7 @@ public sealed class AppServices
         RefundRepo = new RefundRepository(Db);
         MoveAddressesOutOfCustomerRows();
         Staff = new StaffRepository(Db);
-        Shifts = new ShiftRepository(Db);
+        Shifts = new ShiftRepository(Db, Changes);
         Audit = new AuditRepository(Db);
         PrintDevices = new PrintDeviceRepository(Db);
         AddressCache = new AddressCacheRepository(Db);

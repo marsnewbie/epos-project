@@ -1675,3 +1675,35 @@ it belongs to.** Every card terminal on the market pairs on first boot and none
 is thought of as locked.
 
 376 tests.
+
+### The change log is now written to
+
+Orders, tenders and shifts. The table stopped being empty.
+
+**The verb is derived rather than passed in.** `OrderRepository.Upsert` reads the
+order's status and settled tenders inside its own transaction, before writing,
+and works out whether this save is a `placed`, an `amended`, a `paid`, a `voided`
+or a `refunded`. Callers were not changed and cannot forget — a log the callers
+have to remember to write is a log with holes, and the hole is always the path
+somebody added in a hurry.
+
+**A draft writes nothing.** A ticket being typed is saved on nearly every
+keystroke; four hundred amendments per order would bury everything worth reading.
+It starts existing in the log when it is sent, held or paid.
+
+**Every tender gets its own entry.** A split payment recorded only as a total
+cannot be reconciled against a card terminal's own report, and reconciliation is
+most of what this log is for.
+
+Payloads are summaries rather than serialised aggregates, in pence. The order
+model is going to grow — courses, seats, split bills — and an entry holding a
+whole `PosOrder` would either freeze that shape or fill the log with versions of
+it. Pence because a payload is hashed exactly as serialised, and a decimal
+rendered differently by a future runtime would be a chain that stopped verifying
+for reasons nobody could find.
+
+Two failures while writing the tests, both my own test data rather than the code:
+two tickets sharing an order number, then two sharing a line id. Worth noting
+only because they are the constraints a real till has and a fixture forgets.
+
+383 tests.

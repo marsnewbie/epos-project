@@ -301,6 +301,30 @@ Timestamps are normalised to UTC round-trip format before hashing, so an entry
 verifies the same when it is read back in another time zone — which is what a
 support copy of a database is.
 
+### What is recorded, and what is not
+
+Orders, their tenders, and shifts opening and closing. Every tender separately —
+a split payment recorded only as a total cannot be reconciled against a card
+terminal's own report.
+
+**A draft is not recorded.** A ticket being typed is saved on nearly every
+keystroke, and a log of four hundred amendments per order would bury the events
+anybody cares about. An order starts existing in the log when it is sent, held or
+paid: when it has become a thing that happened rather than a thing being typed.
+
+**The verb is derived, not declared.** `OrderChangeVerb.For` works out `placed`,
+`amended`, `paid`, `voided` or `refunded` from the state on disk against the
+state being written, inside the same transaction. A log that callers have to
+remember to write is a log with holes in it, and the hole is always the path
+somebody added in a hurry — there is one write path for an order, so deriving it
+there means it cannot be forgotten.
+
+Payloads are summaries, not serialised aggregates. The order model is going to
+grow — courses, seats, split bills — and an entry holding a whole `PosOrder`
+would either freeze that shape or fill the log with versions of it. Money is
+pence, because a payload is hashed exactly as it was serialised and a decimal
+rendered differently by a future runtime would be a chain that stopped verifying.
+
 ### Appending
 
 `ChangeLogRepository.Append` takes the caller's open transaction, and that is the

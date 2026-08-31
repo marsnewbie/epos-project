@@ -297,4 +297,162 @@ public class ChangeLogTests : IDisposable
         try { File.Delete(_dbPath); } catch { /* the temp folder can keep it */ }
         GC.SuppressFinalize(this);
     }
+
+    // ---- what the till actually writes --------------------------------------
+
+    private OrderRepository Orders() => new(_db, _log);
+    private ShiftRepository Shifts() => new(_db, _log);
+
+    /// <summary>Order numbers are unique, so a test with two tickets needs two.</summary>
+    private static PosOrder Ticket(string id = "order-1", string number = "1043") => new()
+    {
+        Id = id,
+        OrderNumber = number,
+        Status = PosOrderStatus.Open,
+        TerminalId = "till-a",
+        StaffId = "wei",
+        ServiceType = ServiceType.Collection,
+        Channel = OrderChannel.Counter,
+        Lines = [new CartLine { Id = $"{id}-line-1", Name = "Kung Po", Quantity = 1, BasePrice = 8.50m }],
+    };
+
+    /// <summary>
+    /// The verb is worked out from what changed, not passed in. A log the
+    /// callers have to remember to write is a log with holes, and the hole is
+    /// always the path somebody added in a hurry.
+    /// </summary>
+    [Fact]
+    public void An_order_writes_placed_then_amended_then_paid()
+    {
+        var orders = Orders();
+        var ticket = Ticket();
+
+        orders.Upsert(ticket);
+
+        ticket.Lines.Add(new CartLine { Id = "line-2", Name = "Rice", Quantity = 1, BasePrice = 3.00m });
+        orders.Upsert(ticket);
+
+        ticket.Tenders.Add(new OrderTender { Id = "t-1", Type = TenderType.Cash, Amount = 11.50m });
+        ticket.Status = PosOrderStatus.Paid;
+        orders.Upsert(ticket);
+
+        var story = _log.For(ChangeEntity.Order, ticket.Id).Select(e => e.Op);
+
+        Assert.Equal([ChangeOp.Placed, ChangeOp.Amended, ChangeOp.Paid], story);
+        Assert.True(_log.Verify().Intact);
+    }
+
+    /// <summary>
+    /// A ticket being typed is saved on nearly every keystroke. Four hundred
+    /// amendments per order would bury the events anybody cares about.
+    /// </summary>
+    [Fact]
+    public void A_draft_nobody_has_committed_to_is_not_recorded()
+    {
+        var ticket = Ticket();
+        ticket.Status = PosOrderStatus.Draft;
+
+        Orders().Upsert(ticket);
+        Orders().Upsert(ticket);
+
+        Assert.Empty(_log.Since(0));
+    }
+
+    /// <summary>
+    /// Money is the thing this log exists to account for. A split payment
+    /// recorded only as a total cannot be reconciled against a card terminal's
+    /// own report.
+    /// </summary>
+    [Fact]
+    public void Every_tender_gets_its_own_entry_exactly_once()
+    {
+        var orders = Orders();
+        var ticket = Ticket();
+        orders.Upsert(ticket);
+
+        ticket.Tenders.Add(new OrderTender { Id = "t-1", Type = TenderType.Cash, Amount = 5.00m });
+        orders.Upsert(ticket);
+
+        ticket.Tenders.Add(new OrderTender { Id = "t-2", Type = TenderType.CardIntegrated, Amount = 3.50m, Reference = "auth-99" });
+        ticket.Status = PosOrderStatus.Paid;
+        orders.Upsert(ticket);
+
+        // Saved again, changing nothing about the money.
+        orders.Upsert(ticket);
+
+        var payments = _log.Since(0).Where(e => e.Entity == ChangeEntity.Payment).ToList();
+
+        Assert.Equal(["t-1", "t-2"], payments.Select(p => p.EntityId));
+        Assert.Contains("auth-99", payments[1].Payload);
+        Assert.DoesNotContain("5.00", payments[0].Payload);   // pence, never a decimal string
+        Assert.Contains("500", payments[0].Payload);
+    }
+
+    [Fact]
+    public void A_void_and_a_refund_are_different_events()
+    {
+        var orders = Orders();
+
+        var voided = Ticket("order-void", "2001");
+        orders.Upsert(voided);
+        voided.Status = PosOrderStatus.Voided;
+        orders.Upsert(voided);
+
+        var refunded = Ticket("order-refund", "2002");
+        refunded.Tenders.Add(new OrderTender { Id = "t-9", Type = TenderType.Cash, Amount = 8.50m });
+        refunded.Status = PosOrderStatus.Paid;
+        orders.Upsert(refunded);
+        refunded.Status = PosOrderStatus.Refunded;
+        orders.Upsert(refunded);
+
+        Assert.Equal(ChangeOp.Voided, _log.For(ChangeEntity.Order, "order-void")[^1].Op);
+        Assert.Equal(ChangeOp.Refunded, _log.For(ChangeEntity.Order, "order-refund")[^1].Op);
+    }
+
+    [Fact]
+    public void Opening_and_closing_a_shift_are_recorded_with_both_counts()
+    {
+        var shifts = Shifts();
+
+        var shift = shifts.Open("wei", openingFloat: 100m, terminalId: "till-a");
+        shifts.Close(shift, "wei", declaredCash: 341.50m, expectedCash: 340m, notes: null);
+
+        var story = _log.For(ChangeEntity.Shift, shift.Id);
+
+        Assert.Equal([ChangeOp.Opened, ChangeOp.Closed], story.Select(e => e.Op));
+        Assert.Contains("10000", story[0].Payload);   // the float, in pence
+        Assert.Contains("34150", story[1].Payload);   // counted
+        Assert.Contains("34000", story[1].Payload);   // expected
+        Assert.True(_log.Verify().Intact);
+    }
+
+    /// <summary>
+    /// The order and its payments go in one transaction, so a chain built from
+    /// them holds without anybody having to sequence the writes by hand.
+    /// </summary>
+    [Fact]
+    public void An_order_and_its_money_land_in_one_unbroken_chain()
+    {
+        var orders = Orders();
+        var ticket = Ticket();
+        ticket.Tenders.Add(new OrderTender { Id = "t-1", Type = TenderType.Cash, Amount = 8.50m });
+        ticket.Status = PosOrderStatus.Paid;
+
+        orders.Upsert(ticket);
+
+        var entries = _log.Since(0);
+        Assert.Equal(2, entries.Count);
+        Assert.Equal(ChangeChain.Genesis, entries[0].PrevHash);
+        Assert.Equal(entries[0].Hash, entries[1].PrevHash);
+        Assert.True(_log.Verify().Intact);
+    }
+
+    /// <summary>A till built without a change log still works — every test above this line proves the opposite case.</summary>
+    [Fact]
+    public void A_repository_with_no_change_log_writes_orders_as_before()
+    {
+        new OrderRepository(_db).Upsert(Ticket());
+
+        Assert.Empty(_log.Since(0));
+    }
 }
