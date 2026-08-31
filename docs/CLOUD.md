@@ -378,6 +378,55 @@ something we sell. Either test alone gives the wrong answer.
 Caller ID is checked before the serial port is opened, so a setting left switched
 on through a downgrade does not quietly keep working.
 
+## Sending the log up
+
+Entries ride on the **same `/v1/sync` call** as the entitlement, which is what
+this document said the pipe would be for: one question a till asks on a schedule,
+with everything else joining that answer.
+
+**Nothing pending means no request at all.** The entitlement is due once a day; a
+backlog makes the till go sooner, at most every five minutes. A quiet shop that
+took no orders calls once, not two hundred and eighty-eight times.
+
+Five minutes rather than instantly because a busy shop would otherwise send after
+every order; rather than daily because these are evidence, and entries sitting on
+a till are entries somebody could still delete.
+
+### This is the half the chain cannot do alone
+
+Deleting the newest entry leaves nothing behind to disagree with it. But once the
+cloud holds a shop's entries, a batch that **does not continue from what it
+holds** says something was removed — and that is recorded against the device and
+never cleared automatically, because a chain that broke once is a thing a person
+looks at.
+
+### The rules on each side
+
+**The watermark follows what the cloud says it stored, never what was sent.** A
+lost answer costs a re-send rather than leaving a gap, and an entry the cloud
+refused is offered again — it is evidence, and holding it twice beats losing it.
+
+**A refused log never stops a shop.** The entitlement comes back in the same
+answer either way. Whoever needs to know is us, not the merchant standing at the
+till.
+
+**Entries are stored verbatim.** `payload` and `at` go into Postgres as `TEXT`,
+not `JSONB` and not `TIMESTAMPTZ`, because both of those reformat — and the bytes
+are what was hashed. A separate derived column carries the timestamp for
+querying. Stored the tidy way, an entry could never be re-verified and nothing
+would say so.
+
+### The format is reimplemented, so it is pinned
+
+`cloud/src/chain.ts` recomputes what `ChangeChain` computes, and the constants in
+its test were **printed by the C# implementation** rather than worked out in
+TypeScript.
+
+The first attempt produced `Z` where .NET produces `+00:00`, and
+`Date.toISOString()`'s three fractional digits where .NET writes seven. Both spell
+the same instant; only one hashes to what the till wrote. Without the pinned
+constants every entry from every shop would have arrived looking tampered with.
+
 ## Changing the contract
 
 The contract is the shape of what crosses the wire: the token payload, the sync

@@ -20,6 +20,10 @@ export type Device = {
   id: string;
   shopId: string;
   secretHash: string;
+
+  /** Where this till's chain had got to when we last heard from it. */
+  chainHead: string | null;
+  chainSeq: number;
 };
 
 export interface Store {
@@ -65,7 +69,42 @@ export interface Store {
    * safely be retired.
    */
   listShops(): Promise<ShopSummary[]>;
+
+  /**
+   * Stores a batch of change-log entries and moves the device's chain head on.
+   *
+   * One transaction: a chain head that advanced past entries which failed to
+   * insert would refuse every batch after it, and the shop would look tampered
+   * with because of a database hiccup.
+   *
+   * Entries already held are ignored rather than rejected — a till whose answer
+   * was lost on the way back has no choice but to send them again.
+   */
+  saveChangeLog(
+    deviceId: string,
+    shopId: string,
+    entries: ChangeLogRow[],
+    head: string,
+    headSeq: number,
+  ): Promise<void>;
+
+  /** Records that a batch did not add up. Never cleared automatically — see the migration. */
+  recordChainBroken(deviceId: string, reason: string, at: Date): Promise<void>;
 }
+
+export type ChangeLogRow = {
+  id: string;
+  seq: number;
+  terminalId: string;
+  entity: string;
+  entityId: string;
+  op: string;
+  payload: string;
+  at: string;
+  staffId: string | null;
+  prevHash: string;
+  hash: string;
+};
 
 export type ShopSummary = Shop & {
   devices: number;
@@ -105,6 +144,8 @@ export class MemoryStore implements Store {
   }>();
   readonly devices = new Map<string, Device>();
   readonly seen = new Map<string, { clientVersion: string | null; at: Date }>();
+  readonly entries: ChangeLogRow[] = [];
+  readonly broken = new Map<string, { reason: string; at: Date }>();
 
   async shopForActivation(code: string, now: Date): Promise<Shop | null> {
     for (const shop of this.shops.values()) {
@@ -126,7 +167,18 @@ export class MemoryStore implements Store {
   }
 
   async saveDevice(deviceId: string, shopId: string, secretHash: string): Promise<void> {
-    this.devices.set(deviceId, { id: deviceId, shopId, secretHash });
+    const existing = this.devices.get(deviceId);
+
+    this.devices.set(deviceId, {
+      id: deviceId,
+      shopId,
+      secretHash,
+
+      // Re-activation must not forget where the chain had got to, or the next
+      // batch would look like a rewrite.
+      chainHead: existing?.chainHead ?? null,
+      chainSeq: existing?.chainSeq ?? 0,
+    });
   }
 
   async recordSeen(deviceId: string, clientVersion: string | null, at: Date): Promise<void> {
@@ -135,6 +187,25 @@ export class MemoryStore implements Store {
 
   async saveShop(shop: Shop, codeHash: string, expiresAt: Date): Promise<void> {
     this.shops.set(shop.id, { ...shop, activationKeyHash: codeHash, activationExpiresAt: expiresAt });
+  }
+
+  async saveChangeLog(
+    deviceId: string,
+    _shopId: string,
+    entries: ChangeLogRow[],
+    head: string,
+    headSeq: number,
+  ): Promise<void> {
+    for (const entry of entries) {
+      if (!this.entries.some((e) => e.id === entry.id)) this.entries.push(entry);
+    }
+
+    const device = this.devices.get(deviceId);
+    if (device) this.devices.set(deviceId, { ...device, chainHead: head, chainSeq: headSeq });
+  }
+
+  async recordChainBroken(deviceId: string, reason: string, at: Date): Promise<void> {
+    this.broken.set(deviceId, { reason, at });
   }
 
   async listShops(): Promise<ShopSummary[]> {

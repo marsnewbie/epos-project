@@ -20,8 +20,12 @@ export type ServerOptions = Options & {
   ping: () => Promise<void>;
 };
 
-/** A till's request is a few hundred bytes; anything larger is refused before it is parsed. */
-export const MAX_BODY_BYTES = 8 * 1024;
+/**
+ * A bare request is a few hundred bytes; one carrying a batch of change-log
+ * entries is larger, and this is sized for the batch a till is allowed to send.
+ * Anything above it is refused before it is parsed.
+ */
+export const MAX_BODY_BYTES = 1024 * 1024;
 
 /**
  * The admin page, read once at startup.

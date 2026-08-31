@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
+using RingOrder.Epos.Domain;
 
 namespace RingOrder.Epos.Online;
 
@@ -34,6 +35,17 @@ public sealed class EntitlementClientOptions
     /// </summary>
     public string ClientVersion { get; set; } = "";
 
+    /// <summary>
+    /// Change-log entries the cloud has not been told about, oldest first.
+    /// <para>
+    /// They ride on the same call as the entitlement rather than having one of
+    /// their own, which is what docs/CLOUD.md said the pipe would be for: one
+    /// question a till asks on a schedule, and everything else joining that
+    /// answer as additional fields.
+    /// </para>
+    /// </summary>
+    public IReadOnlyList<ChangeEntry> Entries { get; set; } = [];
+
     /// <summary>Whether there is somewhere to ask. False only if an override is set to rubbish.</summary>
     public bool IsConfigured => !string.IsNullOrWhiteSpace(BaseUrl);
 }
@@ -65,12 +77,22 @@ public enum RefreshOutcome
 /// <param name="DeviceSecret">Set only by an activation, which issues one.</param>
 /// <param name="Detail">One line for the log.</param>
 /// <param name="ShopId">Which shop an activation turned out to be for.</param>
+/// <param name="SyncedThrough">
+/// How far the cloud says it has actually stored. Never taken on trust from what
+/// was sent: a lost answer must cost a re-send, not a gap.
+/// </param>
+/// <param name="LogError">
+/// Set when a batch did not add up. The entitlement still came back — a chain
+/// that broke is ours to look at, not a reason to stop a shop trading.
+/// </param>
 public sealed record RefreshResult(
     RefreshOutcome Outcome,
     string? Token = null,
     string? DeviceSecret = null,
     string Detail = "",
-    string? ShopId = null);
+    string? ShopId = null,
+    long? SyncedThrough = null,
+    string? LogError = null);
 
 /// <summary>
 /// Talks to the entitlement service.
@@ -121,6 +143,7 @@ public sealed class EntitlementClient
                 DeviceId = _options.DeviceId,
                 DeviceSecret = _options.DeviceSecret,
                 ClientVersion = _options.ClientVersion,
+                Entries = _options.Entries.Count > 0 ? _options.Entries : null,
             },
             ct);
     }
@@ -174,7 +197,9 @@ public sealed class EntitlementClient
                 payload.Token,
                 payload.DeviceSecret,
                 $"token fetched from {path}",
-                payload.ShopId);
+                payload.ShopId,
+                payload.SyncedThrough,
+                payload.LogError);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
         {
@@ -196,6 +221,10 @@ public sealed class EntitlementClient
         public string? ActivationCode { get; set; }
 
         public string ClientVersion { get; set; } = "";
+
+        /// <summary>Omitted entirely when there is nothing to send, rather than sent as an empty array.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public IReadOnlyList<ChangeEntry>? Entries { get; set; }
     }
 
     private sealed class EntitlementResponse
@@ -205,5 +234,8 @@ public sealed class EntitlementClient
 
         /// <summary>Which shop the code turned out to belong to, so the screen can name it.</summary>
         public string? ShopId { get; set; }
+
+        public long? SyncedThrough { get; set; }
+        public string? LogError { get; set; }
     }
 }

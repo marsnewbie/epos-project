@@ -15,9 +15,10 @@ namespace RingOrder.Epos.Services;
 /// nothing — see docs/CLOUD.md.
 /// </para>
 /// </summary>
-public sealed class EntitlementService
+public sealed class EntitlementService : IDisposable
 {
     private readonly EntitlementStore _store;
+    private readonly ChangeLogRepository? _changes;
     private readonly EntitlementClient _client;
     private readonly Func<AppSettings> _settings;
     private readonly IReadOnlyList<string> _publicKeys;
@@ -50,9 +51,11 @@ public sealed class EntitlementService
         Func<AppSettings> settings,
         EntitlementClient? client = null,
         IReadOnlyList<string>? publicKeys = null,
-        Action<string>? log = null)
+        Action<string>? log = null,
+        ChangeLogRepository? changeLog = null)
     {
         _store = store;
+        _changes = changeLog;
         _settings = settings;
         _client = client ?? new EntitlementClient();
         _publicKeys = publicKeys ?? EntitlementKeys.Production;
@@ -91,12 +94,18 @@ public sealed class EntitlementService
     {
         var now = DateTimeOffset.Now;
 
-        if (!force && !EntitlementPolicy.ShouldRefresh(_store.LastRefreshAttempt(), now))
-            return RefreshOutcome.NotConfigured;
+        // Two reasons to go: the daily entitlement, or a change log waiting to
+        // leave the machine. Nothing pending and nothing due means no request at
+        // all — a quiet shop calls once a day, not every five minutes.
+        var pending = Pending();
+        var due = EntitlementPolicy.ShouldRefresh(_store.LastRefreshAttempt(), now)
+                  || EntitlementPolicy.ShouldSendLog(_store.LastRefreshAttempt(), now, pending.Count > 0);
+
+        if (!force && !due) return RefreshOutcome.NotConfigured;
 
         var settings = _settings();
 
-        Configure(settings);
+        Configure(settings, pending);
 
         var result = await _client.RefreshAsync(ct);
         LastRefresh = result.Outcome;
@@ -113,6 +122,7 @@ public sealed class EntitlementService
 
                 _store.SaveToken(result.Token!);
                 Reresolve();
+                AdvanceLog(result, pending.Count);
                 break;
 
             case RefreshOutcome.ClientTooOld:
@@ -165,7 +175,7 @@ public sealed class EntitlementService
         return result;
     }
 
-    private void Configure(AppSettings settings) =>
+    private void Configure(AppSettings settings, IReadOnlyList<ChangeEntry>? entries = null) =>
         _client.Configure(new EntitlementClientOptions
         {
             BaseUrl = CloudEndpoint.Resolve(settings.CloudBaseUrl),
@@ -173,7 +183,39 @@ public sealed class EntitlementService
             DeviceSecret = _store.DeviceSecret(),
             ActivationCode = settings.CloudActivationCode,
             ClientVersion = ClientVersion,
+            Entries = entries ?? [],
         });
+
+    private IReadOnlyList<ChangeEntry> Pending() =>
+        _changes is null ? [] : _changes.Since(_changes.SyncedThrough(), EntitlementPolicy.LogBatchSize);
+
+    /// <summary>
+    /// Moves the watermark to what the cloud says it stored — never to what was
+    /// sent.
+    /// <para>
+    /// A lost answer must cost a re-send rather than leave a gap, and an entry
+    /// the cloud refused has to be offered again: it is evidence, and we would
+    /// rather hold it twice than not at all.
+    /// </para>
+    /// </summary>
+    private void AdvanceLog(RefreshResult result, int sent)
+    {
+        if (_changes is null) return;
+
+        if (result.LogError is { Length: > 0 } problem)
+        {
+            // Said out loud, once per attempt. This is the alarm the whole chain
+            // exists to be able to raise.
+            _log($"the cloud will not accept this till's change log: {problem}");
+            return;
+        }
+
+        if (result.SyncedThrough is { } through && through > _changes.SyncedThrough())
+        {
+            _changes.RecordSynced(through);
+            if (sent > 0) _log($"sent {sent} change-log entries, cloud holds through {through}");
+        }
+    }
 
     private void Reresolve()
     {
@@ -209,6 +251,33 @@ public sealed class EntitlementService
             deviceId,
             DateTimeOffset.Now);
     }
+
+    /// <summary>
+    /// Asks again on a timer, because nothing else does.
+    /// <para>
+    /// Until this existed the entitlement was fetched once at startup, so a till
+    /// left running for a week never refreshed and never sent a thing. The tick
+    /// is short and <see cref="RefreshAsync"/> throttles itself, so most of them
+    /// do nothing at all.
+    /// </para>
+    /// </summary>
+    public void StartPeriodicRefresh()
+    {
+        _timer?.Dispose();
+        _timer = new Timer(
+            _ => RefreshInBackground(),
+            null,
+            EntitlementPolicy.LogInterval,
+            EntitlementPolicy.LogInterval);
+    }
+
+    public void Dispose()
+    {
+        _timer?.Dispose();
+        _timer = null;
+    }
+
+    private Timer? _timer;
 
     private static string ClientVersion =>
         Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "0.0.0";

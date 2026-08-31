@@ -1,3 +1,4 @@
+import { verify, type ChangeEntry } from "./chain.ts";
 import { expiryFrom, format, newCode, normalise } from "./codes.ts";
 import { issue, type Entitlement } from "./tokens.ts";
 import { hashSecret, newSecret, secretMatches, type Shop, type Store } from "./store.ts";
@@ -18,6 +19,9 @@ export type Request = {
   activationCode?: unknown;
 
   clientVersion?: unknown;
+
+  /** Change-log entries the till has not sent us yet, oldest first. */
+  entries?: unknown;
 
   /** Admin only. */
   shopId?: unknown;
@@ -149,10 +153,112 @@ export async function sync(request: Request, options: Options): Promise<Reply> {
   const now = options.now?.() ?? new Date();
   await options.store.recordSeen(deviceId, clientVersion, now);
 
+  const log = await receive(device, shop.id, request.entries, options, now);
+
   return {
     status: 200,
-    body: { token: issue(entitlementFor(shop, deviceId), options.privateKeyPem, now) },
+    body: {
+      token: issue(entitlementFor(shop, deviceId), options.privateKeyPem, now),
+
+      // How far the till may move its watermark. Never further than what is
+      // actually stored, so a lost answer costs a re-send and nothing else.
+      syncedThrough: log.syncedThrough,
+
+      // Present only when a batch did not add up. The token is returned either
+      // way: a chain that broke must not stop a shop trading, and the person who
+      // needs to know is us, not the merchant standing at the till.
+      ...(log.error ? { logError: log.error } : {}),
+    },
   };
+}
+
+/**
+ * Takes a batch of change-log entries, if there are any.
+ *
+ * This is the half of the tamper-evidence a chain cannot provide alone: deleting
+ * the newest entry on a till leaves nothing behind to disagree with it, but a
+ * till whose next batch does not continue from what we already hold is telling
+ * us something was removed.
+ */
+async function receive(
+  device: { id: string; chainHead: string | null; chainSeq: number },
+  shopId: string,
+  raw: unknown,
+  options: Options,
+  now: Date,
+): Promise<{ syncedThrough: number; error?: string }> {
+  const entries = parseEntries(raw);
+
+  if (entries === null) {
+    return { syncedThrough: device.chainSeq, error: "entries were not in a shape we can read" };
+  }
+
+  if (entries.length === 0) return { syncedThrough: device.chainSeq };
+
+  const check = verify(entries, device.chainHead);
+
+  if (!check.ok) {
+    await options.store.recordChainBroken(device.id, check.reason, now);
+
+    // The watermark does not move. The till keeps the entries and keeps trying,
+    // which is right: they are evidence, and we would rather have them twice
+    // than not at all.
+    return { syncedThrough: device.chainSeq, error: check.reason };
+  }
+
+  await options.store.saveChangeLog(device.id, shopId, entries, check.last, check.lastSeq);
+
+  return { syncedThrough: check.lastSeq };
+}
+
+/**
+ * Validates the shape before anything is hashed.
+ *
+ * Returns null for a batch that is not readable at all, and an empty array when
+ * there simply was not one — the two mean different things to the caller.
+ */
+function parseEntries(raw: unknown): ChangeEntry[] | null {
+  if (raw === undefined || raw === null) return [];
+  if (!Array.isArray(raw)) return null;
+
+  const out: ChangeEntry[] = [];
+
+  for (const item of raw) {
+    if (item === null || typeof item !== "object") return null;
+
+    const e = item as Record<string, unknown>;
+    const text = (key: string) => (typeof e[key] === "string" ? (e[key] as string) : null);
+
+    const seq = typeof e.seq === "number" && Number.isSafeInteger(e.seq) && e.seq > 0 ? e.seq : null;
+    const id = text("id");
+    const entity = text("entity");
+    const entityId = text("entityId");
+    const op = text("op");
+    const payload = text("payload");
+    const at = text("at");
+    const prevHash = text("prevHash");
+    const hash = text("hash");
+
+    if (!seq || !id || !entity || !entityId || !op || payload === null || !at || !prevHash || !hash) {
+      return null;
+    }
+
+    out.push({
+      seq,
+      id,
+      terminalId: text("terminalId") ?? "",
+      entity,
+      entityId,
+      op,
+      payload,
+      at,
+      staffId: text("staffId"),
+      prevHash,
+      hash,
+    });
+  }
+
+  return out;
 }
 
 /**

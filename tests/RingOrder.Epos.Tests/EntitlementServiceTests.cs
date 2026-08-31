@@ -43,12 +43,14 @@ public class EntitlementServiceTests : IDisposable
 
     private EntitlementService Service(
         AppSettings? settings = null,
-        EntitlementClient? client = null) =>
+        EntitlementClient? client = null,
+        ChangeLogRepository? changeLog = null) =>
         new(_store,
             () => settings ?? new AppSettings(),
             client,
             DevKeys,
-            _log.Add);
+            _log.Add,
+            changeLog);
 
     // ---- identity ----------------------------------------------------------
 
@@ -438,5 +440,163 @@ public class EntitlementServiceTests : IDisposable
 
         Assert.True(_store.SetupOffered());
         Assert.True(new EntitlementStore(_db).SetupOffered());
+    }
+
+    // ---- the change log riding on the same call ------------------------------
+
+    private ChangeLogRepository Changes() => new(_db);
+
+    private static ChangeDraft Entry(string entityId) =>
+        new(Guid.NewGuid().ToString("n"), "till-a", ChangeEntity.Order, entityId,
+            ChangeOp.Placed, """{"totalPence":1250}""", DateTimeOffset.Now, "wei");
+
+    /// <summary>
+    /// They go on the entitlement's call rather than one of their own — the pipe
+    /// docs/CLOUD.md described: one question a till asks on a schedule, with
+    /// everything else joining that answer.
+    /// </summary>
+    [Fact]
+    public async Task Pending_entries_ride_on_the_same_call()
+    {
+        var settings = Configured();
+        _store.SaveDeviceSecret("existing");
+        var changes = Changes();
+        changes.Append(Entry("order-1"));
+        changes.Append(Entry("order-2"));
+
+        string? body = null;
+        var token = SignedFor(_store.DeviceId(), ShopEdition.Pos);
+        var service = Service(settings, ClientThat(request =>
+        {
+            body = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            return Json($$"""{"token":"{{token}}","syncedThrough":2}""");
+        }), changes);
+
+        Assert.Equal(RefreshOutcome.Fetched, await service.RefreshAsync(force: true));
+
+        using var sent = JsonDocument.Parse(body!);
+        var entries = sent.RootElement.GetProperty("entries");
+        Assert.Equal(2, entries.GetArrayLength());
+        Assert.Equal(1, entries[0].GetProperty("seq").GetInt64());
+        Assert.Equal(ChangeChain.Genesis, entries[0].GetProperty("prevHash").GetString());
+    }
+
+    /// <summary>
+    /// The watermark follows what the cloud says it stored, never what was sent.
+    /// A lost answer must cost a re-send rather than leave a gap.
+    /// </summary>
+    [Fact]
+    public async Task The_watermark_follows_the_cloud_not_the_send()
+    {
+        var settings = Configured();
+        _store.SaveDeviceSecret("existing");
+        var changes = Changes();
+        for (var i = 0; i < 5; i++) changes.Append(Entry($"order-{i}"));
+
+        var token = SignedFor(_store.DeviceId(), ShopEdition.Pos);
+        var service = Service(settings,
+            ClientThat(_ => Json($$"""{"token":"{{token}}","syncedThrough":3}""")), changes);
+
+        await service.RefreshAsync(force: true);
+
+        Assert.Equal(3, changes.SyncedThrough());
+        Assert.Equal(2, changes.Since(changes.SyncedThrough()).Count);
+    }
+
+    /// <summary>
+    /// The alarm this whole chain exists to be able to raise. The entitlement
+    /// still arrived — a broken log is ours to look at, not a reason to stop a
+    /// shop trading.
+    /// </summary>
+    [Fact]
+    public async Task A_refused_log_is_said_out_loud_and_keeps_its_entries()
+    {
+        var settings = Configured();
+        _store.SaveDeviceSecret("existing");
+        var changes = Changes();
+        changes.Append(Entry("order-1"));
+
+        var token = SignedFor(_store.DeviceId(), ShopEdition.Pos);
+        var service = Service(settings, ClientThat(_ =>
+            Json($$"""{"token":"{{token}}","syncedThrough":0,"logError":"entries are missing"}""")), changes);
+
+        Assert.Equal(RefreshOutcome.Fetched, await service.RefreshAsync(force: true));
+
+        Assert.Equal(0, changes.SyncedThrough());
+        Assert.Single(changes.Since(0));
+        Assert.Contains(_log, l => l.Contains("will not accept"));
+        Assert.Equal(EntitlementSource.Token, service.Current.Source);
+    }
+
+    /// <summary>
+    /// A quiet shop that took no orders makes one call a day, not two hundred
+    /// and eighty-eight empty ones.
+    /// </summary>
+    [Fact]
+    public async Task Nothing_pending_sends_no_entries_field_at_all()
+    {
+        var settings = Configured();
+        _store.SaveDeviceSecret("existing");
+
+        string? body = null;
+        var token = SignedFor(_store.DeviceId(), ShopEdition.Pos);
+        var service = Service(settings, ClientThat(request =>
+        {
+            body = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            return Json($$"""{"token":"{{token}}"}""");
+        }), Changes());
+
+        await service.RefreshAsync(force: true);
+
+        using var sent = JsonDocument.Parse(body!);
+        Assert.False(sent.RootElement.TryGetProperty("entries", out _));
+    }
+
+    /// <summary>
+    /// Two reasons to go: the daily entitlement, or a log waiting to leave. With
+    /// neither, nothing happens — which is what keeps the five-minute tick from
+    /// becoming five-minute traffic.
+    /// </summary>
+    [Fact]
+    public async Task A_recent_attempt_with_nothing_pending_makes_no_request()
+    {
+        var settings = Configured();
+        _store.SaveDeviceSecret("existing");
+        _store.RecordRefreshAttempt(DateTimeOffset.Now);
+
+        var called = false;
+        var service = Service(settings, ClientThat(_ =>
+        {
+            called = true;
+            return Json("{}");
+        }), Changes());
+
+        await service.RefreshAsync();
+
+        Assert.False(called);
+    }
+
+    [Fact]
+    public async Task A_recent_attempt_with_a_backlog_goes_anyway()
+    {
+        var settings = Configured();
+        _store.SaveDeviceSecret("existing");
+        _store.RecordRefreshAttempt(DateTimeOffset.Now - EntitlementPolicy.LogInterval);
+
+        var changes = Changes();
+        changes.Append(Entry("order-1"));
+
+        var called = false;
+        var token = SignedFor(_store.DeviceId(), ShopEdition.Pos);
+        var service = Service(settings, ClientThat(_ =>
+        {
+            called = true;
+            return Json($$"""{"token":"{{token}}","syncedThrough":1}""");
+        }), changes);
+
+        await service.RefreshAsync();
+
+        Assert.True(called);
+        Assert.Equal(1, changes.SyncedThrough());
     }
 }

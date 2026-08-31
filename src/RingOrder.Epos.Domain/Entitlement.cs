@@ -168,6 +168,24 @@ public static class EntitlementPolicy
     public static readonly TimeSpan RefreshInterval = TimeSpan.FromHours(24);
 
     /// <summary>
+    /// How often the change log goes up when there is something to send.
+    /// <para>
+    /// Much shorter than the entitlement's day, because this is evidence rather
+    /// than configuration: entries sitting on a till are entries somebody could
+    /// still delete, and the tail of a chain is the one part the chain cannot
+    /// protect on its own.
+    /// </para>
+    /// <para>
+    /// Not shorter still, because a busy shop would then send after every order.
+    /// Five minutes bounds the exposure without turning a till into a chatterbox.
+    /// </para>
+    /// </summary>
+    public static readonly TimeSpan LogInterval = TimeSpan.FromMinutes(5);
+
+    /// <summary>How many entries go in one batch. Bounded so a long-offline till does not send a day in one request.</summary>
+    public const int LogBatchSize = 200;
+
+    /// <summary>
     /// Resolve what this machine may do.
     /// <list type="number">
     /// <item>signed token, this device, still current → the token</item>
@@ -235,4 +253,15 @@ public static class EntitlementPolicy
     /// </summary>
     public static bool ShouldRefresh(DateTimeOffset? lastAttempt, DateTimeOffset now) =>
         lastAttempt is not { } last || now - last >= RefreshInterval;
+
+    /// <summary>
+    /// Whether to go now because there is a log to send.
+    /// <para>
+    /// <b>Nothing pending means no request at all.</b> A quiet shop that took no
+    /// orders today makes one call a day, not two hundred and eighty-eight empty
+    /// ones.
+    /// </para>
+    /// </summary>
+    public static bool ShouldSendLog(DateTimeOffset? lastAttempt, DateTimeOffset now, bool anyPending) =>
+        anyPending && (lastAttempt is not { } last || now - last >= LogInterval);
 }

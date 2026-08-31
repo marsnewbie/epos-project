@@ -1,5 +1,12 @@
 import pg from "pg";
-import { hashSecret, type Device, type Shop, type ShopSummary, type Store } from "./store.ts";
+import {
+  hashSecret,
+  type ChangeLogRow,
+  type Device,
+  type Shop,
+  type ShopSummary,
+  type Store,
+} from "./store.ts";
 
 /**
  * The store as it runs in production.
@@ -64,16 +71,33 @@ export class PostgresStore implements Store {
   }
 
   async device(deviceId: string): Promise<Device | null> {
-    const { rows } = await this.#pool.query<{ id: string; shop_id: string; secret_hash: string }>(
-      `SELECT id, shop_id, secret_hash FROM devices WHERE id = $1`,
+    const { rows } = await this.#pool.query<{
+      id: string;
+      shop_id: string;
+      secret_hash: string;
+      chain_head: string | null;
+      chain_seq: string | number;
+    }>(
+      `SELECT id, shop_id, secret_hash, chain_head, chain_seq FROM devices WHERE id = $1`,
       [deviceId],
     );
 
     const row = rows[0];
-    return row ? { id: row.id, shopId: row.shop_id, secretHash: row.secret_hash } : null;
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      shopId: row.shop_id,
+      secretHash: row.secret_hash,
+      chainHead: row.chain_head,
+      chainSeq: Number(row.chain_seq),
+    };
   }
 
   async saveDevice(deviceId: string, shopId: string, secretHash: string): Promise<void> {
+    // The chain columns are deliberately absent from the UPDATE: re-activating a
+    // till must not forget where its chain had got to, or the next batch would
+    // look like a rewrite.
     await this.#pool.query(
       `INSERT INTO devices (id, shop_id, secret_hash)
             VALUES ($1, $2, $3)
@@ -81,6 +105,67 @@ export class PostgresStore implements Store {
               SET shop_id = excluded.shop_id,
                   secret_hash = excluded.secret_hash`,
       [deviceId, shopId, secretHash],
+    );
+  }
+
+  /**
+   * One transaction for the whole batch and the head it moves to.
+   *
+   * A head that advanced past entries which failed to insert would refuse every
+   * batch after it, and the shop would look tampered with because of a database
+   * hiccup.
+   */
+  async saveChangeLog(
+    deviceId: string,
+    shopId: string,
+    entries: ChangeLogRow[],
+    head: string,
+    headSeq: number,
+  ): Promise<void> {
+    const client = await this.#pool.connect();
+
+    try {
+      await client.query("BEGIN");
+
+      for (const e of entries) {
+        await client.query(
+          `INSERT INTO change_log
+             (id, device_id, shop_id, seq, terminal_id, entity, entity_id, op,
+              payload, at, at_utc, staff_id, prev_hash, hash)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+           ON CONFLICT (id) DO NOTHING`,
+          [
+            e.id, deviceId, shopId, e.seq, e.terminalId, e.entity, e.entityId, e.op,
+            // `payload` and `at` go in verbatim — they are the bytes that were
+            // hashed. `at_utc` is the derived one, for querying.
+            e.payload, e.at, new Date(e.at), e.staffId, e.prevHash, e.hash,
+          ],
+        );
+      }
+
+      await client.query(
+        `UPDATE devices SET chain_head = $2, chain_seq = $3 WHERE id = $1`,
+        [deviceId, head, headSeq],
+      );
+
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async recordChainBroken(deviceId: string, reason: string, at: Date): Promise<void> {
+    // Only the first break is kept. A chain that broke once is a thing a person
+    // looks at, and overwriting it with a later one loses the event that matters.
+    await this.#pool.query(
+      `UPDATE devices
+          SET chain_broken_at = COALESCE(chain_broken_at, $2),
+              chain_broken_reason = COALESCE(chain_broken_reason, $3)
+        WHERE id = $1`,
+      [deviceId, at, reason],
     );
   }
 

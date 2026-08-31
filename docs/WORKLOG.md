@@ -1707,3 +1707,60 @@ two tickets sharing an order number, then two sharing a line id. Worth noting
 only because they are the constraints a real till has and a fixture forgets.
 
 383 tests.
+
+---
+
+## 2026-08-31 — The change log leaves the machine
+
+Entries now ride on the same `/v1/sync` call as the entitlement, which is what
+[CLOUD.md](CLOUD.md) said the pipe would be for from the start. The decisions are
+there; this records what it cost.
+
+### The bug that would have made every entry look forged
+
+`cloud/src/chain.ts` reimplements `ChangeChain`, and the two have to agree byte
+for byte. The first attempt produced `Z` where .NET produces `+00:00`, and
+`Date.toISOString()`'s three fractional digits where .NET writes seven.
+
+Both spell the same instant. Only one hashes to what the till wrote — so every
+entry from every shop would have arrived looking tampered with, and the alarm
+this whole chain exists to raise would have been firing constantly and meaning
+nothing.
+
+It was caught by **printing the canonical string from the real C# implementation**
+rather than reasoning about the format, and those printed constants are now the
+test. This is the third time on this project that a cross-language format has
+been wrong in a way that looks fine from one side; the pattern that catches it
+every time is the same one — make one side produce, make the other verify, and
+never let a test compare an implementation against itself.
+
+### Two rules that decide what a gap means
+
+**The watermark follows what the cloud says it stored, never what was sent.** A
+lost answer costs a re-send rather than leaving a gap, and an entry the cloud
+refused gets offered again: it is evidence, and holding it twice beats losing it.
+
+**A refused log never stops a shop.** The entitlement comes back in the same
+answer either way. Whoever needs to know is us, not the merchant standing at the
+till at eight on a Saturday.
+
+### Entries are stored verbatim, and that is not tidiness
+
+`payload` and `at` go into Postgres as `TEXT`, not `JSONB` and not `TIMESTAMPTZ`.
+Both of those reformat what they store — JSONB reorders keys and drops
+whitespace, TIMESTAMPTZ re-spells an instant — and the bytes are what was hashed.
+Stored the tidy way an entry could never be re-verified, and nothing anywhere
+would have said so. A separate derived column carries the timestamp for querying.
+
+### A gap that was there all along
+
+Nothing ever refreshed after startup. `RefreshInBackground` was called once and
+there was no timer, so a till left running for a week never asked again — the
+daily refresh described in the docs had never actually happened. There is a tick
+now, and `RefreshAsync` throttles itself, so most of them do nothing.
+
+Two reasons to go: the entitlement is due, or there is a log waiting to leave.
+**Nothing pending and nothing due means no request at all**, so a quiet shop
+still calls once a day rather than two hundred and eighty-eight times.
+
+389 C# tests, 81 TypeScript tests.

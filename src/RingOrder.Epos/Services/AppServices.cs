@@ -118,8 +118,14 @@ public sealed class AppServices
         // The ask happens afterwards and its failure is invisible: a shop whose
         // router is off must not be able to tell.
         EntitlementStore = new EntitlementStore(Db);
-        Entitlement = new EntitlementService(EntitlementStore, () => _cachedSettings);
+        Entitlement = new EntitlementService(
+            EntitlementStore, () => _cachedSettings, changeLog: Changes);
         Entitlement.RefreshInBackground();
+
+        // Nothing else asks again. Without this the entitlement was fetched once
+        // at startup, so a till left running for a week never refreshed and never
+        // sent a change-log entry anywhere.
+        Entitlement.StartPeriodicRefresh();
 
         // Built from the settings on every call rather than captured once, so
         // pasting an API key in Settings takes effect on the next lookup instead

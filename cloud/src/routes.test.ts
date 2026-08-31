@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { describe, it } from "node:test";
 import { activate, adminListShops, adminSaveShop, sync, type Options } from "./routes.ts";
 import { hashSecret, MemoryStore, type Shop } from "./store.ts";
+import { GENESIS, hashOf, type ChangeEntry } from "./chain.ts";
 
 const FIXTURES = join(import.meta.dirname, "..", "..", "fixtures", "entitlement");
 const privateKeyPem = readFileSync(join(FIXTURES, "dev-private.pem"), "utf8");
@@ -409,6 +410,159 @@ describe("admin", () => {
       { shopId: "x", terminals: 1.5 },
     ]) {
       assert.equal((await adminSaveShop(bad, `Bearer ${TOKEN}`, options)).status, 400, JSON.stringify(bad));
+    }
+  });
+});
+
+describe("the change log arriving on sync", () => {
+  async function activated() {
+    const { store, options } = setup();
+    const reply = await activate({ deviceId: DEVICE, activationCode: CODE }, options);
+    return { store, options, secret: reply.body.deviceSecret as string };
+  }
+
+  /** Built the way the till builds one, so the hashes are real. */
+  function chain(count: number, from = GENESIS, firstSeq = 1): ChangeEntry[] {
+    const out: ChangeEntry[] = [];
+    let prev = from;
+
+    for (let i = 0; i < count; i++) {
+      const seq = firstSeq + i;
+      const draft: ChangeEntry = {
+        seq,
+        id: `entry-${seq}`,
+        terminalId: "till-a",
+        entity: "order",
+        entityId: `order-${seq}`,
+        op: "placed",
+        payload: `{"orderNumber":"10${seq}","totalPence":1250}`,
+        at: "2026-08-31T19:30:00.0000000+00:00",
+        staffId: "wei",
+        prevHash: prev,
+        hash: "",
+      };
+      const hash = hashOf(prev, draft);
+      out.push({ ...draft, hash });
+      prev = hash;
+    }
+
+    return out;
+  }
+
+  it("stores a batch and says how far the till may move its watermark", async () => {
+    const { store, options, secret } = await activated();
+    const entries = chain(3);
+
+    const reply = await sync({ deviceId: DEVICE, deviceSecret: secret, entries }, options);
+
+    assert.equal(reply.status, 200);
+    assert.equal(reply.body.syncedThrough, 3);
+    assert.equal(store.entries.length, 3);
+
+    // Still an entitlement, because that is the other half of this call.
+    assert.equal(typeof reply.body.token, "string");
+  });
+
+  it("continues the chain across two calls", async () => {
+    const { store, options, secret } = await activated();
+    const first = chain(2);
+
+    await sync({ deviceId: DEVICE, deviceSecret: secret, entries: first }, options);
+
+    const second = chain(2, first[1]!.hash, 3);
+    const reply = await sync({ deviceId: DEVICE, deviceSecret: secret, entries: second }, options);
+
+    assert.equal(reply.body.syncedThrough, 4);
+    assert.equal(store.entries.length, 4);
+  });
+
+  /**
+   * A till whose answer was lost has no choice but to send again. Storing the
+   * same entry twice would be a log that disagrees with itself.
+   */
+  it("a batch sent twice is stored once", async () => {
+    const { store, options, secret } = await activated();
+    const entries = chain(3);
+
+    await sync({ deviceId: DEVICE, deviceSecret: secret, entries }, options);
+    const again = await sync({ deviceId: DEVICE, deviceSecret: secret, entries }, options);
+
+    assert.equal(store.entries.length, 3);
+    assert.equal(again.body.syncedThrough, 3);
+  });
+
+  /**
+   * The tampering the chain alone cannot see. Once we hold entries, a batch that
+   * does not continue from them says something was removed.
+   */
+  it("a gap is refused, recorded, and does not move the watermark", async () => {
+    const { store, options, secret } = await activated();
+    const all = chain(5);
+
+    await sync({ deviceId: DEVICE, deviceSecret: secret, entries: all.slice(0, 2) }, options);
+
+    // Entries 3 and 4 deleted on the till; 5 arrives claiming to follow them.
+    const reply = await sync({ deviceId: DEVICE, deviceSecret: secret, entries: all.slice(4) }, options);
+
+    assert.equal(reply.status, 200);
+    assert.equal(reply.body.syncedThrough, 2);
+    assert.match(reply.body.logError as string, /missing, or the log was rewritten/);
+    assert.ok(store.broken.has(DEVICE));
+
+    // And the till is still told what it may do — a broken chain is our problem
+    // to look at, not a reason to stop a shop trading.
+    assert.equal(typeof reply.body.token, "string");
+  });
+
+  it("an edited payload is refused", async () => {
+    const { store, options, secret } = await activated();
+    const entries = chain(2);
+    entries[1] = { ...entries[1]!, payload: '{"totalPence":1}' };
+
+    const reply = await sync({ deviceId: DEVICE, deviceSecret: secret, entries }, options);
+
+    assert.match(reply.body.logError as string, /contents were changed/);
+    assert.equal(store.entries.length, 0);
+  });
+
+  it("re-activating a till does not forget where its chain had got to", async () => {
+    const { options, secret } = await activated();
+    const entries = chain(2);
+    await sync({ deviceId: DEVICE, deviceSecret: secret, entries }, options);
+
+    // The same machine activates again — a dropped answer, or a repaired install.
+    const again = await activate({ deviceId: DEVICE, activationCode: CODE }, options);
+    const next = chain(1, entries[1]!.hash, 3);
+
+    const reply = await sync(
+      { deviceId: DEVICE, deviceSecret: again.body.deviceSecret, entries: next },
+      options,
+    );
+
+    assert.equal(reply.body.syncedThrough, 3);
+    assert.equal(reply.body.logError, undefined);
+  });
+
+  it("no entries is not an error, and moves nothing", async () => {
+    const { options, secret } = await activated();
+
+    for (const entries of [undefined, []]) {
+      const reply = await sync({ deviceId: DEVICE, deviceSecret: secret, entries }, options);
+
+      assert.equal(reply.status, 200);
+      assert.equal(reply.body.syncedThrough, 0);
+      assert.equal(reply.body.logError, undefined);
+    }
+  });
+
+  it("rubbish where a batch should be is reported, not thrown", async () => {
+    const { options, secret } = await activated();
+
+    for (const entries of ["not an array", [{ seq: 1 }], [null], [{ seq: 0, id: "x" }]]) {
+      const reply = await sync({ deviceId: DEVICE, deviceSecret: secret, entries }, options);
+
+      assert.equal(reply.status, 200);
+      assert.match(reply.body.logError as string, /shape we can read/);
     }
   });
 });
