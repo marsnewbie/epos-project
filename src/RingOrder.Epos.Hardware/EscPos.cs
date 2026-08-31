@@ -92,12 +92,40 @@ public sealed class EscPosTicketBuilder
         return this;
     }
 
-    /// <summary>ASCII / Latin line (safe for code page).</summary>
+    /// <summary>
+    /// An ordinary line — and Chinese on it goes to raster, like everything else.
+    /// <para>
+    /// It did not, once, and the result was a kitchen ticket where the dish name
+    /// printed correctly and the note beneath it came out as rubbish: dish names
+    /// go through <see cref="KitchenLine"/>, which rasterises, while notes,
+    /// comments and receipt footers came through here and went out as code-page
+    /// bytes the printer could not render.
+    /// </para>
+    /// <para>
+    /// Pure ASCII is untouched, so columns, separators and totals are byte for
+    /// byte what they were.
+    /// </para>
+    /// </summary>
     public EscPosTicketBuilder Line(string text = "")
     {
+        if (_rasterCjk && EscPos.ContainsCjk(text))
+        {
+            _ms.Write(EscPos.AlignLeft);
+            _ms.Write(EscPos.SizeNormal);
+            WriteRasterLine(text, NormalEm);
+            return this;
+        }
+
         RawText(text);
         return Nl();
     }
+
+    /// <summary>
+    /// Body-text size for a rasterised line. Smaller than the 28 a dish
+    /// translation gets and much smaller than a headline's 40 — a note is meant
+    /// to be read, not shouted.
+    /// </summary>
+    private const float NormalEm = 24f;
 
     /// <summary>
     /// Kitchen emphasis line. CJK → raster bitmap (reliable on Windows RAW → GlPrinter80).
@@ -172,8 +200,12 @@ public sealed class EscPosTicketBuilder
     {
         if (!OperatingSystem.IsWindows())
         {
-            // Fallback: GBK text
-            Large().Bold(true).Line(text).Bold(false).Normal();
+            // Code-page bytes, and deliberately not through Line: that now routes
+            // CJK back to here, and the two would call each other for ever.
+            Large().Bold(true);
+            RawText(text);
+            Nl();
+            Bold(false).Normal();
             return;
         }
 
@@ -192,7 +224,11 @@ public sealed class EscPosTicketBuilder
         }
         catch
         {
-            Large().Bold(true).Line(text).Bold(false).Normal();
+            // Same reason: not through Line.
+            Large().Bold(true);
+            RawText(text);
+            Nl();
+            Bold(false).Normal();
         }
     }
 

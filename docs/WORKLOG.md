@@ -1764,3 +1764,31 @@ Two reasons to go: the entitlement is due, or there is a log waiting to leave.
 still calls once a day rather than two hundred and eighty-eight times.
 
 389 C# tests, 81 TypeScript tests.
+
+---
+
+## 2026-08-31 — Chinese on a note printed as rubbish
+
+Found on real hardware, not by a test: a kitchen ticket came off the printer with
+the dish name correct and the note beneath it unreadable.
+
+Two paths, and the contrast was three lines apart in the same loop. A dish's
+translation goes through `KitchenLine`, which renders CJK as a bitmap. The note
+went through `Line`, which emitted code-page bytes the printer cannot render.
+Nothing failed — the ticket printed, it was simply wrong.
+
+`Line` now rasterises CJK too, at a smaller size than a dish translation gets: a
+note is meant to be read, not shouted. **The same defect was in two more places**
+nobody had hit yet — the order-level comments and the receipt footer lines — and
+one change fixed all three, because there was only ever one wrong path.
+
+ASCII is untouched, and there is a test holding it that way: a ticket whose
+columns shifted would be a worse bug than the one being fixed.
+
+**And a trap the fix created and closed in the same commit.** `WriteRasterLine`
+falls back to text when it cannot draw a bitmap, and its fallback called `Line`.
+With `Line` now routing CJK into `WriteRasterLine`, the two would have called each
+other until the stack ran out — on a kitchen ticket, mid-service. The fallbacks
+write bytes directly now, and a test builds a ticket that would have hit it.
+
+394 tests.
