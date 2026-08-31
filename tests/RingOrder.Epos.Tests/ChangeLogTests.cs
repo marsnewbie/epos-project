@@ -531,6 +531,6 @@ public class ChangeLogTests : IDisposable
         ticket.Tenders.Add(new OrderTender { Id = "t-1", Type = TenderType.Cash, Amount = 8.50m });
         orders.Upsert(ticket);
 
-        Assert.Single(_log.Since(0).Where(e => e.Entity == ChangeEntity.Payment));
+        Assert.Single(_log.Since(0), e => e.Entity == ChangeEntity.Payment);
     }
 }

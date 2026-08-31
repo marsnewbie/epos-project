@@ -33,11 +33,26 @@ public class UpdateTests
         Assert.Empty(_log);
     }
 
+    /// <summary>
+    /// A private repository would need a token, and a token inside every till is
+    /// one anybody can extract — and it would read the source as well as the
+    /// releases. If the source ever goes private the releases move to a separate
+    /// public repository; the token never moves into the binary.
+    /// </summary>
     [Fact]
-    public void The_shipped_build_has_no_feed_yet_and_says_so_rather_than_pretending()
+    public void The_feed_is_a_public_repository_and_carries_no_credential()
     {
-        Assert.False(UpdateFeed.IsConfigured);
-        Assert.Equal("", UpdateFeed.Url);
+        Assert.True(UpdateFeed.IsConfigured);
+        Assert.StartsWith("https://github.com/", UpdateFeed.Repository);
+        Assert.DoesNotContain("@", UpdateFeed.Repository);
+        Assert.DoesNotContain("token", UpdateFeed.Repository, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>A shop is not a test channel. Trying a build happens on a machine that is not a merchant's.</summary>
+    [Fact]
+    public void A_pre_release_is_never_sent_to_a_shop()
+    {
+        Assert.False(UpdateFeed.AllowPrerelease);
     }
 
     /// <summary>

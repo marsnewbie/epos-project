@@ -5,22 +5,37 @@ using Velopack.Sources;
 namespace RingOrder.Epos.Services;
 
 /// <summary>
-/// Where a till looks for a new version of itself.
+/// Where a till looks for a new version of itself: the repository whose GitHub
+/// releases hold the packages.
 /// <para>
 /// Compiled in, because it is the same for every shop and it is not a secret —
 /// the same reasoning as <c>CloudEndpoint</c>.
 /// </para>
 /// <para>
-/// <b>Empty until a feed exists, and that is the safe default.</b> With no feed
-/// nothing is checked, nothing is downloaded and the till runs the build it was
-/// installed with — which is exactly what it does today.
+/// <b>The repository must be public.</b> A private one would need a token, and a
+/// token shipped inside every till is a token anybody can extract — one that
+/// would then read the source as well as the releases. If the source ever has to
+/// go private, the releases move to a separate public repository rather than the
+/// token moving into the binary.
+/// </para>
+/// <para>
+/// Empty disables everything, and that is the safe default: with no feed the
+/// till runs the build it was installed with, which is exactly what it does
+/// today.
 /// </para>
 /// </summary>
 public static class UpdateFeed
 {
-    public const string Url = "";
+    public const string Repository = "https://github.com/marsnewbie/epos-project";
 
-    public static bool IsConfigured => !string.IsNullOrWhiteSpace(Url);
+    /// <summary>
+    /// Whether a pre-release counts. False: a shop is not a test channel, and
+    /// the way to try a build is to install it on a machine that is not a
+    /// merchant's.
+    /// </summary>
+    public const bool AllowPrerelease = false;
+
+    public static bool IsConfigured => !string.IsNullOrWhiteSpace(Repository);
 }
 
 /// <summary>
@@ -62,7 +77,7 @@ public sealed class UpdateService
     {
         _log = log ?? AppLog.For("update");
 
-        var url = feedUrl ?? UpdateFeed.Url;
+        var url = feedUrl ?? UpdateFeed.Repository;
 
         if (string.IsNullOrWhiteSpace(url))
         {
@@ -72,7 +87,12 @@ public sealed class UpdateService
 
         try
         {
-            _manager = new UpdateManager(new SimpleWebSource(url));
+            // GithubSource rather than SimpleWebSource: a GitHub release is not a
+            // static directory of files, and pointing a plain web source at one
+            // finds nothing while looking like it is working.
+            //
+            // No access token, deliberately — see UpdateFeed.
+            _manager = new UpdateManager(new GithubSource(url, null, UpdateFeed.AllowPrerelease));
         }
         catch (Exception ex)
         {

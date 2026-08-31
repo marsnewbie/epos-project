@@ -387,6 +387,12 @@ to defraud us — the moat is the cloud product, not this executable.
 
 ### Six measures, and no more
 
+0. **Updates come from this repository's GitHub releases**, and the repository is
+   **public** for a reason: a private one would need an access token, and a token
+   shipped inside every till is one anybody can extract — which would read the
+   source as well as the releases. If the source ever has to go private, the
+   releases move to a separate public repository. The token never moves into the
+   binary.
 1. **ECDSA signed entitlement** binding shop + device identity + expiry, fetched
    and cached — [CLOUD.md](CLOUD.md). The signing key never leaves the service,
    and a copy of it lives offline: losing it degrades every till on the estate
