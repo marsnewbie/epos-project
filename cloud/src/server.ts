@@ -1,7 +1,16 @@
 import { readFileSync } from "node:fs";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import { join } from "node:path";
-import { activate, adminListShops, adminSaveShop, sync, type Options, type Reply } from "./routes.ts";
+import {
+  activate,
+  adminListShops,
+  adminSaveBundle,
+  adminSaveShop,
+  bundle,
+  sync,
+  type Options,
+  type Reply,
+} from "./routes.ts";
 
 /**
  * The HTTP skin over the two handlers.
@@ -121,8 +130,16 @@ async function route(req: IncomingMessage, res: ServerResponse, options: ServerO
       send(res, await sync(body, options));
       return;
 
+    case "/v1/bundle":
+      send(res, await bundle(body, options));
+      return;
+
     case "/v1/admin/shop":
       send(res, await adminSaveShop(body, req.headers.authorization, options));
+      return;
+
+    case "/v1/admin/bundle":
+      send(res, await adminSaveBundle(body, req.headers.authorization, options));
       return;
 
     default:

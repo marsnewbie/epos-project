@@ -427,6 +427,44 @@ The first attempt produced `Z` where .NET produces `+00:00`, and
 the same instant; only one hashes to what the till wrote. Without the pinned
 constants every entry from every shop would have arrived looking tampered with.
 
+## The shop bundle
+
+The step this removes: somebody copying a JSON file onto every machine.
+
+Upload a bundle on `/admin`, from the shop's own row. Every till belonging to
+that shop picks it up and applies it at its **next start**.
+
+**Only the version travels on a sync.** It is the SHA-256 of the bundle,
+computed by the service so it cannot be set to something that does not match the
+contents — which would leave every till convinced it was up to date. The bundle
+itself is fetched from `/v1/bundle` only when that version differs from what the
+till has applied, so a shop whose menu has not changed downloads nothing.
+
+### Applied at the next start, never mid-service
+
+A bundle replaces the whole catalogue. Doing that while somebody is ringing a
+sale would take the dishes out from under their fingers, so the download lands in
+`profile/` and the import happens at startup — the same shape as a restore, and a
+till is restarted far more often than a menu changes.
+
+**The cloud's bundle applies even when the till already has a menu**, which is
+the whole point: a price changes, it is uploaded once, and the estate follows. A
+file placed by hand still only seeds an empty till, exactly as it always did.
+
+A bundle that will not import is recorded as applied anyway. Retrying it at every
+start for the rest of a shop's life would fill the log and fix nothing; the next
+upload has a different version and gets a fresh attempt.
+
+### Credentials are not in it
+
+The bundle is a menu, printers, delivery zones and staff names — what makes a
+till *this shop's* till. The website password and the postcode-lookup key are
+typed once in Settings and stay out of the cloud.
+
+The omission is the decision: holding merchants' passwords to somebody else's
+systems, in exchange for saving four lines of typing on one day of a shop's life,
+is not a trade worth making.
+
 ## Changing the contract
 
 The contract is the shape of what crosses the wire: the token payload, the sync

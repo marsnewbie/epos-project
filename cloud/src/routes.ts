@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { verify, type ChangeEntry } from "./chain.ts";
 import { expiryFrom, format, newCode, normalise } from "./codes.ts";
 import { issue, type Entitlement } from "./tokens.ts";
@@ -22,6 +23,9 @@ export type Request = {
 
   /** Change-log entries the till has not sent us yet, oldest first. */
   entries?: unknown;
+
+  /** The shop bundle, as JSON text. Admin only. */
+  bundle?: unknown;
 
   /** Admin only. */
   shopId?: unknown;
@@ -163,6 +167,11 @@ export async function sync(request: Request, options: Options): Promise<Reply> {
       // How far the till may move its watermark. Never further than what is
       // actually stored, so a lost answer costs a re-send and nothing else.
       syncedThrough: log.syncedThrough,
+
+      // The version only. A till that already has this one downloads nothing —
+      // most shops' menus change a few times a year, and the bundle is the
+      // largest thing this service holds.
+      bundleVersion: shop.bundleVersion,
 
       // Present only when a batch did not add up. The token is returned either
       // way: a chain that broke must not stop a shop trading, and the person who
@@ -313,7 +322,13 @@ export async function adminSaveShop(
     ? request.features.filter((f): f is string => typeof f === "string")
     : [];
 
-  const shop: Shop = { id: shopId, edition, features, terminals };
+  // The bundle version is carried through rather than set here: minting a new
+  // code must not look like a menu change, or every till would re-download.
+  const existing = await options.store.shop(shopId);
+  const shop: Shop = {
+    id: shopId, edition, features, terminals,
+    bundleVersion: existing?.bundleVersion ?? null,
+  };
   const code = newCode();
   const now = options.now?.() ?? new Date();
   const expiresAt = expiryFrom(now);
@@ -382,6 +397,7 @@ export async function adminListShops(
         edition: shop.edition,
         features: shop.features,
         terminals: shop.terminals,
+        bundleVersion: shop.bundleVersion,
         devices: shop.devices,
         lastSeen: shop.lastSeen?.toISOString() ?? null,
         clientVersions: shop.clientVersions,
@@ -390,6 +406,96 @@ export async function adminListShops(
         // stored, so it could not be shown even if it should be.
         activationExpiresAt: shop.activationExpiresAt?.toISOString() ?? null,
       })),
+    },
+  };
+}
+
+/**
+ * The shop's bundle, for a till that has noticed its version differs.
+ *
+ * Authenticated like a sync rather than served openly: a bundle carries a
+ * shop's whole menu, its staff names and its delivery zones.
+ */
+export async function bundle(request: Request, options: Options): Promise<Reply> {
+  const deviceId = str(request.deviceId);
+  const deviceSecret = str(request.deviceSecret);
+
+  if (!deviceId || !deviceSecret) {
+    return { status: 400, body: { error: "deviceId and deviceSecret are required" } };
+  }
+
+  const device = await options.store.device(deviceId);
+  if (!device || !secretMatches(deviceSecret, device.secretHash)) {
+    return { status: 401, body: { error: "unknown device" } };
+  }
+
+  const shop = await options.store.shop(device.shopId);
+  if (!shop) return { status: 401, body: { error: "shop no longer exists" } };
+
+  const contents = await options.store.bundle(shop.id);
+  if (contents === null) {
+    // Not an error. Most shops were set up before this existed and have no
+    // bundle here; theirs is the file already on the machine.
+    return { status: 200, body: { bundle: null, bundleVersion: null } };
+  }
+
+  return { status: 200, body: { bundle: contents, bundleVersion: shop.bundleVersion } };
+}
+
+/**
+ * Uploads a shop's bundle, so a new till stops needing a file copied onto it.
+ *
+ * The version is the hash of what was uploaded, computed here — it cannot be
+ * passed in and therefore cannot be set to something that does not match the
+ * contents, which would leave every till convinced it was up to date.
+ */
+export async function adminSaveBundle(
+  request: Request,
+  authorisation: string | undefined,
+  options: Options,
+): Promise<Reply> {
+  const refused = refuseAdmin(authorisation, options);
+  if (refused) return refused;
+
+  const shopId = str(request.shopId);
+  const contents = typeof request.bundle === "string" ? request.bundle.trim() : null;
+
+  if (!shopId || !contents) {
+    return { status: 400, body: { error: "shopId and bundle are required" } };
+  }
+
+  const shop = await options.store.shop(shopId);
+  if (!shop) return { status: 404, body: { error: "no such shop" } };
+
+  // Checked before it is stored, because a bundle that will not parse would go
+  // to every till belonging to this shop and each would refuse it in turn, with
+  // nothing on this side saying why.
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(contents);
+  } catch {
+    return { status: 400, body: { error: "that file is not JSON" } };
+  }
+
+  if (parsed === null || typeof parsed !== "object" || !("shop" in parsed) || !("menu" in parsed)) {
+    return { status: 400, body: { error: "that JSON is not a shop bundle — it has no shop and menu" } };
+  }
+
+  const version = createHash("sha256").update(contents, "utf8").digest("hex").slice(0, 16);
+  await options.store.saveBundle(shopId, contents, version, options.now?.() ?? new Date());
+
+  const menu = (parsed as { menu?: { items?: unknown[]; categories?: unknown[] } }).menu ?? {};
+
+  return {
+    status: 200,
+    body: {
+      shopId,
+      bundleVersion: version,
+
+      // Echoed back so whoever uploaded it can see they sent the right file,
+      // rather than finding out from a shop.
+      categories: menu.categories?.length ?? 0,
+      items: menu.items?.length ?? 0,
     },
   };
 }

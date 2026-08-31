@@ -41,6 +41,9 @@ public class EntitlementServiceTests : IDisposable
         [string.Concat(File.ReadAllLines(Path.Combine(FixtureDir, "dev-public.pem"))
             .Where(l => !l.StartsWith("-----")).Select(l => l.Trim()))];
 
+    private readonly string _bundlePath =
+        Path.Combine(Path.GetTempPath(), $"ringorder-bundle-{Guid.NewGuid():N}.json");
+
     private EntitlementService Service(
         AppSettings? settings = null,
         EntitlementClient? client = null,
@@ -50,7 +53,8 @@ public class EntitlementServiceTests : IDisposable
             client,
             DevKeys,
             _log.Add,
-            changeLog);
+            changeLog,
+            _bundlePath);
 
     // ---- identity ----------------------------------------------------------
 
@@ -335,6 +339,7 @@ public class EntitlementServiceTests : IDisposable
         _db.Dispose();
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
         try { File.Delete(_dbPath); } catch { /* the temp folder can keep it */ }
+        try { File.Delete(_bundlePath); } catch { /* same */ }
         GC.SuppressFinalize(this);
     }
 
@@ -598,5 +603,102 @@ public class EntitlementServiceTests : IDisposable
 
         Assert.True(called);
         Assert.Equal(1, changes.SyncedThrough());
+    }
+
+    // ---- the shop bundle arriving on its own ---------------------------------
+
+    private const string Menu = """{"shop":{"slug":"demo"},"menu":{"items":[]}}""";
+
+    /// <summary>
+    /// The step this replaces: somebody copying a JSON file onto the machine.
+    /// It lands on disk here and goes in at the next start — never mid-service,
+    /// because a bundle replaces the whole catalogue.
+    /// </summary>
+    [Fact]
+    public async Task A_new_menu_is_downloaded_and_left_for_the_next_start()
+    {
+        var settings = Configured();
+        _store.SaveDeviceSecret("existing");
+        var token = SignedFor(_store.DeviceId(), ShopEdition.Pos);
+
+        var service = Service(settings, ClientThat(request =>
+            request.RequestUri!.AbsolutePath == "/v1/bundle"
+                ? Json($$"""{"bundle":{{JsonSerializer.Serialize(Menu)}},"bundleVersion":"abc123"}""")
+                : Json($$"""{"token":"{{token}}","bundleVersion":"abc123"}""")));
+
+        await service.RefreshAsync(force: true);
+
+        Assert.Equal(Menu, await File.ReadAllTextAsync(_bundlePath));
+        Assert.Equal("abc123", _store.DownloadedBundleVersion());
+
+        // Not applied. That happens at startup, where nobody is mid-sale.
+        Assert.Null(_store.AppliedBundleVersion());
+        Assert.Contains(_log, l => l.Contains("next start"));
+    }
+
+    /// <summary>
+    /// Most syncs carry a version the till already has. Fetching the menu each
+    /// time would send a shop's whole catalogue down the wire every five minutes.
+    /// </summary>
+    [Fact]
+    public async Task A_version_already_applied_downloads_nothing()
+    {
+        var settings = Configured();
+        _store.SaveDeviceSecret("existing");
+        _store.RecordBundleApplied("abc123");
+        _store.RecordBundleDownloaded("abc123");
+        var token = SignedFor(_store.DeviceId(), ShopEdition.Pos);
+
+        var asked = false;
+        var service = Service(settings, ClientThat(request =>
+        {
+            if (request.RequestUri!.AbsolutePath == "/v1/bundle") asked = true;
+            return Json($$"""{"token":"{{token}}","bundleVersion":"abc123"}""");
+        }));
+
+        await service.RefreshAsync(force: true);
+
+        Assert.False(asked);
+    }
+
+    /// <summary>
+    /// A download interrupted halfway through must be tried again, not skipped
+    /// because its version was already written down.
+    /// </summary>
+    [Fact]
+    public async Task A_version_noted_but_missing_from_disk_is_fetched_again()
+    {
+        var settings = Configured();
+        _store.SaveDeviceSecret("existing");
+        _store.RecordBundleDownloaded("abc123");
+        var token = SignedFor(_store.DeviceId(), ShopEdition.Pos);
+
+        var service = Service(settings, ClientThat(request =>
+            request.RequestUri!.AbsolutePath == "/v1/bundle"
+                ? Json($$"""{"bundle":{{JsonSerializer.Serialize(Menu)}},"bundleVersion":"abc123"}""")
+                : Json($$"""{"token":"{{token}}","bundleVersion":"abc123"}""")));
+
+        await service.RefreshAsync(force: true);
+
+        Assert.True(File.Exists(_bundlePath));
+    }
+
+    /// <summary>
+    /// Most shops were set up before this existed and the cloud holds no bundle
+    /// for them. That is the ordinary state, not a fault.
+    /// </summary>
+    [Fact]
+    public async Task A_shop_whose_menu_the_cloud_does_not_hold_is_left_alone()
+    {
+        var settings = Configured();
+        _store.SaveDeviceSecret("existing");
+        var token = SignedFor(_store.DeviceId(), ShopEdition.Pos);
+
+        var service = Service(settings, ClientThat(_ => Json($$"""{"token":"{{token}}"}""")));
+
+        await service.RefreshAsync(force: true);
+
+        Assert.False(File.Exists(_bundlePath));
+        Assert.Null(_store.DownloadedBundleVersion());
     }
 }

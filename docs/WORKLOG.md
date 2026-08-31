@@ -1792,3 +1792,45 @@ other until the stack ran out — on a kitchen ticket, mid-service. The fallback
 write bytes directly now, and a test builds a ticket that would have hit it.
 
 394 tests.
+
+---
+
+## 2026-08-31 — The bundle stops being a file somebody carries
+
+The last manual step in setting up a till: copying `shop.ringpos.json` onto the
+machine. Upload it on `/admin` from the shop's own row instead, and every till
+belonging to that shop picks it up.
+
+**Only the version rides on a sync.** It is the SHA-256, computed by the service
+so it cannot be passed in and set to something that does not match the contents —
+which would leave every till convinced it was already up to date. The bundle
+itself comes from its own call, only when that version differs. A shop whose menu
+has not changed downloads nothing, and a menu is by far the largest thing this
+service holds.
+
+**Applied at the next start, never mid-service.** A bundle replaces the whole
+catalogue; doing that while somebody is ringing a sale takes the dishes out from
+under their fingers. It lands in `profile/` and goes in at startup — the same
+shape as a restore, and a till is restarted far more often than a menu changes.
+
+Two rules that pull in opposite directions and both had to be kept:
+
+- **The cloud's bundle applies even when the till already has a menu.** That is
+  the point of it — a price changes, it is uploaded once, the estate follows.
+- **A file placed by hand still only seeds an empty till**, exactly as it always
+  did. A shop with no cloud behaves as before.
+
+A bundle that will not import is recorded as applied anyway. Retrying at every
+start for the rest of a shop's life would fill the log and fix nothing; the next
+upload has a different version and gets a fresh attempt.
+
+**Credentials are deliberately not in it**, and the omission is the decision.
+Holding merchants' passwords to somebody else's systems, in exchange for saving
+four lines of typing on one day of a shop's life, is not a trade worth making.
+The website password and the lookup key are typed once in Settings.
+
+The bundle path is injectable on `EntitlementService` for the same reason the
+logger is: a test that wrote into the live profile folder would be replacing a
+merchant's menu.
+
+398 C# tests, 90 TypeScript tests.

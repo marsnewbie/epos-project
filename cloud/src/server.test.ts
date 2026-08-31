@@ -25,6 +25,7 @@ store.shops.set("demo-shop", {
   edition: "pos",
   features: [],
   terminals: 1,
+  bundleVersion: null,
   activationKeyHash: hashSecret("K7M2P9QR"),
   activationExpiresAt: null,
 });

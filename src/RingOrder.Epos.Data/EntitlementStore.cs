@@ -21,6 +21,8 @@ public sealed class EntitlementStore
     private const string SecretKey = "cloud.device-secret";
     private const string LastAttemptKey = "cloud.last-refresh-attempt";
     private const string SetupOfferedKey = "cloud.setup-offered";
+    private const string BundleDownloadedKey = "cloud.bundle-downloaded";
+    private const string BundleAppliedKey = "cloud.bundle-applied";
 
     private readonly EposDb _db;
 
@@ -98,6 +100,25 @@ public sealed class EntitlementStore
     public bool SetupOffered() => Read(SetupOfferedKey) is { Length: > 0 };
 
     public void RecordSetupOffered() => Write(SetupOfferedKey, DateTimeOffset.Now.ToString("O"));
+
+    /// <summary>
+    /// The bundle version sitting in <c>profile/</c>, waiting for the next start.
+    /// <para>
+    /// Downloaded and applied are two values on purpose. A bundle replaces the
+    /// whole catalogue, and doing that while somebody is ringing a sale would
+    /// take the dishes out from under their fingers — so it lands on disk when
+    /// the cloud offers it and goes in at the next start, the same way a restore
+    /// does.
+    /// </para>
+    /// </summary>
+    public string? DownloadedBundleVersion() => Read(BundleDownloadedKey);
+
+    public void RecordBundleDownloaded(string version) => Write(BundleDownloadedKey, version);
+
+    /// <summary>The version the catalogue on this till actually came from.</summary>
+    public string? AppliedBundleVersion() => Read(BundleAppliedKey);
+
+    public void RecordBundleApplied(string version) => Write(BundleAppliedKey, version);
 
     private string? Read(string key)
     {

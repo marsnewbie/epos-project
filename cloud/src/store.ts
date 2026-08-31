@@ -14,6 +14,14 @@ export type Shop = {
   edition: string;
   features: string[];
   terminals: number;
+
+  /**
+   * SHA-256 of this shop's bundle, or null if it has none.
+   *
+   * Comes down on every sync; the bundle itself only when it differs from what
+   * the till last applied. A shop whose menu has not changed downloads nothing.
+   */
+  bundleVersion: string | null;
 };
 
 export type Device = {
@@ -90,6 +98,12 @@ export interface Store {
 
   /** Records that a batch did not add up. Never cleared automatically — see the migration. */
   recordChainBroken(deviceId: string, reason: string, at: Date): Promise<void>;
+
+  /** The bundle itself, fetched only when a till says its version differs. */
+  bundle(shopId: string): Promise<string | null>;
+
+  /** Replaces a shop's bundle. Its version is the hash, so it cannot be set wrongly. */
+  saveBundle(shopId: string, bundle: string, version: string, at: Date): Promise<void>;
 }
 
 export type ChangeLogRow = {
@@ -146,6 +160,7 @@ export class MemoryStore implements Store {
   readonly seen = new Map<string, { clientVersion: string | null; at: Date }>();
   readonly entries: ChangeLogRow[] = [];
   readonly broken = new Map<string, { reason: string; at: Date }>();
+  readonly bundles = new Map<string, string>();
 
   async shopForActivation(code: string, now: Date): Promise<Shop | null> {
     for (const shop of this.shops.values()) {
@@ -186,7 +201,27 @@ export class MemoryStore implements Store {
   }
 
   async saveShop(shop: Shop, codeHash: string, expiresAt: Date): Promise<void> {
-    this.shops.set(shop.id, { ...shop, activationKeyHash: codeHash, activationExpiresAt: expiresAt });
+    const existing = this.shops.get(shop.id);
+
+    this.shops.set(shop.id, {
+      ...shop,
+      activationKeyHash: codeHash,
+      activationExpiresAt: expiresAt,
+
+      // A new code must not throw away the shop's menu.
+      bundleVersion: existing?.bundleVersion ?? null,
+    });
+  }
+
+  async bundle(shopId: string): Promise<string | null> {
+    return this.bundles.get(shopId) ?? null;
+  }
+
+  async saveBundle(shopId: string, bundle: string, version: string): Promise<void> {
+    this.bundles.set(shopId, bundle);
+
+    const shop = this.shops.get(shopId);
+    if (shop) this.shops.set(shopId, { ...shop, bundleVersion: version });
   }
 
   async saveChangeLog(
@@ -218,6 +253,7 @@ export class MemoryStore implements Store {
         edition: shop.edition,
         features: shop.features,
         terminals: shop.terminals,
+        bundleVersion: shop.bundleVersion,
         devices: devices.length,
         lastSeen: seen.reduce<Date | null>((a, s) => (!a || s.at > a ? s.at : a), null),
         clientVersions: [...new Set(seen.map((s) => s.clientVersion).filter((v) => v !== null))],

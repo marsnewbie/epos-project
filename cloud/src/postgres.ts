@@ -44,7 +44,7 @@ export class PostgresStore implements Store {
    */
   async shopForActivation(code: string, now: Date): Promise<Shop | null> {
     const { rows } = await this.#pool.query<ShopRow & { activation_expires_at: Date | null }>(
-      `SELECT id, edition, features, terminals, activation_expires_at
+      `SELECT id, edition, features, terminals, bundle_version, activation_expires_at
          FROM shops
         WHERE activation_key_hash = $1`,
       [hashSecret(code)],
@@ -63,7 +63,7 @@ export class PostgresStore implements Store {
 
   async shop(shopId: string): Promise<Shop | null> {
     const { rows } = await this.#pool.query<ShopRow>(
-      `SELECT id, edition, features, terminals FROM shops WHERE id = $1`,
+      `SELECT id, edition, features, terminals, bundle_version FROM shops WHERE id = $1`,
       [shopId],
     );
 
@@ -204,7 +204,7 @@ export class PostgresStore implements Store {
       last_seen: Date | null;
       client_versions: (string | null)[] | null;
     }>(`
-      SELECT s.id, s.edition, s.features, s.terminals, s.activation_expires_at,
+      SELECT s.id, s.edition, s.features, s.terminals, s.bundle_version, s.activation_expires_at,
              COUNT(d.id)                                  AS devices,
              MAX(d.last_seen)                             AS last_seen,
              ARRAY_REMOVE(ARRAY_AGG(DISTINCT d.client_version), NULL) AS client_versions
@@ -223,6 +223,22 @@ export class PostgresStore implements Store {
     }));
   }
 
+  async bundle(shopId: string): Promise<string | null> {
+    const { rows } = await this.#pool.query<{ bundle: string | null }>(
+      `SELECT bundle FROM shops WHERE id = $1`,
+      [shopId],
+    );
+
+    return rows[0]?.bundle ?? null;
+  }
+
+  async saveBundle(shopId: string, bundle: string, version: string, at: Date): Promise<void> {
+    await this.#pool.query(
+      `UPDATE shops SET bundle = $2, bundle_version = $3, bundle_updated_at = $4 WHERE id = $1`,
+      [shopId, bundle, version, at],
+    );
+  }
+
   /** Answers whether the database is reachable, for the health check. */
   async ping(): Promise<void> {
     await this.#pool.query("SELECT 1");
@@ -238,12 +254,14 @@ type ShopRow = {
   edition: string;
   features: string[] | null;
   terminals: number | string;
+  bundle_version?: string | null;
 };
 
 const toShop = (row: ShopRow): Shop => ({
   id: row.id,
   edition: row.edition,
   features: row.features ?? [],
+  bundleVersion: row.bundle_version ?? null,
 
   // `terminals` is an integer column, but node-postgres hands back some numeric
   // types as strings; coercing here keeps that detail out of the token payload,

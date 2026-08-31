@@ -21,6 +21,12 @@ public static class LocalPaths
     /// <summary>Imported shop bundle, kept for reference and re-import.</summary>
     public static string ProfileDirectory => EnsureSubdirectory("profile");
 
+    /// <summary>
+    /// Where a bundle downloaded from the cloud lands, next to any that was put
+    /// there by hand. Named so it is obvious which one arrived on its own.
+    /// </summary>
+    public static string CloudBundlePath => Path.Combine(ProfileDirectory, "cloud.ringpos.json");
+
     /// <summary>Nightly database copies.</summary>
     public static string BackupDirectory => EnsureSubdirectory("backups");
 

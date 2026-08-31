@@ -30,6 +30,7 @@ public sealed class EntitlementService : IDisposable
     /// folder — a defect this project has already had twice.
     /// </summary>
     private readonly Action<string> _log;
+    private readonly string _bundlePath;
 
     /// <summary>Raised when a refresh changed the answer, so a banner can appear or clear.</summary>
     public event EventHandler? Changed;
@@ -52,8 +53,13 @@ public sealed class EntitlementService : IDisposable
         EntitlementClient? client = null,
         IReadOnlyList<string>? publicKeys = null,
         Action<string>? log = null,
-        ChangeLogRepository? changeLog = null)
+        ChangeLogRepository? changeLog = null,
+        string? bundlePath = null)
     {
+        // Injectable for the same reason the logger is: a test that wrote a
+        // bundle into the live profile folder would be replacing a merchant's
+        // menu, which is the defect this project has already had twice.
+        _bundlePath = bundlePath ?? LocalPaths.CloudBundlePath;
         _store = store;
         _changes = changeLog;
         _settings = settings;
@@ -123,6 +129,7 @@ public sealed class EntitlementService : IDisposable
                 _store.SaveToken(result.Token!);
                 Reresolve();
                 AdvanceLog(result, pending.Count);
+                await StageBundleIfNewAsync(result.BundleVersion, ct);
                 break;
 
             case RefreshOutcome.ClientTooOld:
@@ -250,6 +257,44 @@ public sealed class EntitlementService : IDisposable
             settings.Edition,
             deviceId,
             DateTimeOffset.Now);
+    }
+
+    /// <summary>
+    /// Downloads the shop's bundle when the cloud is offering a version this
+    /// till has not applied, and leaves it in <c>profile/</c>.
+    /// <para>
+    /// <b>It is not applied here.</b> A bundle replaces the whole catalogue, and
+    /// doing that while somebody is ringing a sale would take the dishes out
+    /// from under their fingers. It goes in at the next start, the same way a
+    /// restore does — and a till gets restarted far more often than a menu
+    /// changes.
+    /// </para>
+    /// </summary>
+    private async Task StageBundleIfNewAsync(string? offered, CancellationToken ct)
+    {
+        if (_store is null || string.IsNullOrWhiteSpace(offered)) return;
+
+        // Compared against what is on disk as well as what has been applied: a
+        // download interrupted halfway through must be tried again, not skipped
+        // because its version was already written down.
+        if (offered == _store.AppliedBundleVersion() && offered == _store.DownloadedBundleVersion()) return;
+        if (offered == _store.DownloadedBundleVersion() && File.Exists(_bundlePath)) return;
+
+        var (bundle, version) = await _client.FetchBundleAsync(ct);
+        if (string.IsNullOrWhiteSpace(bundle) || string.IsNullOrWhiteSpace(version)) return;
+
+        try
+        {
+            await File.WriteAllTextAsync(_bundlePath, bundle, ct);
+            _store.RecordBundleDownloaded(version);
+            _log($"a new shop bundle ({version}) is ready and goes in at the next start");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // A profile folder that cannot be written is a setup problem, not a
+            // reason to stop: the till carries on with the catalogue it has.
+            _log($"could not save the new bundle: {ex.Message}");
+        }
     }
 
     /// <summary>

@@ -85,6 +85,11 @@ public enum RefreshOutcome
 /// Set when a batch did not add up. The entitlement still came back — a chain
 /// that broke is ours to look at, not a reason to stop a shop trading.
 /// </param>
+/// <param name="BundleVersion">
+/// The hash of the shop's bundle in the cloud. Only the version comes down on a
+/// sync; the bundle itself is fetched only when this differs from what the till
+/// has applied.
+/// </param>
 public sealed record RefreshResult(
     RefreshOutcome Outcome,
     string? Token = null,
@@ -92,7 +97,8 @@ public sealed record RefreshResult(
     string Detail = "",
     string? ShopId = null,
     long? SyncedThrough = null,
-    string? LogError = null);
+    string? LogError = null,
+    string? BundleVersion = null);
 
 /// <summary>
 /// Talks to the entitlement service.
@@ -168,6 +174,40 @@ public sealed class EntitlementClient
             ct);
     }
 
+    /// <summary>
+    /// Fetches the bundle itself, once the version has been seen to differ.
+    /// <para>
+    /// Separate from the sync so that most calls carry a hash and not a menu —
+    /// a bundle is the largest thing this service holds, and a shop's menu
+    /// changes a handful of times a year.
+    /// </para>
+    /// </summary>
+    public async Task<(string? Bundle, string? Version)> FetchBundleAsync(CancellationToken ct = default)
+    {
+        if (!_options.IsConfigured || string.IsNullOrWhiteSpace(_options.DeviceSecret))
+            return (null, null);
+
+        try
+        {
+            var url = $"{_options.BaseUrl.TrimEnd('/')}/v1/bundle";
+            using var response = await _http.PostAsJsonAsync(url, new EntitlementRequest
+            {
+                DeviceId = _options.DeviceId,
+                DeviceSecret = _options.DeviceSecret,
+                ClientVersion = _options.ClientVersion,
+            }, ct);
+
+            if (!response.IsSuccessStatusCode) return (null, null);
+
+            var payload = await response.Content.ReadFromJsonAsync<EntitlementResponse>(ct);
+            return (payload?.Bundle, payload?.BundleVersion);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
+        {
+            return (null, null);
+        }
+    }
+
     private async Task<RefreshResult> PostAsync(string path, EntitlementRequest body, CancellationToken ct)
     {
         try
@@ -199,7 +239,8 @@ public sealed class EntitlementClient
                 $"token fetched from {path}",
                 payload.ShopId,
                 payload.SyncedThrough,
-                payload.LogError);
+                payload.LogError,
+                payload.BundleVersion);
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or OperationCanceledException)
         {
@@ -237,5 +278,11 @@ public sealed class EntitlementClient
 
         public long? SyncedThrough { get; set; }
         public string? LogError { get; set; }
+
+        /// <summary>The hash of the shop's bundle, or null if the cloud holds none.</summary>
+        public string? BundleVersion { get; set; }
+
+        /// <summary>Only on the bundle endpoint. The bundle JSON itself.</summary>
+        public string? Bundle { get; set; }
     }
 }

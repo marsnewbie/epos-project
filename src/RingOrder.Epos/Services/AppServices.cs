@@ -100,6 +100,10 @@ public sealed class AppServices
         AddressCache = new AddressCacheRepository(Db);
         BundleImporter = new BundleImporter(Menu, Settings, Staff, PrintDevices, DeliveryZones);
         Session = new PosSession(Staff, Shifts, Audit);
+
+        // Before provisioning, which asks it whether the cloud has staged a
+        // newer bundle.
+        EntitlementStore = new EntitlementStore(Db);
         ProvisionIfNeeded();
 
         // Secrets written before DPAPI existed are encrypted here, once. Said
@@ -117,7 +121,6 @@ public sealed class AppServices
         // what this till may do — the caller ID port, below, is the first.
         // The ask happens afterwards and its failure is invisible: a shop whose
         // router is off must not be able to tell.
-        EntitlementStore = new EntitlementStore(Db);
         Entitlement = new EntitlementService(
             EntitlementStore, () => _cachedSettings, changeLog: Changes);
         Entitlement.RefreshInBackground();
@@ -191,6 +194,41 @@ public sealed class AppServices
     }
 
     /// <summary>
+    /// Applies the bundle the cloud staged, if it is one this till has not run
+    /// yet. Returns whether it did.
+    /// </summary>
+    private bool ApplyCloudBundleIfNewer()
+    {
+        var downloaded = EntitlementStore.DownloadedBundleVersion();
+
+        if (string.IsNullOrWhiteSpace(downloaded)
+            || downloaded == EntitlementStore.AppliedBundleVersion()
+            || !File.Exists(LocalPaths.CloudBundlePath))
+            return false;
+
+        try
+        {
+            StartupImport = BundleImporter.ImportFromFile(LocalPaths.CloudBundlePath);
+            EntitlementStore.RecordBundleApplied(downloaded);
+
+            AppLog.Info("provision", $"bundle {downloaded} from the cloud: {StartupImport.Summary}");
+            foreach (var warning in StartupImport.Warnings)
+                AppLog.Warn("provision", warning);
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            // Recorded as applied even though it failed, so a bundle that cannot
+            // be imported is not retried at every single start for the rest of
+            // the shop's life. The next upload gets a new version and a fresh go.
+            EntitlementStore.RecordBundleApplied(downloaded);
+            AppLog.Error("provision", $"the bundle from the cloud ({downloaded}) would not import", ex);
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Removes dormant customer records, but only where the shop has both set a
     /// period and asked for it to happen on its own.
     /// <para>
@@ -257,8 +295,22 @@ public sealed class AppServices
     /// with no bundle is not an error — it is a till waiting to be set up, and
     /// saying so beats seeding someone else's menu.
     /// </summary>
+    /// <summary>
+    /// Imports a bundle when there is one to import: a newer one the cloud sent,
+    /// or — on a till that has never been set up — whatever is in the profile
+    /// folder.
+    /// <para>
+    /// The cloud's is checked first and applies <em>even when the till already
+    /// has a menu</em>, because that is the whole point of it: a merchant
+    /// changes a price, it is uploaded once, and every till belonging to that
+    /// shop picks it up at its next start. A file placed by hand still only
+    /// seeds an empty till, which is what it always did.
+    /// </para>
+    /// </summary>
     private void ProvisionIfNeeded()
     {
+        if (ApplyCloudBundleIfNewer()) return;
+
         if (Menu.CountItems() > 0) return;
 
         var bundle = Directory

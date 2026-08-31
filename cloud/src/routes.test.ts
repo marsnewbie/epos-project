@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { createVerify } from "node:crypto";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { activate, adminListShops, adminSaveShop, sync, type Options } from "./routes.ts";
+import { activate, adminListShops, adminSaveBundle, adminSaveShop, bundle, sync, type Options } from "./routes.ts";
 import { hashSecret, MemoryStore, type Shop } from "./store.ts";
 import { GENESIS, hashOf, type ChangeEntry } from "./chain.ts";
 
@@ -22,6 +22,7 @@ function setup(shop: Partial<Shop> = {}, code: string | null = CODE, expiresAt?:
     edition: "pos",
     features: [],
     terminals: 1,
+    bundleVersion: null,
     activationKeyHash: code === null ? null : hashSecret(code),
     activationExpiresAt: expiresAt ?? null,
     ...shop,
@@ -564,5 +565,131 @@ describe("the change log arriving on sync", () => {
       assert.equal(reply.status, 200);
       assert.match(reply.body.logError as string, /shape we can read/);
     }
+  });
+});
+
+describe("the shop bundle", () => {
+  const TOKEN = "admin-token-for-tests";
+  const MENU = JSON.stringify({
+    shop: { slug: "demo-shop", name: "Magic Wok" },
+    menu: { categories: [{ id: "c1" }], items: [{ id: "i1" }, { id: "i2" }] },
+  });
+
+  async function ready() {
+    const { store, options } = setup();
+    const admin: Options = { ...options, adminToken: TOKEN };
+    const activated = await activate({ deviceId: DEVICE, activationCode: CODE }, admin);
+    return { store, options: admin, secret: activated.body.deviceSecret as string };
+  }
+
+  it("uploads a menu and reports what was in it", async () => {
+    const { options } = await ready();
+
+    const reply = await adminSaveBundle({ shopId: "demo-shop", bundle: MENU }, `Bearer ${TOKEN}`, options);
+
+    assert.equal(reply.status, 200);
+    assert.equal(reply.body.items, 2);
+    assert.equal(reply.body.categories, 1);
+    assert.equal(typeof reply.body.bundleVersion, "string");
+  });
+
+  /**
+   * The version comes down on every sync; the bundle only when it differs. A
+   * shop's menu changes a few times a year and it is the largest thing this
+   * service holds.
+   */
+  it("sync carries the version, not the menu", async () => {
+    const { options, secret } = await ready();
+    const saved = await adminSaveBundle({ shopId: "demo-shop", bundle: MENU }, `Bearer ${TOKEN}`, options);
+
+    const reply = await sync({ deviceId: DEVICE, deviceSecret: secret }, options);
+
+    assert.equal(reply.body.bundleVersion, saved.body.bundleVersion);
+    assert.equal(JSON.stringify(reply.body).includes("Magic Wok"), false);
+  });
+
+  it("the menu itself comes from its own call", async () => {
+    const { options, secret } = await ready();
+    const saved = await adminSaveBundle({ shopId: "demo-shop", bundle: MENU }, `Bearer ${TOKEN}`, options);
+
+    const reply = await bundle({ deviceId: DEVICE, deviceSecret: secret }, options);
+
+    assert.equal(reply.status, 200);
+    assert.equal(reply.body.bundle, MENU);
+    assert.equal(reply.body.bundleVersion, saved.body.bundleVersion);
+  });
+
+  /**
+   * The version is the hash of what was uploaded. It cannot be passed in, so it
+   * cannot be set to something that does not match — which would leave every
+   * till convinced it was already up to date.
+   */
+  it("the version is the hash, so the same menu twice does not look like a change", async () => {
+    const { options } = await ready();
+
+    const first = await adminSaveBundle({ shopId: "demo-shop", bundle: MENU }, `Bearer ${TOKEN}`, options);
+    const again = await adminSaveBundle({ shopId: "demo-shop", bundle: MENU }, `Bearer ${TOKEN}`, options);
+    const changed = await adminSaveBundle(
+      { shopId: "demo-shop", bundle: MENU.replace("Magic Wok", "Magic Wok II") },
+      `Bearer ${TOKEN}`,
+      options,
+    );
+
+    assert.equal(first.body.bundleVersion, again.body.bundleVersion);
+    assert.notEqual(first.body.bundleVersion, changed.body.bundleVersion);
+  });
+
+  /**
+   * Checked before it is stored. A bundle that will not parse would go to every
+   * till belonging to the shop and each would refuse it in turn, with nothing on
+   * this side saying why.
+   */
+  it("refuses something that is not a shop bundle", async () => {
+    const { options } = await ready();
+
+    for (const bad of ["not json at all", "{}", '{"shop":{}}', '[]']) {
+      const reply = await adminSaveBundle({ shopId: "demo-shop", bundle: bad }, `Bearer ${TOKEN}`, options);
+      assert.equal(reply.status, 400, bad);
+    }
+  });
+
+  it("refuses a shop that does not exist, and an upload with no token", async () => {
+    const { options } = await ready();
+
+    assert.equal(
+      (await adminSaveBundle({ shopId: "nobody", bundle: MENU }, `Bearer ${TOKEN}`, options)).status, 404);
+    assert.equal(
+      (await adminSaveBundle({ shopId: "demo-shop", bundle: MENU }, "Bearer wrong", options)).status, 401);
+  });
+
+  /**
+   * Most shops were set up before this existed. Having no bundle here is the
+   * ordinary state, not a fault — theirs is the file already on the machine.
+   */
+  it("a shop with no bundle answers with nothing rather than an error", async () => {
+    const { options, secret } = await ready();
+
+    const reply = await bundle({ deviceId: DEVICE, deviceSecret: secret }, options);
+
+    assert.equal(reply.status, 200);
+    assert.equal(reply.body.bundle, null);
+  });
+
+  it("will not hand a menu to a device it does not know", async () => {
+    const { options } = await ready();
+    await adminSaveBundle({ shopId: "demo-shop", bundle: MENU }, `Bearer ${TOKEN}`, options);
+
+    assert.equal((await bundle({ deviceId: "ghost", deviceSecret: "guess" }, options)).status, 401);
+  });
+
+  /** Minting a new code must not look like a menu change, or every till re-downloads. */
+  it("a new activation code leaves the menu version alone", async () => {
+    const { options } = await ready();
+    const saved = await adminSaveBundle({ shopId: "demo-shop", bundle: MENU }, `Bearer ${TOKEN}`, options);
+
+    await adminSaveShop({ shopId: "demo-shop" }, `Bearer ${TOKEN}`, options);
+
+    const shops = (await adminListShops(`Bearer ${TOKEN}`, options)).body.shops as Record<string, unknown>[];
+    assert.equal(shops.find((s) => s.shopId === "demo-shop")?.bundleVersion, saved.body.bundleVersion);
   });
 });

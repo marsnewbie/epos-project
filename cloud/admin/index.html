@@ -85,6 +85,7 @@
         An existing shop keeps its tills and gets a fresh code; the old one stops working at once.
       </p>
       <div id="error"></div>
+      <input id="bundleFile" type="file" accept=".json" class="hidden">
       <div id="code" class="code hidden">
         <!-- Named, because a code with no shop beside it is a code you have to
              remember the context of. -->
@@ -98,7 +99,7 @@
     <div class="panel">
       <table>
         <thead>
-          <tr><th>Shop</th><th>Product</th><th>Tills</th><th>Versions</th><th>Last seen</th><th>Code</th><th></th></tr>
+          <tr><th>Shop</th><th>Product</th><th>Tills</th><th>Versions</th><th>Last seen</th><th>Menu</th><th></th></tr>
         </thead>
         <tbody id="shops"></tbody>
       </table>
@@ -144,9 +145,12 @@ async function refresh() {
       <td>${s.devices} / ${s.terminals}</td>
       <td><code>${s.clientVersions.join(", ") || "—"}</code></td>
       <td class="${seen.cls}">${seen.text}</td>
-      <td class="quiet-text">${live ? "code live" : "—"}</td>
-      <td><button class="quiet recode" data-shop="${s.shopId}"
-                  data-edition="${s.edition}" data-terminals="${s.terminals}">New code</button></td>
+      <td class="quiet-text">${s.bundleVersion ? "<code>" + s.bundleVersion.slice(0, 8) + "</code>" : "—"}${live ? " · code live" : ""}</td>
+      <td style="white-space:nowrap">
+        <button class="quiet upload" data-shop="${s.shopId}">Menu…</button>
+        <button class="quiet recode" data-shop="${s.shopId}"
+                data-edition="${s.edition}" data-terminals="${s.terminals}">New code</button>
+      </td>
     </tr>`;
   }).join("") || `<tr><td colspan="7" class="quiet-text">No shops yet.</td></tr>`;
 
@@ -156,6 +160,45 @@ async function refresh() {
   for (const button of document.querySelectorAll(".recode")) {
     button.onclick = () => mint(button.dataset.shop, button.dataset.edition, Number(button.dataset.terminals));
   }
+
+  // Uploading the menu from the shop's own row, for the same reason a code is
+  // minted there: the name is already on the screen.
+  for (const button of document.querySelectorAll(".upload")) {
+    button.onclick = () => pickBundle(button.dataset.shop);
+  }
+}
+
+/**
+ * Sends a shop's bundle. Tills belonging to it pick it up on their next sync and
+ * apply it at their next start — never mid-service, because a bundle replaces
+ * the whole catalogue.
+ */
+function pickBundle(shopId) {
+  $("bundleFile").onchange = async () => {
+    const file = $("bundleFile").files[0];
+    $("bundleFile").value = "";
+    if (!file) return;
+
+    $("error").textContent = "";
+    try {
+      const saved = await api("/v1/admin/bundle", {
+        method: "POST",
+        body: JSON.stringify({ shopId, bundle: await file.text() }),
+      });
+
+      $("codeFor").textContent = saved.shopId + " — menu updated";
+      $("codeValue").textContent = saved.items + " dishes";
+      $("codeExpiry").textContent =
+        saved.categories + " categories, version " + saved.bundleVersion.slice(0, 8) +
+        ". Tills apply it at their next start.";
+      show($("code"), true);
+      await refresh();
+    } catch (e) {
+      $("error").textContent = String(e.message || e);
+    }
+  };
+
+  $("bundleFile").click();
 }
 
 async function start() {

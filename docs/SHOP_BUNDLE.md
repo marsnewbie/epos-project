@@ -73,14 +73,10 @@ A postcode-lookup account belongs there too, and for a sharper reason: the key i
 billable, so a bundle that carried it would let anyone it was forwarded to spend
 the merchant's credits.
 
-The cloud activation key belongs there for the same reason: it is spent once to
-enrol this installation, and one on a memory stick is one anybody can spend.
-
 ```json
 {
   "shopSlug": "demo",
-  "addressLookup": { "provider": "getaddress", "apiKey": "…" },
-  "cloud": { "baseUrl": "https://…", "activationKey": "…" }
+  "addressLookup": { "provider": "getaddress", "apiKey": "…" }
 }
 ```
 
@@ -89,10 +85,21 @@ Omitting the block leaves lookup switched off, which is the right default — se
 [ARCHITECTURE.md](ARCHITECTURE.md) for why there is no free option that returns
 house numbers.
 
-Omitting `cloud` leaves the till running on the `edition` in its bundle, which is
-a supported state and the one every shop is in today — see [CLOUD.md](CLOUD.md).
-A re-import that supplies no `activationKey` leaves an existing activation alone,
-so updating a menu never un-enrols a machine.
+**No activation key belongs in here.** A till is joined to its shop by somebody
+typing an eight-character code on its first-run screen, and the service's address
+is compiled into the binary because it never differed between shops — see
+[CLOUD.md](CLOUD.md). An optional `cloud` block still pre-fills the same box for
+an automated setup, and a merchant is never asked to edit it.
+
+## Getting it onto a till
+
+Upload it on `/admin`, from the shop's row. Tills belonging to that shop download
+it on their next sync and apply it at their next start — see
+[CLOUD.md](CLOUD.md).
+
+Dropping the file into `%PROGRAMDATA%\RingOrder\EPOS\profile\` still works and
+still seeds a till that has no menu at all. It is the fallback for a shop with no
+cloud, not the normal path.
 
 ## Putting a shop live
 
