@@ -1886,3 +1886,46 @@ invisible from inside the code, and both were obvious within seconds of reading
 what actually came out.
 
 407 tests.
+
+---
+
+## 2026-09-01 — Two repositories, because the source is going private
+
+Packed 1.0.1 and checked the output: `Setup.exe` (51 MB), one full `.nupkg`
+(47 MB), and the manifests. Only a full package, correctly — there is no earlier
+release to make a delta against, and from 1.0.2 there will be.
+
+**`publish/` and `releases/` were not git-ignored.** 240 MB of build output, one
+`git add -A` away from a repository nobody could clone comfortably again — and
+git history is forever. Never committed; ignored now.
+
+### The feed moved off the source repository
+
+The source is going private. A private repository as an update feed needs an
+access token, and a token shipped inside every till is one anybody can extract —
+and it would read the source as well as the releases. That is not a trade worth
+making for a saved repository.
+
+So: `epos-releases`, public, holding releases and no code. `epos-project` can be
+whatever it needs to be. A till needs no credential, and making the source
+private changes nothing about how updates work.
+
+**The ordering rule that comes with it:** the feed must move before the source
+does. A till already installed looks where its build was told to look, and
+changing that afterwards leaves it checking a repository it can no longer see —
+silently, for ever. Nothing is installed yet so today it costs nothing, but it is
+the rule from here.
+
+A test asserts the feed is public, carries no credential, and **is not the source
+repository** — because pointing it back would quietly reopen the hole the day the
+source went private.
+
+### Object storage, and why not yet
+
+R2 or S3 behind a CDN is where this ends up at scale; R2's zero egress is the
+reason, since a full package is 47 MB and every new install pulls one. Not needed
+yet, and deltas are why: from the second release Velopack ships only what
+changed, so two hundred shops taking a dozen updates a year is single-digit
+gigabytes. Moving later is one line — `GithubSource` to `SimpleWebSource`.
+
+408 tests.

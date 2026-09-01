@@ -12,11 +12,20 @@ namespace RingOrder.Epos.Services;
 /// the same reasoning as <c>CloudEndpoint</c>.
 /// </para>
 /// <para>
-/// <b>The repository must be public.</b> A private one would need a token, and a
-/// token shipped inside every till is a token anybody can extract — one that
-/// would then read the source as well as the releases. If the source ever has to
-/// go private, the releases move to a separate public repository rather than the
-/// token moving into the binary.
+/// <b>This is not the source repository, and that is the point.</b> It is a
+/// repository that holds releases and nothing else, so the source can be private
+/// while the feed stays public.
+/// </para>
+/// <para>
+/// The alternative — a private repository plus an access token in the binary —
+/// is not a trade worth making. A token shipped inside every till is one anybody
+/// can extract, and it would read the source as well as the releases. Splitting
+/// the two costs one empty repository and closes that off entirely.
+/// </para>
+/// <para>
+/// <b>The feed must move before the source does.</b> A till already installed
+/// looks where its build was told to look; changing that afterwards leaves it
+/// checking a repository it can no longer see, silently, for ever.
 /// </para>
 /// <para>
 /// Empty disables everything, and that is the safe default: with no feed the
@@ -26,7 +35,7 @@ namespace RingOrder.Epos.Services;
 /// </summary>
 public static class UpdateFeed
 {
-    public const string Repository = "https://github.com/marsnewbie/epos-project";
+    public const string Repository = "https://github.com/marsnewbie/epos-releases";
 
     /// <summary>
     /// Whether a pre-release counts. False: a shop is not a test channel, and

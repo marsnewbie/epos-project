@@ -59,3 +59,9 @@ run-out.txt
 
 # The cloud service's installed packages
 cloud/node_modules/
+
+# Build output. Both are hundreds of megabytes and both are reproducible from a
+# tag — and git history is forever, so one accidental commit of these is a
+# repository nobody can clone comfortably again.
+publish/
+releases/

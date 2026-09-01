@@ -115,6 +115,42 @@ it and the first real install does.
 
 Budget for this early. It gates the first real install.
 
+## Where releases live — decided
+
+Two repositories, and the split is the whole point:
+
+| | Holds | Visibility |
+|---|---|---|
+| `epos-project` | the source | private, or public — either is fine |
+| `epos-releases` | releases only, no code | **public, always** |
+
+`UpdateFeed.Repository` points at the second. A till therefore needs no
+credential to find its updates, and making the source private changes nothing
+about how updates work.
+
+**The feed must move before the source does.** A till already installed looks
+where its build was told to look; changing that afterwards leaves it checking a
+repository it can no longer see, silently, for ever. Nothing is installed yet, so
+today the ordering costs nothing — but it is the rule from here on.
+
+### Why not object storage
+
+Cloudflare R2 or S3 behind a CDN is where this ends up at scale, and R2's zero
+egress is the reason: a full package is ~47 MB and every new install pulls one.
+
+It is not needed yet, and the reason is deltas. From the second release onwards
+Velopack ships only what changed — typically a few megabytes — so two hundred
+shops taking a dozen updates a year is single-digit gigabytes. GitHub carries
+that comfortably. Moving later is a one-line change from `GithubSource` to
+`SimpleWebSource`.
+
+### Building from a private source
+
+Publishing to a public repository from a private one is the ordinary shape: a
+GitHub Actions workflow in the source repo, with a token that can write releases
+on `epos-releases` held as a repository secret. Not built — releases are packed
+and uploaded by hand today, which is right at this size.
+
 ## Update policy — decided in principle, not built
 
 - **Two channels**: stable, and a beta ring that is us and one willing shop.
@@ -387,12 +423,11 @@ to defraud us — the moat is the cloud product, not this executable.
 
 ### Six measures, and no more
 
-0. **Updates come from this repository's GitHub releases**, and the repository is
-   **public** for a reason: a private one would need an access token, and a token
-   shipped inside every till is one anybody can extract — which would read the
-   source as well as the releases. If the source ever has to go private, the
-   releases move to a separate public repository. The token never moves into the
-   binary.
+0. **Updates come from a public repository that holds releases and nothing
+   else** — `epos-releases`. The source is separate and may be private. A private
+   feed would need an access token, and a token shipped inside every till is one
+   anybody can extract; it would read the source as well as the releases.
+   Splitting the two costs one empty repository and closes that off entirely.
 1. **ECDSA signed entitlement** binding shop + device identity + expiry, fetched
    and cached — [CLOUD.md](CLOUD.md). The signing key never leaves the service,
    and a copy of it lives offline: losing it degrades every till on the estate

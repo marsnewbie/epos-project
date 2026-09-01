@@ -50,5 +50,14 @@ vpk pack `
 if ($LASTEXITCODE -ne 0) { throw "vpk pack failed" }
 
 Write-Host "`nPacked $Version into $OutputDir." -ForegroundColor Green
-Write-Host "Upload the whole folder to the update feed. Setup.exe is what a new shop downloads;"
-Write-Host "the .nupkg beside it is what every existing till picks up on its own."
+Write-Host ""
+Write-Host "Publish these as a GitHub release on the RELEASES repository" -ForegroundColor Yellow
+Write-Host "  https://github.com/marsnewbie/epos-releases    (public, holds no source)"
+Write-Host ""
+Write-Host "  RingOrder.Epos-win-Setup.exe   what a new shop downloads, once"
+Write-Host "  RingOrder.Epos-*-full.nupkg    what an installed till fetches"
+Write-Host "  RingOrder.Epos-*-delta.nupkg   the same, but only what changed (from the second release on)"
+Write-Host "  RELEASES / releases.win.json   the manifests the till reads first"
+Write-Host ""
+Write-Host "Tag the release with the bare version. Do NOT tick pre-release: a shop is"
+Write-Host "not a test channel and the till ignores those."

@@ -34,18 +34,23 @@ public class UpdateTests
     }
 
     /// <summary>
-    /// A private repository would need a token, and a token inside every till is
-    /// one anybody can extract — and it would read the source as well as the
-    /// releases. If the source ever goes private the releases move to a separate
-    /// public repository; the token never moves into the binary.
+    /// The feed carries no credential, and it is not the source repository.
+    /// <para>
+    /// A private repository would need an access token, and a token inside every
+    /// till is one anybody can extract — it would read the source as well as the
+    /// releases. Splitting the two costs one empty repository and closes that
+    /// off; pointing the feed back at the source would quietly reopen it the day
+    /// the source went private.
+    /// </para>
     /// </summary>
     [Fact]
-    public void The_feed_is_a_public_repository_and_carries_no_credential()
+    public void The_feed_is_public_carries_no_credential_and_is_not_the_source()
     {
         Assert.True(UpdateFeed.IsConfigured);
         Assert.StartsWith("https://github.com/", UpdateFeed.Repository);
         Assert.DoesNotContain("@", UpdateFeed.Repository);
         Assert.DoesNotContain("token", UpdateFeed.Repository, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("epos-project", UpdateFeed.Repository);
     }
 
     /// <summary>A shop is not a test channel. Trying a build happens on a machine that is not a merchant's.</summary>
